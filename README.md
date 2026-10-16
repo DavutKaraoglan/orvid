@@ -5,7 +5,7 @@
 Android video player that searches YouTube and 50+ other sites at once and sends every request over Tor.
 
 - **Tor built in.** Orvid starts its own Tor client and gives each source and each video its own circuit. Requests wait until Tor is connected.
-- *OSearch many sites.** YouTube, Dailymotion, VK, Twitch, PeerTube, Internet Archive, Odysee, Rutube, TED and more, merged and ranked together. Adult sources stay hidden until unlocked with a gesture and an age check (spread two fingers apart on the main screen, then turn them on in the filter panel).
+- **Search many sites.** YouTube, Dailymotion, VK, Twitch, PeerTube, Internet Archive, Odysee, Rutube, TED and more, merged and ranked together. Adult sources stay hidden until unlocked with a gesture and an age check (spread two fingers apart on the main screen, then turn them on in the filter panel).
 - **Captions for any video.** whisper.cpp runs on the phone and writes captions for videos that have none. Translations go through Tor.
 - **Memory only.** Watched videos and thumbnails stay in memory. Closing the app clears its cache, cookies and Tor state.
 
