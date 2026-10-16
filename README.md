@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo.png" width="128" alt="Orvid logo"></p>
+
 # Orvid
 
 Android video player that searches YouTube and 50+ other sites at once and sends every request over Tor.
