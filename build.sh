@@ -63,11 +63,11 @@ if [ "${DEV:-0}" = 1 ]; then
   SRCDIRS+=("$ROOT/dev/src")
   MANIFEST="$OUT/AndroidManifest.dev.xml"
   sed -e 's#<uses-permission android:name="android.permission.INTERNET" />#&\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />#' \
-      -e 's#</application>#        <activity android:name=".dev.DevUpdate" android:exported="true" android:launchMode="singleTop" android:theme="@android:style/Theme.Translucent.NoTitleBar" />\n        <activity android:name=".dev.CfProbe" android:exported="true" android:theme="@android:style/Theme.Material.NoActionBar" />\n        <activity android:name=".dev.SearchProbe" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" />\n    </application>#' \
+      -e 's#</application>#        <activity android:name=".dev.DevUpdate" android:exported="true" android:launchMode="singleTop" android:theme="@android:style/Theme.Translucent.NoTitleBar" />\n        <activity android:name=".dev.CfProbe" android:exported="true" android:theme="@android:style/Theme.Material.NoActionBar" />\n        <activity android:name=".dev.SearchProbe" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" />\n        <activity android:name=".dev.ThumbProbe" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" />\n    </application>#' \
       "$ROOT/AndroidManifest.xml" > "$MANIFEST"
 fi
 LIBRES=()
-for d in "$ROOT"/libres/*/; do
+for d in "$ROOT"/libs/res/*/; do
   name="$(basename "$d")"
   aapt2 compile --dir "$d" -o "$OUT/libres-$name.zip"
   LIBRES+=(-R "$OUT/libres-$name.zip")

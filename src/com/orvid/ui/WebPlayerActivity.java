@@ -173,8 +173,11 @@ public final class WebPlayerActivity extends Activity {
         showBar();
     }
 
+    private final Panic panic = new Panic();
+
     @Override
     public boolean dispatchTouchEvent(android.view.MotionEvent e) {
+        if (panic.feed(this, e)) return true;
         if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) showBar();
         return super.dispatchTouchEvent(e);
     }

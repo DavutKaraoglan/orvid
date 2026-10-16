@@ -12,7 +12,6 @@ import com.orvid.net.Fetch;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -36,12 +35,63 @@ public final class Images {
                 return value.getByteCount() / 1024;
             }
         };
-        pool = new ThreadPoolExecutor(8, 8, 30, TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>() {
-            @Override
-            public boolean offer(Runnable job) {
-                return super.offerFirst(job);
-            }
-        });
+        pool = new ThreadPoolExecutor(12, 12, 30, TimeUnit.SECONDS, new java.util.concurrent.PriorityBlockingQueue<Runnable>());
+    }
+
+    private static final String WARM_URL = "https://i.ytimg.com/vi/jNQXAC9IVRw/default.jpg";
+    private static final int WARM_CONNECTIONS = 12;
+    private static final long WARM_EVERY_MS = 60000;
+    private volatile long warmedAt;
+    private final java.util.concurrent.ExecutorService warmer = java.util.concurrent.Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "orvid-warm");
+        t.setDaemon(true);
+        return t;
+    });
+
+    public void warm() {
+        long now = System.currentTimeMillis();
+        if (now - warmedAt < WARM_EVERY_MS) return;
+        warmedAt = now;
+        String circuit = circuitFor(WARM_URL);
+        for (int i = 0; i < WARM_CONNECTIONS; i++) {
+            warmer.execute(() -> {
+                try {
+                    Fetch.on(circuit, () -> download(WARM_URL, null));
+                } catch (Exception ignored) {
+                }
+            });
+        }
+    }
+
+    private final java.util.concurrent.atomic.AtomicLong order = new java.util.concurrent.atomic.AtomicLong();
+
+    private final java.util.Set<String> ahead = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final long BATCH_MS = 120;
+    private static final int VISIBLE = 0;
+    private static final int AHEAD = 1;
+
+    private final class Job implements Runnable, Comparable<Job> {
+        final int priority;
+        final long seq = order.incrementAndGet();
+        final long batch = android.os.SystemClock.uptimeMillis() / BATCH_MS;
+        final Runnable work;
+
+        Job(int priority, Runnable work) {
+            this.priority = priority;
+            this.work = work;
+        }
+
+        @Override
+        public void run() {
+            work.run();
+        }
+
+        @Override
+        public int compareTo(Job other) {
+            if (priority != other.priority) return Integer.compare(priority, other.priority);
+            if (priority == VISIBLE && batch != other.batch) return Long.compare(other.batch, batch);
+            return Long.compare(seq, other.seq);
+        }
     }
 
     public void load(final ImageView view, final String url, final int targetWidth, final String page) {
@@ -59,15 +109,47 @@ public final class Images {
             return;
         }
         view.setImageDrawable(null);
-        pool.execute(() -> {
-            byte[] bytes = obtain(smaller(url, targetWidth), page);
-            if (bytes == null || !key.equals(view.getTag(R.id.image_key))) return;
-            Bitmap bitmap = decode(bytes, targetWidth);
-            if (bitmap == null) return;
-            memory.put(key, bitmap);
-            main.post(() -> {
-                if (key.equals(view.getTag(R.id.image_key))) view.setImageBitmap(bitmap);
-            });
+        java.util.Set<ImageView> fresh = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        java.util.Set<ImageView> views = waiting.putIfAbsent(key, fresh);
+        if (views != null) {
+            views.add(view);
+            Bitmap done = memory.get(key);
+            if (done != null) view.setImageBitmap(done);
+            return;
+        }
+        fresh.add(view);
+        String wanted = smaller(url, targetWidth);
+        pool.execute(new Job(VISIBLE, () -> {
+            try {
+                if (!wanted(key)) return;
+                byte[] bytes = obtain(wanted, page);
+                Bitmap bitmap = bytes == null ? null : decode(bytes, targetWidth);
+                if (bitmap == null) return;
+                memory.put(key, bitmap);
+                deliver(key, bitmap);
+            } finally {
+                waiting.remove(key);
+            }
+        }));
+    }
+
+    private final java.util.concurrent.ConcurrentHashMap<String, java.util.Set<ImageView>> waiting = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private boolean wanted(String key) {
+        java.util.Set<ImageView> views = waiting.get(key);
+        if (views == null) return false;
+        views.removeIf(v -> !key.equals(v.getTag(R.id.image_key)));
+        return !views.isEmpty();
+    }
+
+    private void deliver(String key, Bitmap bitmap) {
+        java.util.Set<ImageView> views = waiting.get(key);
+        if (views == null) return;
+        java.util.List<ImageView> targets = new java.util.ArrayList<>(views);
+        main.post(() -> {
+            for (ImageView v : targets) {
+                if (key.equals(v.getTag(R.id.image_key))) v.setImageBitmap(bitmap);
+            }
         });
     }
 
@@ -75,7 +157,14 @@ public final class Images {
         if (url == null || url.isEmpty() || memory.get(url + "@" + targetWidth) != null) return;
         String wanted = smaller(url, targetWidth);
         if (raw.get(wanted) != null) return;
-        prefetchPool.execute(() -> obtain(wanted, page));
+        if (!ahead.add(wanted)) return;
+        pool.execute(new Job(AHEAD, () -> {
+            try {
+                obtain(wanted, page);
+            } finally {
+                ahead.remove(wanted);
+            }
+        }));
     }
 
     private final LruCache<String, byte[]> raw = new LruCache<String, byte[]>(48 * 1024) {
@@ -85,12 +174,8 @@ public final class Images {
         }
     };
     private final java.util.concurrent.ConcurrentHashMap<String, Object> locks = new java.util.concurrent.ConcurrentHashMap<>();
-    private final ThreadPoolExecutor prefetchPool = new ThreadPoolExecutor(3, 3, 30, TimeUnit.SECONDS,
-            new java.util.concurrent.LinkedBlockingQueue<Runnable>());
 
-    {
-        prefetchPool.allowCoreThreadTimeOut(true);
-    }
+    private final CircuitHealth health = new CircuitHealth();
 
     private byte[] obtain(String wanted, String page) {
         byte[] known = raw.get(wanted);
@@ -104,8 +189,11 @@ public final class Images {
                 String referer = referer(page);
                 for (int attempt = 0; attempt < ATTEMPTS; attempt++) {
                     try {
+                        long began = android.os.SystemClock.uptimeMillis();
                         byte[] body = Fetch.on(circuit, () -> fetch(wanted, referer));
                         if (body != null && body.length > 0 && decodable(body)) {
+                            long now = android.os.SystemClock.uptimeMillis();
+                            if (health.record(circuit, now - began, true, now)) Fetch.rotate(circuit);
                             raw.put(wanted, body);
                             return body;
                         }
@@ -158,7 +246,11 @@ public final class Images {
     }
 
     private static String smaller(String url, int targetWidth) {
-        if (targetWidth > 400 || !url.contains("i.ytimg.com/")) return url;
+        if (targetWidth > 400) return url;
+        if (url.contains(".coub.com/") && url.contains("/big_")) return url.replace("/big_", "/small_");
+        if (url.contains(".pstatic.net/") && url.contains("type=o500x280")) return url.replaceFirst("type=o500x280[^&]*", "type=w320");
+        if (url.contains(".porngo.com/") && url.contains("/medium@2x/")) return url.replace("/medium@2x/", "/medium/");
+        if (!url.contains("i.ytimg.com/")) return url;
         String out = url.replace("/hq720.webp", "/mqdefault.webp").replace("/hq720.jpg", "/mqdefault.jpg")
                 .replace("/hqdefault.webp", "/mqdefault.webp").replace("/hqdefault.jpg", "/mqdefault.jpg");
         if (out.equals(url)) return url;

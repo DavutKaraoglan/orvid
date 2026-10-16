@@ -41,6 +41,7 @@ public final class XHamster {
         public String author = "";
         public String hls;
         public String referer = REFERER;
+        public com.orvid.play.Storyboard.Spec sprite;
     }
 
     public static boolean handles(String url) {
@@ -105,6 +106,9 @@ public final class XHamster {
             if (t.find()) m.title = t.group(1).replaceAll("\\s*[|-]\\s*xHamster.*$", "").trim();
         }
         m.author = model.getObject("author").getString("name", "");
+        String sprite = model.getString("spriteURL", null);
+        int frames = model.getInt("spriteCount", 0);
+        if (sprite != null && frames > 0) m.sprite = new com.orvid.play.Storyboard.Spec(sprite, 320, 180, frames, 1, frames);
         return m;
     }
 

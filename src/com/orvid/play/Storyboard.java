@@ -46,6 +46,29 @@ public final class Storyboard {
         this.circuit = circuit;
     }
 
+    public static final class Spec {
+        final String url;
+        final int frameWidth;
+        final int frameHeight;
+        final int cols;
+        final int rows;
+        final int count;
+
+        public Spec(String url, int frameWidth, int frameHeight, int cols, int rows, int count) {
+            this.url = url;
+            this.frameWidth = frameWidth;
+            this.frameHeight = frameHeight;
+            this.cols = cols;
+            this.rows = rows;
+            this.count = count;
+        }
+    }
+
+    public static Storyboard grid(Spec spec, long durationMs, String circuit) {
+        if (spec == null || spec.url == null || durationMs <= 0 || spec.count <= 0) return null;
+        return new Storyboard(spec.url, spec.frameWidth, spec.frameHeight, spec.count, spec.cols, spec.rows, durationMs, circuit);
+    }
+
     public static Storyboard parse(String spec, long durationMs, String circuit) {
         if (spec == null || spec.isEmpty() || durationMs <= 0) return null;
         String[] parts = spec.split("\\|");

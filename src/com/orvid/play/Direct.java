@@ -7,6 +7,7 @@ public final class Direct {
     public final boolean hls;
     public final String referer;
     public String circuit;
+    public Storyboard.Spec sprite;
 
     public Direct(String title, String author, String url, boolean hls, String referer) {
         this.title = title == null ? "" : title;
@@ -14,6 +15,11 @@ public final class Direct {
         this.url = url;
         this.hls = hls;
         this.referer = referer;
+    }
+
+    public Direct sprite(Storyboard.Spec spec) {
+        this.sprite = spec;
+        return this;
     }
 
     public Direct via(String circuit) {

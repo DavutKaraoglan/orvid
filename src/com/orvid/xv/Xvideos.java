@@ -36,7 +36,10 @@ public final class Xvideos {
         public String author = "";
         public String hls;
         public String mp4;
+        public com.orvid.play.Storyboard.Spec sprite;
     }
+
+    private static final Pattern SLIDE = Pattern.compile("setThumbSlideBig\\('([^']+)'\\)");
 
     public static boolean handles(String url) {
         return url != null && VIDEO.matcher(url).find();
@@ -81,6 +84,8 @@ public final class Xvideos {
         out.mp4 = emptyToNull(call(html, "setVideoUrlHigh"));
         if (out.mp4 == null) out.mp4 = emptyToNull(call(html, "setVideoUrlLow"));
         if (out.hls == null && out.mp4 == null) throw new IOException("no stream");
+        Matcher slide = SLIDE.matcher(html);
+        if (slide.find()) out.sprite = new com.orvid.play.Storyboard.Spec(slide.group(1), 208, 117, 10, 10, 100);
         return out;
     }
 

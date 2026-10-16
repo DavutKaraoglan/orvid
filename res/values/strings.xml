@@ -15,7 +15,7 @@
     <string name="error_unsupported">This link is not supported yet</string>
     <string name="error_playback">The video could not be played</string>
     <string name="crash_title">Orvid stopped last time</string>
-    <string name="crash_saved">A crash report was saved to Downloads.</string>
+    <string name="crash_saved">A crash report was saved to Download/Orvid/tmp.</string>
     <string name="crash_share">Share</string>
     <string name="tor_banner_starting">Connecting to Tor… %d%%</string>
     <string name="tor_banner_failed">Tor is not connected. Nothing is sent until it is. Tap to retry.</string>
@@ -89,4 +89,18 @@
     <string name="layout_grid3">Three-column grid</string>
     <string name="clear">Clear</string>
     <string name="all_sources">All sources</string>
+    <string name="tor_banner_bridge">Connecting to Tor through a bridge (%1$s)… %2$d%%</string>
+    <string name="update_title">Update available</string>
+    <string name="update_message">Orvid %1$s is out. Download it from GitHub?</string>
+    <string name="update_open">Download</string>
+    <string name="update_later">Later</string>
+    <string name="privacy">Privacy</string>
+    <string name="app_lock">App lock</string>
+    <string name="lock_title">Orvid is locked</string>
+    <string name="lock_unlock">Unlock</string>
+    <string name="lock_prompt">Unlock Orvid</string>
+    <string name="lock_no_screen">Set a screen lock in Android settings first.</string>
+    <string name="panic_exit">Panic exit (swipe down with two fingers)</string>
+    <string name="tor_bridges">Tor bridge (if your network blocks Tor)</string>
+    <string name="tor_bridge_hint">If your network blocks Tor, turn on the bridge under Privacy in the filter panel.</string>
 </resources>

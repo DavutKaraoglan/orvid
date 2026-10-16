@@ -117,6 +117,14 @@ public final class PlayerActivity extends Activity {
     private final Runnable saveLive = this::saveDiag;
 
     @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent e) {
+        if (panic.feed(this, e)) return true;
+        return super.dispatchTouchEvent(e);
+    }
+
+    private final Panic panic = new Panic();
+
+    @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         if (android.os.Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(false);
@@ -209,12 +217,15 @@ public final class PlayerActivity extends Activity {
 
             @Override
             public void onPlaybackStateChanged(int state) {
+                stage.removeCallbacks(stallWatch);
                 if (state == Player.STATE_BUFFERING) {
                     buffering.setVisibility(View.VISIBLE);
                     Diag.mark("player buffering");
+                    watchStall();
                 } else if (state == Player.STATE_READY) {
                     buffering.setVisibility(View.GONE);
                     Diag.mark("player ready");
+                    applySprite();
                 }
             }
 
@@ -560,6 +571,46 @@ public final class PlayerActivity extends Activity {
 
     private static final int TOR_TWITCH_MAX_BITRATE = 2_000_000;
     private int reclaims;
+    private com.orvid.play.Storyboard.Spec pendingSprite;
+
+    private void applySprite() {
+        long duration = player.getDuration();
+        if (pendingSprite == null || duration <= 0 || duration == C.TIME_UNSET) return;
+        com.orvid.play.Storyboard sb = com.orvid.play.Storyboard.grid(pendingSprite, duration, circuit);
+        pendingSprite = null;
+        if (sb != null) showFrames(sb);
+    }
+    private static final long STALL_START_MS = 8000;
+    private static final long STALL_PLAYING_MS = 10000;
+    private static final long STALL_PROGRESS_MS = 3000;
+    private int stallSwitches;
+    private long stallBuffered;
+    private final Runnable stallWatch = this::onStall;
+
+    private void watchStall() {
+        stallBuffered = player.getBufferedPosition();
+        stage.postDelayed(stallWatch, firstFrame ? STALL_PLAYING_MS : STALL_START_MS);
+    }
+
+    private void onStall() {
+        if (isFinishing() || !Fetch.torMode() || player.getPlaybackState() != Player.STATE_BUFFERING
+                || !player.getPlayWhenReady() || stallSwitches >= 2 || pageUrl == null) return;
+        long buffered = player.getBufferedPosition();
+        if (buffered - stallBuffered >= STALL_PROGRESS_MS) {
+            watchStall();
+            return;
+        }
+        stallSwitches++;
+        resumeAt = Math.max(0, player.getCurrentPosition());
+        Diag.mark("stalled, switching circuit (" + stallSwitches + ")");
+        if (circuit != null) Fetch.rotate(circuit);
+        if (videoId != null) {
+            Visionos.forget(videoId);
+            loadFast();
+        } else {
+            route();
+        }
+    }
     private AutoCaptions captions;
 
     AutoCaptions captions() {
@@ -845,6 +896,7 @@ public final class PlayerActivity extends Activity {
                 sources.clear();
                 if (m.hls != null) sources.add(new HlsMediaSource.Factory(data).createMediaSource(MediaItem.fromUri(m.hls)));
                 if (m.mp4 != null) sources.add(new ProgressiveMediaSource.Factory(data).createMediaSource(MediaItem.fromUri(m.mp4)));
+                pendingSprite = m.sprite;
                 startPlayback();
             }
 
@@ -930,6 +982,7 @@ public final class PlayerActivity extends Activity {
                 CircuitDataSource.Factory data = new CircuitDataSource.Factory(circuit, Fetch.USER_AGENT, r.value.referer);
                 sources.clear();
                 sources.add(new HlsMediaSource.Factory(data).createMediaSource(MediaItem.fromUri(r.value.hls)));
+                pendingSprite = r.value.sprite;
                 startPlayback();
             }
 
@@ -983,6 +1036,7 @@ public final class PlayerActivity extends Activity {
         MediaItem item = MediaItem.fromUri(d.url);
         sources.add(d.hls ? new HlsMediaSource.Factory(data).createMediaSource(item)
                 : new ProgressiveMediaSource.Factory(data).createMediaSource(item));
+        pendingSprite = d.sprite;
         startPlayback();
     }
 
@@ -1446,6 +1500,7 @@ public final class PlayerActivity extends Activity {
         debug.removeCallbacks(saveLive);
         saveDiag();
         stage.removeCallbacks(sampler);
+        stage.removeCallbacks(stallWatch);
         controls.release();
         captions.release();
         saveToSession();

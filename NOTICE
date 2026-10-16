@@ -21,11 +21,16 @@ Native binaries (libs/native/)
   https://github.com/guardianproject/tor-android
 - libwhisper.so built from whisper.cpp and ggml - MIT -
   https://github.com/ggml-org/whisper.cpp (source: tools/whisper/build.sh)
+- libgojni.so and libs/iptproxy-5.7.0.jar from IPtProxy 5.7.0 (Lyrebird obfs4
+  and meek_lite, Snowflake client) - MIT, with BSD-2-Clause and BSD-3-Clause
+  parts - https://github.com/tladesignz/IPtProxy
 - libc++_shared.so from LLVM - Apache-2.0 WITH LLVM-exception - https://llvm.org
 
 Data and assets
 - res/raw/geoip_dach: subset of the Tor GeoIP file, generated from the IPFire
   Location database - CC BY-SA 4.0 - https://location.ipfire.org
+- res/raw/bridges.json: default bridge lines from Tor Browser's pt_config.json -
+  https://gitlab.torproject.org/tpo/applications/tor-browser-build
 - Source icons from Simple Icons - CC0-1.0 - https://simpleicons.org
 - Other source icons are the favicons of the respective sites. Names and logos
   belong to their owners and identify the source of a result.

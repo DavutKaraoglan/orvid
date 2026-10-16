@@ -68,6 +68,7 @@ public final class Ui {
     }
 
     private static String pickThumbnail(List<Image> images, int targetWidth) {
+        int enough = targetWidth <= 400 ? targetWidth * 3 / 4 : targetWidth;
         Image best = null;
         for (Image i : images) {
             if (best == null) {
@@ -76,8 +77,8 @@ public final class Ui {
             }
             int w = i.getWidth() > 0 ? i.getWidth() : i.getHeight() * 16 / 9;
             int bw = best.getWidth() > 0 ? best.getWidth() : best.getHeight() * 16 / 9;
-            boolean fits = w >= targetWidth;
-            boolean bestFits = bw >= targetWidth;
+            boolean fits = w >= enough;
+            boolean bestFits = bw >= enough;
             if (fits && (!bestFits || w < bw) || !fits && !bestFits && w > bw) best = i;
         }
         return best == null ? null : best.getUrl();

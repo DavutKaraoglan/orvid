@@ -219,6 +219,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 clearButton.setVisibility(s.length() == 0 ? View.GONE : View.VISIBLE);
+                if (s.length() > 0) OrvidApp.get().images().warm();
             }
 
             @Override
@@ -321,6 +322,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
         super.onStart();
         Tor.get().addListener(this);
         refreshTor();
+        com.orvid.app.UpdateCheck.run(this);
     }
 
     @Override
@@ -340,10 +342,14 @@ public final class MainActivity extends Activity implements Tor.Listener {
     private void refreshTor() {
         Tor.State st = Tor.get().state();
         if (st == Tor.State.STARTING) {
-            torBanner.setText(getString(R.string.tor_banner_starting, Tor.get().progress()));
+            com.orvid.tor.Bridges.Mode mode = Tor.get().mode();
+            torBanner.setText(mode == com.orvid.tor.Bridges.Mode.DIRECT
+                    ? getString(R.string.tor_banner_starting, Tor.get().progress())
+                    : getString(R.string.tor_banner_bridge, mode.name().toLowerCase(java.util.Locale.ROOT), Tor.get().progress()));
             torBanner.setVisibility(View.VISIBLE);
         } else if (st == Tor.State.FAILED) {
-            torBanner.setText(R.string.tor_banner_failed);
+            torBanner.setText(OrvidApp.get().bridges() ? getString(R.string.tor_banner_failed)
+                    : getString(R.string.tor_banner_failed) + " " + getString(R.string.tor_bridge_hint));
             torBanner.setVisibility(View.VISIBLE);
         } else {
             torBanner.setVisibility(View.GONE);
@@ -403,6 +409,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
     private Exception lastSourceError;
 
     private void runSearch(final String input) {
+        OrvidApp.get().images().warm();
         dismissSuggest();
         if (running != null) running.cancel();
         running = null;
@@ -423,6 +430,9 @@ public final class MainActivity extends Activity implements Tor.Listener {
         lastSourceError = null;
         if (flush != null) list.removeCallbacks(flush);
         flush = null;
+        if (rankTask != null) list.removeCallbacks(rankTask);
+        rankTask = null;
+        rankDirty = false;
         shown = false;
         arrived = null;
         final Query q = Query.parse(input);
@@ -565,7 +575,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
     private Fetch.Scope searchScope;
     private volatile Query extraQuery;
     private final Query[] extraStarted = new Query[Sources.EXTRA.size()];
-    private static final int SEARCH_SLOTS = 6;
+    private static final int SEARCH_SLOTS = 16;
     private static final java.util.concurrent.ThreadPoolExecutor SEARCH = new java.util.concurrent.ThreadPoolExecutor(
             SEARCH_SLOTS, SEARCH_SLOTS, 30, java.util.concurrent.TimeUnit.SECONDS,
             new java.util.concurrent.PriorityBlockingQueue<Runnable>());
@@ -652,29 +662,84 @@ public final class MainActivity extends Activity implements Tor.Listener {
         arrived.set(source, merged);
         if (!shown) {
             if (pendingSources <= 0 || (source == 0 && !items.isEmpty())) {
-                showArrived(generation, q, f);
+                if (flush != null) list.removeCallbacks(flush);
+                flush = null;
+                requestRank(generation, true);
             } else if (flush == null) {
-                flush = () -> showArrived(generation, q, f);
+                flush = () -> requestRank(generation, true);
                 list.postDelayed(flush, GRACE_MS);
             }
         } else {
-            mergeTail(q, f);
+            requestRank(generation, false);
         }
         finishIfDone();
     }
 
-    private void showArrived(int generation, Query q, Filters f) {
-        if (generation != searchGeneration || shown) return;
-        if (flush != null) list.removeCallbacks(flush);
-        flush = null;
-        List<StreamInfoItem> ranked = f.arrange(query, arrived, WEIGHTS, TAGGED);
+    private static final long RANK_THROTTLE_MS = 300;
+    private static final java.util.concurrent.ExecutorService RANK = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "orvid-rank");
+        t.setDaemon(true);
+        return t;
+    });
+    private boolean rankBusy;
+    private boolean rankDirty;
+    private Runnable rankTask;
+
+    private void requestRank(int generation, boolean immediate) {
+        if (rankBusy) {
+            rankDirty = true;
+            return;
+        }
+        if (rankTask != null) {
+            if (!immediate) return;
+            list.removeCallbacks(rankTask);
+        }
+        rankTask = () -> {
+            rankTask = null;
+            startRank(generation);
+        };
+        list.postDelayed(rankTask, immediate ? 0 : RANK_THROTTLE_MS);
+    }
+
+    private void startRank(int generation) {
+        if (generation != searchGeneration || arrived == null || query == null) return;
+        rankBusy = true;
+        rankDirty = false;
+        List<List<StreamInfoItem>> snapshot = new ArrayList<>(arrived);
+        Query use = query;
+        Filters f = filters;
+        RANK.execute(() -> {
+            List<StreamInfoItem> ranked;
+            try {
+                ranked = f.arrange(use, snapshot, WEIGHTS, TAGGED);
+            } catch (RuntimeException e) {
+                ranked = null;
+            }
+            List<StreamInfoItem> result = ranked;
+            runOnUiThread(() -> {
+                rankBusy = false;
+                if (generation == searchGeneration && result != null) applyRanked(result);
+                if (rankDirty) {
+                    rankDirty = false;
+                    requestRank(searchGeneration, !shown);
+                }
+                finishIfDone();
+            });
+        });
+    }
+
+    private void applyRanked(List<StreamInfoItem> ranked) {
+        if (shown) {
+            mergeTail(ranked);
+            return;
+        }
         if (ranked.isEmpty() && pendingSources > 0) return;
         shown = true;
         adapter.set(ranked);
         list.setSelection(0);
         prepareTop(ranked);
-        finishIfDone();
     }
+
 
     private static final int PREPARE_TOP = 3;
 
@@ -688,14 +753,14 @@ public final class MainActivity extends Activity implements Tor.Listener {
         }
     }
 
-    private void mergeTail(Query q, Filters f) {
+    private void mergeTail(List<StreamInfoItem> ranked) {
         List<StreamInfoItem> current = adapter.items();
         int visible = Math.max(0, list.getLastVisiblePosition() - list.getHeaderViewsCount() + 1);
         int keep = Math.min(current.size(), visible * adapter.columns() + 4);
         List<StreamInfoItem> merged = new ArrayList<>(current.subList(0, keep));
         java.util.Set<String> seen = new java.util.HashSet<>();
         for (StreamInfoItem i : merged) seen.add(i.getUrl());
-        for (StreamInfoItem i : f.arrange(query, arrived, WEIGHTS, TAGGED)) if (seen.add(i.getUrl())) merged.add(i);
+        for (StreamInfoItem i : ranked) if (seen.add(i.getUrl())) merged.add(i);
         for (StreamInfoItem i : current.subList(keep, current.size())) if (seen.add(i.getUrl())) merged.add(i);
         adapter.set(merged);
     }
@@ -708,13 +773,13 @@ public final class MainActivity extends Activity implements Tor.Listener {
     }
 
     private void finishIfDone() {
-        if (pendingSources <= 0 && !shown && arrived != null && query != null) {
-            shown = true;
+        if (pendingSources <= 0 && !shown && arrived != null && query != null && !rankBusy) {
             if (flush != null) list.removeCallbacks(flush);
             flush = null;
-            adapter.set(filters.arrange(query, arrived, WEIGHTS, TAGGED));
+            requestRank(searchGeneration, true);
+            return;
         }
-        if (pendingSources > 0 || adapter.itemCount() > 0) return;
+        if (pendingSources > 0 || adapter.itemCount() > 0 || rankBusy || rankTask != null) return;
         adapter.set(Collections.<StreamInfoItem>emptyList());
         showMessage(lastSourceError != null ? Ui.error(this, lastSourceError) : emptyMessage());
     }
@@ -864,6 +929,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
     }
 
     private android.view.ScaleGestureDetector pinch;
+    private final Panic panic = new Panic();
     private android.widget.ListPopupWindow suggestPopup;
     private int suggestVersion;
     private Runnable suggestJob;
@@ -938,6 +1004,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
 
     @Override
     public boolean dispatchTouchEvent(android.view.MotionEvent e) {
+        if (panic.feed(this, e)) return true;
         if (pinch != null) pinch.onTouchEvent(e);
         return super.dispatchTouchEvent(e);
     }

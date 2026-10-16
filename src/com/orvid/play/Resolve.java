@@ -99,7 +99,7 @@ public final class Resolve {
         }
         if (com.orvid.xv.Xvideos.handles(url)) {
             com.orvid.xv.Xvideos.Media m = com.orvid.xv.Xvideos.resolve(c, url);
-            return m.mp4 != null ? new Direct(m.title, m.author, m.mp4, false, null) : new Direct(m.title, m.author, m.hls, true, null);
+            return (m.mp4 != null ? new Direct(m.title, m.author, m.mp4, false, null) : new Direct(m.title, m.author, m.hls, true, null)).sprite(m.sprite);
         }
         if (com.orvid.ay.Aylo.handles(url)) {
             com.orvid.ay.Aylo.Media m = com.orvid.ay.Aylo.resolve(c, url);
@@ -111,7 +111,7 @@ public final class Resolve {
         }
         if (com.orvid.xh.XHamster.handles(url)) {
             com.orvid.xh.XHamster.Media m = com.orvid.xh.XHamster.resolve(c, url);
-            return new Direct(m.title, m.author, m.hls, true, m.referer);
+            return new Direct(m.title, m.author, m.hls, true, m.referer).sprite(m.sprite);
         }
         if (com.orvid.tn.Tnaflix.handles(url)) {
             com.orvid.tn.Tnaflix.Media m = com.orvid.tn.Tnaflix.resolve(c, url);

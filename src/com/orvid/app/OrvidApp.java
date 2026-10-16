@@ -20,14 +20,19 @@ public final class OrvidApp extends Application {
     private static OrvidApp instance;
     private Images images;
     private SharedPreferences prefs;
+    private AppLock lock;
 
     @Override
     public void onCreate() {
+        System.setProperty("http.maxConnections", "48");
+        System.setProperty("http.keepAliveDuration", "300000");
         super.onCreate();
         instance = this;
         CrashLog.install(this);
         new Thread(() -> TempLogs.sweep(this), "orvid-sweep").start();
         prefs = getSharedPreferences("settings", MODE_PRIVATE);
+        lock = new AppLock(prefs);
+        registerActivityLifecycleCallbacks(lock);
         NewPipe.init(Fetch.get());
         images = new Images(new File(getCacheDir(), "thumbs"));
         if (prefs.contains("mode")) prefs.edit().remove("mode").apply();
@@ -45,12 +50,35 @@ public final class OrvidApp extends Application {
         return images;
     }
 
+    public AppLock lock() {
+        return lock;
+    }
+
+    public boolean panicExit() {
+        return prefs.getBoolean("panic_exit", true);
+    }
+
+    public void setPanicExit(boolean on) {
+        prefs.edit().putBoolean("panic_exit", on).apply();
+    }
+
     public boolean debugOverlay() {
         return prefs.getBoolean("debug", false);
     }
 
     public void setDebugOverlay(boolean on) {
         prefs.edit().putBoolean("debug", on).apply();
+    }
+
+    public boolean bridges() {
+        return prefs.getBoolean("tor_bridges", false);
+    }
+
+    public void setBridges(boolean on) {
+        prefs.edit().putBoolean("tor_bridges", on).apply();
+        Tor.get().stop();
+        Tor.dach().stop();
+        applyTor(true);
     }
 
     public void restartTor() {
@@ -77,6 +105,11 @@ public final class OrvidApp extends Application {
             File dir = new File(getFilesDir(), "tor");
             dir.mkdirs();
             String binary = getApplicationInfo().nativeLibraryDir + "/libtor.so";
+            com.orvid.tor.Bridges.configure(new File(getFilesDir(), "pt").getAbsolutePath(), rawText(com.orvid.R.raw.bridges));
+            com.orvid.tor.Bridges.setEnabled(bridges());
+            Tor.get().prefer(savedBridge());
+            Tor.get().removeListener(bridgeWatcher);
+            Tor.get().addListener(bridgeWatcher);
             Tor.get().start(dir, binary, android.os.Process.myPid());
             File dachDir = new File(getFilesDir(), "tor-dach");
             Tor.dach().prepare(dachDir, binary, android.os.Process.myPid(), () -> seedDach(dir, dachDir));
@@ -87,6 +120,28 @@ public final class OrvidApp extends Application {
         }
         Visionos.dropPool();
         Visionos.refill();
+    }
+
+    private final Tor.Listener bridgeWatcher = () -> {
+        if (Tor.get().state() == Tor.State.READY && Tor.get().mode() != com.orvid.tor.Bridges.Mode.DIRECT) {
+            prefs.edit().putString("tor_bridge", Tor.get().mode().name()).apply();
+        }
+    };
+
+    private com.orvid.tor.Bridges.Mode savedBridge() {
+        try {
+            return com.orvid.tor.Bridges.Mode.valueOf(prefs.getString("tor_bridge", "DIRECT"));
+        } catch (IllegalArgumentException e) {
+            return com.orvid.tor.Bridges.Mode.DIRECT;
+        }
+    }
+
+    private String rawText(int id) {
+        try (java.io.InputStream in = getResources().openRawResource(id)) {
+            return new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) {
+            return "{}";
+        }
     }
 
     private void seedDach(File main, File dach) {

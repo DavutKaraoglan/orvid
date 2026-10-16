@@ -45,6 +45,17 @@ public final class Tor {
     private final int circuitPorts;
     private final String exitNodes;
     private Runnable setup;
+    private volatile Bridges.Mode mode = Bridges.Mode.DIRECT;
+    private volatile Bridges.Mode preferred = Bridges.Mode.DIRECT;
+    private static final long STALL_MS = 30000;
+
+    public Bridges.Mode mode() {
+        return mode;
+    }
+
+    public void prefer(Bridges.Mode m) {
+        preferred = m == null ? Bridges.Mode.DIRECT : m;
+    }
     private int owner;
 
     private Tor(int circuitPorts, String exitNodes) {
@@ -76,6 +87,7 @@ public final class Tor {
             if (state == State.STARTING || state == State.READY || dir == null) return;
             d = dir;
             before = setup;
+            if (this != INSTANCE) preferred = INSTANCE.mode;
         }
         if (before != null) before.run();
         start(d, binary, owner);
@@ -121,16 +133,19 @@ public final class Tor {
         }
         changed();
         Thread t = new Thread(() -> {
-            for (int attempt = 1; attempt <= 5; attempt++) {
+            List<Bridges.Mode> plan = Bridges.order(preferred);
+            int attempts = Math.max(3, plan.size() * 2);
+            for (int attempt = 0; attempt < attempts; attempt++) {
+                mode = plan.get(attempt % plan.size());
                 if (run(ownerPid)) return;
                 synchronized (lock) {
-                    if (state != State.FAILED || attempt == 5) return;
+                    if (state != State.FAILED || attempt == attempts - 1) return;
                     state = State.STARTING;
                     progress = 0;
                 }
                 changed();
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(2000);
                 } catch (InterruptedException e) {
                     return;
                 }
@@ -202,6 +217,7 @@ public final class Tor {
                         .append("ExitNodes ").append(exitNodes).append('\n')
                         .append("StrictNodes 1\n");
             }
+            rc.append(Bridges.torrc(mode));
             for (int i = 0; i < circuitPorts; i++) rc.append("HTTPTunnelPort auto\n");
             try (FileOutputStream out = new FileOutputStream(torrc)) {
                 out.write(rc.toString().getBytes(StandardCharsets.UTF_8));
@@ -218,20 +234,24 @@ public final class Tor {
             }
             drain(p.getInputStream());
 
-            long deadline = System.currentTimeMillis() + 180000;
+            long deadline = System.currentTimeMillis() + mode.budgetMs;
+            long movedAt = System.currentTimeMillis();
             while (!controlFile.isFile() || controlFile.length() == 0) {
                 if (!alive(p) || System.currentTimeMillis() > deadline) throw new IOException("tor did not start");
                 Thread.sleep(100);
             }
             while (true) {
                 if (!alive(p)) throw new IOException("tor exited");
-                if (System.currentTimeMillis() > deadline) throw new IOException("tor bootstrap timeout");
+                long now = System.currentTimeMillis();
+                if (now > deadline) throw new IOException("tor bootstrap timeout");
+                if (now - movedAt > (mode == Bridges.Mode.DIRECT ? STALL_MS : STALL_MS * 2)) throw new IOException("tor bootstrap stalled at " + progress + "%");
                 String phase = control("GETINFO status/bootstrap-phase");
                 Matcher m = PROGRESS.matcher(phase);
                 Matcher s = SUMMARY.matcher(phase);
                 int pct = m.find() ? Integer.parseInt(m.group(1)) : progress;
                 String sum = s.find() ? s.group(1) : summary;
                 if (pct != progress || !sum.equals(summary)) {
+                    movedAt = System.currentTimeMillis();
                     progress = pct;
                     summary = sum;
                     changed();

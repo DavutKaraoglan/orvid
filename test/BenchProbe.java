@@ -29,19 +29,26 @@ public class BenchProbe {
         if (s.adult) return s.orientation == Source.GAY ? "muscle" : s.orientation == Source.TRANS ? "blonde" : "milf";
         return "cat";
     }
-    static long firstBytes(String c, String url, String ref) throws Exception {
+    static String firstBytes(String c, String url, String ref) throws Exception {
         long t = System.currentTimeMillis();
-        Fetch.on(c, () -> {
+        long[] first = {-1};
+        int n = Fetch.on(c, () -> {
             HttpURLConnection h = Fetch.open(url);
             h.setRequestProperty("User-Agent", Fetch.USER_AGENT);
             h.setRequestProperty("Accept-Encoding", "identity");
-            h.setRequestProperty("Range", "bytes=0-262143");
+            h.setRequestProperty("Range", "bytes=0-4194303");
             if (ref != null) h.setRequestProperty("Referer", ref);
             int code = h.getResponseCode();
             if (code >= 400) throw new IOException("media HTTP " + code);
-            return h.getInputStream().readAllBytes().length;
+            first[0] = System.currentTimeMillis() - t;
+            byte[] buf = new byte[65536]; int total = 0, r;
+            try (InputStream in = h.getInputStream()) {
+                while (total < 4194304 && System.currentTimeMillis() - t < 20000 && (r = in.read(buf)) > 0) total += r;
+            }
+            return total;
         });
-        return System.currentTimeMillis() - t;
+        long ms = System.currentTimeMillis() - t - first[0];
+        return first[0] + "ms " + (ms > 0 ? n * 1000L / 1024 / ms : 0) + "KB/s " + (n / 1024) + "KB";
     }
     static String mediaUrl(String c, String url, boolean hls, String ref) throws Exception {
         if (!hls) return url;
@@ -136,7 +143,7 @@ public class BenchProbe {
                     else { Resolve.Stream s = Resolve.preview(url); if (s == null) throw new IOException("no resolver"); m = s.direct.url; hls = s.direct.hls; ref = s.direct.referer; mc = s.circuit; }
                     long resolveMs = System.currentTimeMillis() - t;
                     String media = mediaUrl(mc, m, hls, ref);
-                    long fb = firstBytes(mc, media, ref);
+                    String fb = firstBytes(mc, media, ref);
                     out.println(row.append('\t').append(resolveMs).append('\t').append(fb).append('\t').append(hls ? "HLS" : "MP4").append('\t').append(java.net.URI.create(media).getHost()));
                 } catch (Exception ex) {
                     out.println(row.append("\t-\t-\t-\t").append(ex.getClass().getSimpleName()).append(':').append(String.valueOf(ex.getMessage()).replace('\t', ' ')));

@@ -202,6 +202,23 @@ final class FilterSheet {
                     changed[0] = true;
                 });
 
+        section(activity, column, R.string.privacy);
+        com.orvid.app.AppLock lock = com.orvid.app.OrvidApp.get().lock();
+        Switch[] lockSwitch = new Switch[1];
+        lockSwitch[0] = source(activity, column, activity.getString(R.string.app_lock), R.drawable.ic_lock,
+                lock.enabled(), on -> {
+                    if (on && !com.orvid.app.AppLock.available(activity)) {
+                        android.widget.Toast.makeText(activity, R.string.lock_no_screen, android.widget.Toast.LENGTH_LONG).show();
+                        lockSwitch[0].setChecked(false);
+                        return;
+                    }
+                    lock.setEnabled(on);
+                });
+        source(activity, column, activity.getString(R.string.tor_bridges), R.drawable.ic_bridge,
+                com.orvid.app.OrvidApp.get().bridges(), on -> com.orvid.app.OrvidApp.get().setBridges(on));
+        source(activity, column, activity.getString(R.string.panic_exit), R.drawable.ic_panic,
+                com.orvid.app.OrvidApp.get().panicExit(), on -> com.orvid.app.OrvidApp.get().setPanicExit(on));
+
         dialog.setOnDismissListener(d -> {
             boolean any = filters.youtube || filters.dailymotion || filters.vk;
             for (com.orvid.search.Source s : Sources.EXTRA) any |= filters.on(s) && !(s.adult && filters.hideAdult);
