@@ -1,0 +1,35 @@
+Orvid
+Copyright (C) 2026 Orvid contributors
+Licensed under the GNU General Public License v3.0 or later. See LICENSE.
+
+Orvid bundles or builds on the following third-party work.
+
+Java libraries (libs/)
+- NewPipe Extractor 0.26.5 - GPL-3.0 - https://github.com/TeamNewPipe/NewPipeExtractor
+- AndroidX Media3 1.11.1 (ExoPlayer) - Apache-2.0 - https://github.com/androidx/media
+- AndroidX WebKit 1.17.1, Annotation, ExifInterface - Apache-2.0 - https://developer.android.com/jetpack/androidx
+- Guava 33.3.1, failureaccess - Apache-2.0 - https://github.com/google/guava
+- jsoup 1.22.2 - MIT - https://jsoup.org
+- nanojson - MIT or Apache-2.0 - https://github.com/mmastrac/nanojson
+- Rhino 1.8.1 - MPL-2.0 - https://github.com/mozilla/rhino
+- protobuf-javalite 4.35.1 - BSD-3-Clause - https://github.com/protocolbuffers/protobuf
+- JSR 305 annotations 3.0.2 - Apache-2.0 - https://github.com/findbugsproject/findbugs
+
+Native binaries (libs/native/)
+- libtor.so from tor-android 0.4.9.14 (Tor, OpenSSL, libevent and their
+  dependencies) - BSD-3-Clause and the licenses of the bundled projects -
+  https://github.com/guardianproject/tor-android
+- libwhisper.so built from whisper.cpp and ggml - MIT -
+  https://github.com/ggml-org/whisper.cpp (source: tools/whisper/build.sh)
+- libc++_shared.so from LLVM - Apache-2.0 WITH LLVM-exception - https://llvm.org
+
+Data and assets
+- res/raw/geoip_dach: subset of the Tor GeoIP file, generated from the IPFire
+  Location database - CC BY-SA 4.0 - https://location.ipfire.org
+- Source icons from Simple Icons - CC0-1.0 - https://simpleicons.org
+- Other source icons are the favicons of the respective sites. Names and logos
+  belong to their owners and identify the source of a result.
+
+Downloaded at runtime
+- Whisper base model (ggml-base-q5_1.bin) from
+  https://huggingface.co/ggerganov/whisper.cpp - MIT (OpenAI Whisper weights)

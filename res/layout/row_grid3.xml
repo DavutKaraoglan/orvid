@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingStart="6dp"
+    android:paddingEnd="6dp">
+
+    <include android:id="@+id/cell_left" layout="@layout/cell_tile" />
+
+    <include android:id="@+id/cell_mid" layout="@layout/cell_tile" />
+
+    <include android:id="@+id/cell_right" layout="@layout/cell_tile" />
+</LinearLayout>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#FFF9F9FB</color>
+    <color name="surface">#FFF0F0F4</color>
+    <color name="elevated">#FFFFFFFF</color>
+    <color name="divider">#FFE0E0E6</color>
+    <color name="text_primary">#FF15141A</color>
+    <color name="text_secondary">#FF5B5B66</color>
+    <color name="text_disabled">#FFA5A5B0</color>
+    <color name="accent">#FF7D4698</color>
+    <color name="accent_soft">#1F7D4698</color>
+    <color name="on_accent">#FFFFFFFF</color>
+    <color name="art_placeholder">#FFE6E4EC</color>
+    <color name="scrim">#66000000</color>
+    <color name="ripple">#1F7D4698</color>
+    <color name="player_bg">#FF000000</color>
+    <color name="badge_bg">#CC000000</color>
+    <color name="badge_text">#FFFFFFFF</color>
+    <color name="launcher_bg">#FF59316B</color>
+    <color name="search_bg">#FFEDEBF2</color>
+</resources>

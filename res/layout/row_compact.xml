@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/selectableItemBackground"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/gutter"
+    android:paddingTop="6dp"
+    android:paddingEnd="@dimen/gutter"
+    android:paddingBottom="6dp">
+
+    <FrameLayout
+        android:layout_width="160dp"
+        android:layout_height="wrap_content">
+
+        <com.orvid.ui.ThumbView
+            android:id="@+id/thumb"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_thumb"
+            android:scaleType="centerCrop" />
+
+        <TextView
+            android:id="@+id/duration"
+            style="@style/DurationBadge" />
+
+        <ImageView
+            android:id="@+id/source_icon"
+            style="@style/SourceBadge" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/sub"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+    </LinearLayout>
+</LinearLayout>

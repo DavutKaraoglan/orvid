@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/topbar_height"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:paddingStart="12dp"
+            android:paddingEnd="8dp"
+            android:singleLine="true"
+            android:drawableStart="@drawable/logo_onion"
+            android:drawablePadding="8dp"
+            android:gravity="center_vertical"
+            android:text="@string/app_name"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/text_header"
+            android:textStyle="bold" />
+
+        <FrameLayout
+            android:id="@+id/search_box"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/search_field"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_search"
+                android:hint="@string/search_hint"
+                android:imeOptions="actionSearch|flagNoPersonalizedLearning"
+                android:inputType="text"
+                android:paddingStart="40dp"
+                android:paddingEnd="16dp"
+                android:singleLine="true"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_secondary"
+                android:textSize="16sp" />
+
+            <ImageButton
+                android:id="@+id/search_clear"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginStart="4dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/clear"
+                android:padding="9dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_close"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <ImageButton
+            android:id="@+id/btn_layout"
+            style="@style/TopIcon"
+            android:contentDescription="@string/filter"
+            android:src="@drawable/ic_filter" />
+
+        <ImageButton
+            android:id="@+id/btn_search"
+            style="@style/TopIcon"
+            android:contentDescription="@string/search"
+            android:src="@drawable/ic_search" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tor_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface"
+        android:paddingStart="@dimen/gutter"
+        android:paddingTop="8dp"
+        android:paddingEnd="@dimen/gutter"
+        android:paddingBottom="8dp"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/correction"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?android:attr/selectableItemBackground"
+        android:paddingStart="@dimen/gutter"
+        android:paddingTop="6dp"
+        android:paddingEnd="@dimen/gutter"
+        android:paddingBottom="6dp"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <ListView
+            android:id="@+id/list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:divider="@null"
+            android:paddingBottom="12dp"
+            android:scrollbars="none" />
+
+        <ProgressBar
+            android:id="@+id/progress"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/text_secondary"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:paddingStart="40dp"
+            android:paddingEnd="40dp"
+            android:lineSpacingMultiplier="1.2"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/mini"
+        android:layout_width="match_parent"
+        android:layout_height="84dp"
+        android:background="@color/elevated"
+        android:clickable="true"
+        android:elevation="8dp"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <FrameLayout
+            android:layout_width="150dp"
+            android:layout_height="84dp"
+            android:background="@color/player_bg">
+
+            <TextureView
+                android:id="@+id/mini_video"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/mini_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/mini_author"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/mini_play"
+            style="@style/TopIcon"
+            android:contentDescription="@string/play"
+            android:src="@drawable/ic_pause_white" />
+
+        <ImageButton
+            android:id="@+id/mini_close"
+            style="@style/TopIcon"
+            android:contentDescription="@string/back"
+            android:src="@drawable/ic_close" />
+    </LinearLayout>
+</LinearLayout>

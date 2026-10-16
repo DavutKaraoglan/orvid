@@ -1,0 +1,15 @@
+build/
+.libdex/
+*.apk
+*.idsig
+*.keystore
+*.jks
+*.env
+tools/android33.jar
+tools/r8.jar
+tools/whisper/src/
+tools/whisper/models/
+tools/whisper/libwhisper.so
+tools/logo/*.png
+tools/logo/__pycache__/
+dev/status.log

@@ -1,0 +1,113 @@
+package com.orvid.play;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.LruCache;
+
+import com.orvid.net.Fetch;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public final class Storyboard {
+
+    public interface Callback {
+        void frame(Bitmap bitmap);
+    }
+
+    private static final ExecutorService POOL = Executors.newFixedThreadPool(2);
+    private static final Handler MAIN = new Handler(Looper.getMainLooper());
+    private static final LruCache<String, Bitmap> SHEETS = new LruCache<String, Bitmap>(24 * 1024 * 1024) {
+        @Override
+        protected int sizeOf(String key, Bitmap value) {
+            return value.getByteCount();
+        }
+    };
+
+    private final String url;
+    private final int width;
+    private final int height;
+    private final int count;
+    private final int cols;
+    private final int rows;
+    private final long durationMs;
+    private final String circuit;
+
+    private Storyboard(String url, int width, int height, int count, int cols, int rows, long durationMs, String circuit) {
+        this.url = url;
+        this.width = width;
+        this.height = height;
+        this.count = count;
+        this.cols = cols;
+        this.rows = rows;
+        this.durationMs = durationMs;
+        this.circuit = circuit;
+    }
+
+    public static Storyboard parse(String spec, long durationMs, String circuit) {
+        if (spec == null || spec.isEmpty() || durationMs <= 0) return null;
+        String[] parts = spec.split("\\|");
+        if (parts.length < 2) return null;
+        String base = parts[0].startsWith("http") ? parts[0] : "https://i.ytimg.com/" + parts[0];
+        Storyboard best = null;
+        for (int level = 1; level < parts.length; level++) {
+            String[] a = parts[level].split("#");
+            if (a.length != 8) continue;
+            try {
+                int w = Integer.parseInt(a[0]);
+                int h = Integer.parseInt(a[1]);
+                int n = Integer.parseInt(a[2]);
+                int c = Integer.parseInt(a[3]);
+                int r = Integer.parseInt(a[4]);
+                if (w <= 0 || n <= 0 || c <= 0 || r <= 0) continue;
+                String u = base.replace("$L", Integer.toString(level - 1)).replace("$N", a[6]) + "&sigh=" + a[7];
+                if (best == null || w > best.width) best = new Storyboard(u, w, h, n, c, r, durationMs, circuit);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return best;
+    }
+
+    public long duration() {
+        return durationMs;
+    }
+
+    public float aspect() {
+        return width / (float) height;
+    }
+
+    public void frameAt(long ms, Callback callback) {
+        int k = (int) Math.min(count - 1, Math.max(0, ms * count / durationMs));
+        int perSheet = cols * rows;
+        int sheet = k / perSheet;
+        int index = k % perSheet;
+        String sheetUrl = url.replace("$M", Integer.toString(sheet));
+        Bitmap cached = SHEETS.get(sheetUrl);
+        if (cached != null) {
+            callback.frame(crop(cached, index));
+            return;
+        }
+        POOL.execute(() -> {
+            try {
+                byte[] data = Fetch.on(circuit, () -> Fetch.bytes(sheetUrl));
+                Bitmap bmp = BitmapFactory.decodeByteArray(data, 0, data.length);
+                if (bmp == null) return;
+                SHEETS.put(sheetUrl, bmp);
+                Bitmap frame = crop(bmp, index);
+                MAIN.post(() -> callback.frame(frame));
+            } catch (Exception ignored) {
+            }
+        });
+    }
+
+    private Bitmap crop(Bitmap sheet, int index) {
+        int w = Math.min(width, sheet.getWidth() / cols);
+        int h = Math.min(height, sheet.getHeight() / rows);
+        int x = (index % cols) * w;
+        int y = (index / cols) * h;
+        if (x + w > sheet.getWidth() || y + h > sheet.getHeight()) return sheet;
+        return Bitmap.createBitmap(sheet, x, y, w, h);
+    }
+}

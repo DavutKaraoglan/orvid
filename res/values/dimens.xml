@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="gutter">16dp</dimen>
+    <dimen name="row_height">52dp</dimen>
+    <dimen name="row_cover_width">40dp</dimen>
+    <dimen name="row_cover_height">56dp</dimen>
+    <dimen name="avatar">36dp</dimen>
+    <dimen name="grid_cell">110dp</dimen>
+    <dimen name="topbar_height">56dp</dimen>
+    <dimen name="tabbar_height">58dp</dimen>
+    <dimen name="art_radius">8dp</dimen>
+    <dimen name="detail_cover_width">160dp</dimen>
+    <dimen name="icon">24dp</dimen>
+    <dimen name="text_title">15sp</dimen>
+    <dimen name="text_sub">13sp</dimen>
+    <dimen name="text_header">22sp</dimen>
+    <dimen name="wash_height">460dp</dimen>
+</resources>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_weight="1"
+    android:background="?android:attr/selectableItemBackground"
+    android:orientation="vertical"
+    android:padding="4dp">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.orvid.ui.ThumbView
+            android:id="@+id/thumb"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_thumb"
+            android:scaleType="centerCrop" />
+
+        <TextView
+            android:id="@+id/duration"
+            style="@style/DurationBadge" />
+
+        <ImageView
+            android:id="@+id/source_icon"
+            style="@style/SourceBadge" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:ellipsize="end"
+        android:lines="2"
+        android:textColor="@color/text_primary"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/sub"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp" />
+</LinearLayout>
