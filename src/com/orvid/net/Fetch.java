@@ -271,8 +271,13 @@ public final class Fetch extends Downloader {
     }
 
     public static byte[] bytes(String url) throws IOException {
+        return bytes(url, null);
+    }
+
+    public static byte[] bytes(String url, String referer) throws IOException {
         HttpURLConnection c = open(url);
         c.setRequestProperty("User-Agent", USER_AGENT);
+        if (referer != null) c.setRequestProperty("Referer", referer);
         int code = c.getResponseCode();
         if (code >= 400) {
             readBody(c);

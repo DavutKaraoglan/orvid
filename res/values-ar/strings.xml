@@ -71,10 +71,6 @@
     <string name="all_adult">كل مصادر البالغين (+18)</string>
     <string name="no_results_filters">لا توجد نتائج. عوامل التصفية النشطة: %1$s</string>
     <string name="filter_date">تاريخ الرفع</string>
-    <string name="filter_orientation">التوجه</string>
-    <string name="orient_straight">مغاير</string>
-    <string name="orient_gay">مثلي</string>
-    <string name="orient_trans">عابر</string>
     <string name="date_week">هذا الأسبوع</string>
     <string name="date_month">هذا الشهر</string>
     <string name="date_year">هذا العام</string>
@@ -101,4 +97,12 @@
     <string name="panic_exit">خروج طارئ (اسحب للأسفل بإصبعين)</string>
     <string name="tor_bridges">جسر Tor (إذا كانت شبكتك تحظر Tor)</string>
     <string name="tor_bridge_hint">إذا كانت شبكتك تحظر Tor، فشغّل الجسر من قسم الخصوصية في لوحة عوامل التصفية.</string>
+    <string name="not_interested">غير مهتم</string>
+    <string name="not_interested_done">حسنًا. لن يتم اقتراح فيديوهات مثل هذا.</string>
+    <string name="source_off">إيقاف هذا المصدر</string>
+    <string name="source_off_done">تم إيقاف %1$s. يمكنك تشغيله مجددًا من عوامل التصفية.</string>
+    <string name="filter_orientation">التوجه</string>
+    <string name="orient_straight">مغاير</string>
+    <string name="orient_gay">مثلي</string>
+    <string name="orient_trans">عابر</string>
 </resources>

@@ -125,9 +125,84 @@ public final class Tubes {
             "href=\"(/video/\\d+/)\"", "title=\"([^\"]+)\"",
             "data-original=\"([^\"]+)\"", "fa-clock-o\"></i>\\s*<span>([0-9:]+)<", "fa-eye\"></i>\\s*<span>([0-9.,KkMm]+)<");
 
+    public static final HtmlTube YOUJIZZ = new HtmlTube(159, "https://www.youjizz.com",
+            "https://www.youjizz.com/search/{qp}-1.html", "https://www.youjizz.com/search/{qp}-{p}.html",
+            "youjizz\\.com/videos/[^\"'\\s?#]+-\\d+\\.html", "class=\"video-thumb\"",
+            "href=\"(/videos/[^\"]+\\.html)\"", "class=\"agego-content-title\">([^<]+)<",
+            "data-original=\"([^\"]+)\"", "fa-clock-o\"></i>&nbsp;([0-9:]+)<", "class=\"format-views\">([0-9]+)<");
+
+    public static final HtmlTube PLAYVIDS = new HtmlTube(160, "https://www.playvids.com",
+            "https://www.playvids.com/videos?qry={q}", "https://www.playvids.com/videos?qry={q}&page={p}",
+            "playvids\\.com/[A-Za-z0-9_-]{11}/[a-z0-9-]+", "class=\"card thumbs_rotate",
+            "href=\"(/[A-Za-z0-9_-]{11}/[a-z0-9-]+)\"", "alt=\"([^\"]+)\"",
+            "src=\"(https://cdn-img1\\.playvids\\.com/[^\"]+)\"", "class=\"duration\">([0-9:]+)<", null);
+
+    public static final HtmlTube XFIGHTS = new HtmlTube(161, "https://xfights.to",
+            "https://xfights.to/search/{qp}/", "https://xfights.to/search/{qp}/?from_videos={p}",
+            "xfights\\.to/videos/\\d+/", "itemtype=\"http://schema.org/Movie\"",
+            "href=\"(https://xfights\\.to/videos/\\d+/[^\"]+)\"", "title=\"([^\"]+)\"",
+            "src=\"(https://cdn\\.xfights\\.to/contents/videos_screenshots/[^\"]+)\"",
+            "data-duration=\"([0-9:]+)\"", "data-views=\"([0-9.,KkMm]+)\"");
+
+    public static final HtmlTube FEMDOMVC = new HtmlTube(162, "https://www.femdomvc.com",
+            "https://www.femdomvc.com/search/?q={q}", "https://www.femdomvc.com/search/?q={q}&from_videos={p}",
+            "femdomvc\\.com/video/\\d+/", "<div class=\"item ",
+            "href=\"(https://www\\.femdomvc\\.com/video/\\d+/[^\"]+)\"", "title=\"([^\"]+)\"",
+            "data-original=\"([^\"]+)\"", "class=\"duration\">([0-9:]+)<", "class=\"views\">([0-9.,KkMm]+)<");
+
+    public static final HtmlTube ANYSEX = new HtmlTube(163, "https://anysex.com",
+            "https://anysex.com/search/?q={q}", "https://anysex.com/search/?q={q}&from_videos={p}",
+            "anysex\\.com/video/\\d+/", "<div class=\"item",
+            "href=\"(https://anysex\\.com/video/\\d+/[^\"]+)\"", "alt=\"([^\"]+)\"",
+            "src=\"(https://i\\.anysex\\.com/videos_screenshots/[^\"]+)\"", "class=\"duration\"[^>]*>\\s*([0-9:]+)", "data-views=\"([0-9]+)\"");
+
+    public static final HtmlTube DAFREEPORN = new HtmlTube(164, "https://www.dafreeporn.com",
+            "https://www.dafreeporn.com/search/{qp}/", "https://www.dafreeporn.com/search/{qp}/?from_videos={p}",
+            "dafreeporn\\.com/videos/\\d+/", "<div class=\"item",
+            "href=\"(https://www\\.dafreeporn\\.com/videos/\\d+/[^\"]+)\"", "title=\"([^\"]+)\"",
+            "src=\"(https://www\\.dafreeporn\\.com/contents/videos_screenshots/[^\"]+)\"", "class=\"duration\">([0-9:]+)<", null);
+
+    public static final HtmlTube JUICYVID = new HtmlTube(165, "https://juicyvid.com",
+            "https://juicyvid.com/search/{qp}/", "https://juicyvid.com/search/{qp}/?from_videos={p}",
+            "juicyvid\\.com/video/\\d+/", "<div class=\"item",
+            "href=\"(https://juicyvid\\.com/video/\\d+/[^\"]+)\"", "title=\"([^\"]+)\"",
+            "data-original=\"([^\"]+)\"", "class=\"duration\">([0-9:]+)<", "class=\"views\">([0-9.,KkMm]+)<");
+
+    public static final HtmlTube MEGATUBE = new HtmlTube(166, "https://www.megatube.xxx",
+            "https://www.megatube.xxx/search/{qp}/", "https://www.megatube.xxx/search/{qp}/?from_videos={p}",
+            "megatube\\.xxx/videos/\\d+/", "<div class=\"item",
+            "href=\"(https://www\\.megatube\\.xxx/videos/\\d+/[^\"]+)\"", "<a href=\"[^\"]+\"\\s+title=\"([^\"]+)\"",
+            "src=\"(https://img01\\.mt-static\\.com/[^\"]+)\"", null, null);
+
+    public static final HtmlTube SORTPORN = new HtmlTube(168, "https://www.sortporn.com",
+            "https://www.sortporn.com/search/{qp}/", "https://www.sortporn.com/search/{qp}/?from_videos={p}",
+            "sortporn\\.com/videos/\\d+/", "<div class=\"item",
+            "href=\"(https://www\\.sortporn\\.com/videos/\\d+/[^\"]+)\"", "title=\"([^\"]+)\"",
+            "src=\"(https://www\\.sortporn\\.com/contents/videos_screenshots/[^\"]+)\"", "class=\"duration\">([0-9:]+)<", null);
+
+    public static final HtmlTube FAPCAT = new HtmlTube(169, "https://www.fapcat.com",
+            "https://www.fapcat.com/search/{qp}/", "https://www.fapcat.com/search/{qp}/?from_videos={p}",
+            "fapcat\\.com/videos/\\d+/", "<div class=\"item",
+            "href=\"(https://www\\.fapcat\\.com/videos/\\d+/[^\"]+)\"", "title=\"([^\"]+)\"",
+            "data-src=\"([^\"]+)\"", "class=\"[^\"]*duration[^\"]*\"[^>]*>\\s*(?:<[^>]+>\\s*)*([0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?)", null);
+
+    public static final HtmlTube MATUREKINKYS = new HtmlTube(170, "https://maturekinkys.com",
+            "https://maturekinkys.com/search/{qp}/", "https://maturekinkys.com/search/{qp}/?from_videos={p}",
+            "maturekinkys\\.com/video/\\d+/", "data-fq-video-card=\"",
+            "href=\"(https://maturekinkys\\.com/video/\\d+/[^\"]+)\"", "title=\"([^\"]+)\"",
+            "data-original=\"([^\"]+)\"", "class=\"[^\"]*duration[^\"]*\"[^>]*>\\s*(?:<[^>]+>\\s*)*([0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?)", null);
+
+    public static final HtmlTube XOZILLA = new HtmlTube(172, "https://www.xozilla.com",
+            "https://www.xozilla.com/search/{qp}/", "https://www.xozilla.com/search/{qp}/?from_videos={p}",
+            "xozilla\\.com/videos/\\d+/", "<a href=\"https://www.xozilla.com/videos/",
+            "href=\"(https://www\\.xozilla\\.com/videos/\\d+/[^\"]+)\"", "class=\"title\">([^<]+)<",
+            "data-original=\"([^\"]+)\"", null, null);
+
     public static final HtmlTube[] ALL = {HELLPORNO, PORNHAT, BRAVOTUBE, HQPORNER, EROME, PORNGO, GAYPORNTUBE, RULE34VIDEO,
             XXXYMOVIES, ZBPORN, DRTUBER, PORNDOE, THISVID, FREEPORN8, PORNWHITE, SHOOSHTIME, THREEMOVS,
-            PERFECTGIRLS};
+            PERFECTGIRLS, YOUJIZZ, PLAYVIDS, XFIGHTS, FEMDOMVC,
+            ANYSEX, DAFREEPORN, JUICYVID, MEGATUBE, SORTPORN,
+            FAPCAT, MATUREKINKYS, XOZILLA};
 
     public static boolean webOnly(String url) {
         HtmlTube t = forUrl(url);

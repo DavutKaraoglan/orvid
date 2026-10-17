@@ -71,10 +71,6 @@
     <string name="all_adult">सभी वयस्क स्रोत (18+)</string>
     <string name="no_results_filters">कोई नतीजा नहीं। चालू फ़िल्टर: %1$s</string>
     <string name="filter_date">अपलोड की तारीख</string>
-    <string name="filter_orientation">रुझान</string>
-    <string name="orient_straight">स्ट्रेट</string>
-    <string name="orient_gay">गे</string>
-    <string name="orient_trans">ट्रांस</string>
     <string name="date_week">इस हफ़्ते</string>
     <string name="date_month">इस महीने</string>
     <string name="date_year">इस साल</string>
@@ -101,4 +97,12 @@
     <string name="panic_exit">पैनिक एग्ज़िट (दो उंगलियों से नीचे स्वाइप करें)</string>
     <string name="tor_bridges">Tor ब्रिज (अगर आपका नेटवर्क Tor को ब्लॉक करता है)</string>
     <string name="tor_bridge_hint">अगर आपका नेटवर्क Tor को ब्लॉक करता है, तो फ़िल्टर पैनल के निजता सेक्शन में ब्रिज चालू करें।</string>
+    <string name="not_interested">दिलचस्पी नहीं</string>
+    <string name="not_interested_done">ठीक है। ऐसे वीडियो सुझाए नहीं जाएंगे।</string>
+    <string name="source_off">यह स्रोत बंद करें</string>
+    <string name="source_off_done">%1$s बंद कर दिया गया। फ़िल्टर में इसे फिर से चालू कर सकते हैं।</string>
+    <string name="filter_orientation">रुझान</string>
+    <string name="orient_straight">स्ट्रेट</string>
+    <string name="orient_gay">गे</string>
+    <string name="orient_trans">ट्रांस</string>
 </resources>

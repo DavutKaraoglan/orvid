@@ -80,6 +80,33 @@ public final class Aylo {
         return p;
     }
 
+    public static List<String> tags(String circuit, String url) throws IOException {
+        Matcher key = VIDEO.matcher(url);
+        if (!key.find()) return new ArrayList<>();
+        JsonObject root;
+        try {
+            root = JsonParser.object().from(com.orvid.adult.Web.get(circuit,
+                    SITE + "/webmasters/video_by_id?id=" + key.group(1), "aylo tags", null));
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+        JsonObject video = root.getObject("video");
+        List<String> out = new ArrayList<>();
+        JsonArray tags = video.getArray("tags");
+        for (int i = 0; i < tags.size(); i++) {
+            String t = tags.getObject(i).getString("tag_name", "");
+            if (!t.isEmpty() && !out.contains(t)) out.add(t);
+        }
+        JsonArray cats = video.getArray("categories");
+        for (int i = 0; i < cats.size(); i++) {
+            String c = cats.getObject(i).getString("category", "").replace('-', ' ');
+            if (!c.isEmpty() && !out.contains(c)) out.add(c);
+        }
+        return out;
+    }
+
     private static final java.util.concurrent.ExecutorService POOL = java.util.concurrent.Executors.newCachedThreadPool();
 
     public static Media resolve(String circuit, String url) throws IOException {

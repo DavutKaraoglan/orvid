@@ -26,7 +26,7 @@ public class BenchProbe {
             case "twitch": return "minecraft";
             case "archive": return "apollo";
         }
-        if (s.adult) return s.orientation == Source.GAY ? "muscle" : s.orientation == Source.TRANS ? "blonde" : "milf";
+        if (s.adult) return "milf";
         return "cat";
     }
     static String firstBytes(String c, String url, String ref) throws Exception {

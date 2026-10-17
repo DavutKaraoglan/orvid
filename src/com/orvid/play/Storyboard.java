@@ -34,6 +34,8 @@ public final class Storyboard {
     private final int rows;
     private final long durationMs;
     private final String circuit;
+    private int start;
+    private String referer;
 
     private Storyboard(String url, int width, int height, int count, int cols, int rows, long durationMs, String circuit) {
         this.url = url;
@@ -53,6 +55,15 @@ public final class Storyboard {
         final int cols;
         final int rows;
         final int count;
+        int start;
+        public String referer;
+
+        public Spec withCount(int n) {
+            Spec s = new Spec(url, frameWidth, frameHeight, cols, rows, n);
+            s.start = start;
+            s.referer = referer;
+            return s;
+        }
 
         public Spec(String url, int frameWidth, int frameHeight, int cols, int rows, int count) {
             this.url = url;
@@ -66,7 +77,61 @@ public final class Storyboard {
 
     public static Storyboard grid(Spec spec, long durationMs, String circuit) {
         if (spec == null || spec.url == null || durationMs <= 0 || spec.count <= 0) return null;
-        return new Storyboard(spec.url, spec.frameWidth, spec.frameHeight, spec.count, spec.cols, spec.rows, durationMs, circuit);
+        Storyboard sb = new Storyboard(spec.url, spec.frameWidth, spec.frameHeight, spec.count, spec.cols, spec.rows, durationMs, circuit);
+        sb.start = spec.start;
+        sb.referer = spec.referer;
+        return sb;
+    }
+
+    private static final java.util.regex.Pattern KVS_SHOT = java.util.regex.Pattern.compile(
+            "^(https?://.+/(?:videos_screenshots|vth)/\\d+/\\d+/)(\\d+)x(\\d+)/\\d+\\.jpg");
+
+    private static boolean exists(Spec spec, int n, String circuit) {
+        final String u = spec.url.replace("$M", Integer.toString(n + spec.start - 1));
+        try {
+            int code = Fetch.on(circuit, () -> {
+                java.net.HttpURLConnection h = Fetch.open(u);
+                h.setRequestProperty("User-Agent", Fetch.USER_AGENT);
+                h.setRequestProperty("Range", "bytes=0-0");
+                if (spec.referer != null) h.setRequestProperty("Referer", spec.referer);
+                int c = h.getResponseCode();
+                try (java.io.InputStream in = c < 400 ? h.getInputStream() : h.getErrorStream()) {
+                    if (in != null) in.readAllBytes();
+                }
+                return c;
+            });
+            return code == 200 || code == 206;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static int probeCount(Spec spec, String circuit) {
+        if (!exists(spec, 3, circuit)) return 0;
+        int lo = 3;
+        int hi = 6;
+        while (hi <= 64 && exists(spec, hi, circuit)) {
+            lo = hi;
+            hi *= 2;
+        }
+        hi = Math.min(hi, 65);
+        while (hi - lo > 1) {
+            int mid = (lo + hi) / 2;
+            if (exists(spec, mid, circuit)) lo = mid;
+            else hi = mid;
+        }
+        return lo;
+    }
+
+    public static Spec screens(String cover) {
+        if (cover == null) return null;
+        java.util.regex.Matcher m = KVS_SHOT.matcher(cover);
+        if (!m.find()) return null;
+        int w = Integer.parseInt(m.group(2));
+        int h = Integer.parseInt(m.group(3));
+        Spec spec = new Spec(m.group(1) + w + "x" + h + "/$M.jpg", w, h, 1, 1, 10);
+        spec.start = 1;
+        return spec;
     }
 
     public static Storyboard parse(String spec, long durationMs, String circuit) {
@@ -106,7 +171,7 @@ public final class Storyboard {
         int perSheet = cols * rows;
         int sheet = k / perSheet;
         int index = k % perSheet;
-        String sheetUrl = url.replace("$M", Integer.toString(sheet));
+        String sheetUrl = url.replace("$M", Integer.toString(sheet + start));
         Bitmap cached = SHEETS.get(sheetUrl);
         if (cached != null) {
             callback.frame(crop(cached, index));
@@ -114,7 +179,7 @@ public final class Storyboard {
         }
         POOL.execute(() -> {
             try {
-                byte[] data = Fetch.on(circuit, () -> Fetch.bytes(sheetUrl));
+                byte[] data = Fetch.on(circuit, () -> referer == null ? Fetch.bytes(sheetUrl) : Fetch.bytes(sheetUrl, referer));
                 Bitmap bmp = BitmapFactory.decodeByteArray(data, 0, data.length);
                 if (bmp == null) return;
                 SHEETS.put(sheetUrl, bmp);

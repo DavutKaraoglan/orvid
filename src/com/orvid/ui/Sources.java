@@ -129,7 +129,7 @@ public final class Sources {
             tube("hqporner", "HQporner (18+)", R.drawable.ic_src_hqporner, Tubes.HQPORNER),
             tube("erome", "Erome (18+)", R.drawable.ic_src_erome, Tubes.EROME),
             tube("porngo", "PornGo (18+)", R.drawable.ic_src_porngo, Tubes.PORNGO),
-            tube("gayporntube", "GayPornTube (18+)", R.drawable.ic_src_gayporntube, Tubes.GAYPORNTUBE).orientation(Source.GAY),
+            tube("gayporntube", "GayPornTube (18+)", R.drawable.ic_src_gayporntube, Tubes.GAYPORNTUBE),
             tube("rule34video", "Rule34Video (18+)", R.drawable.ic_src_rule34video, Tubes.RULE34VIDEO),
             tube("xxxymovies", "XXXYMovies (18+)", R.drawable.ic_src_xxxymovies, Tubes.XXXYMOVIES),
             tube("zbporn", "ZBPorn (18+)", R.drawable.ic_src_zbporn, Tubes.ZBPORN),
@@ -141,13 +141,25 @@ public final class Sources {
             tube("shooshtime", "ShooshTime (18+)", R.drawable.ic_src_shooshtime, Tubes.SHOOSHTIME),
             tube("threemovs", "3Movs (18+)", R.drawable.ic_src_threemovs, Tubes.THREEMOVS),
             tube("perfectgirls", "PerfectGirls (18+)", R.drawable.ic_src_perfectgirls, Tubes.PERFECTGIRLS),
+            tube("youjizz", "YouJizz (18+)", R.drawable.ic_src_youjizz, Tubes.YOUJIZZ),
+            tube("playvids", "PlayVids (18+)", R.drawable.ic_src_playvids, Tubes.PLAYVIDS),
+            tube("xfights", "XFights (18+)", R.drawable.ic_src_xfights, Tubes.XFIGHTS),
+            tube("anysex", "AnySex (18+)", R.drawable.ic_src_anysex, Tubes.ANYSEX),
+            tube("dafreeporn", "DaFreePorn (18+)", R.drawable.ic_src_dafreeporn, Tubes.DAFREEPORN),
+            tube("juicyvid", "JuicyVid (18+)", R.drawable.ic_src_juicyvid, Tubes.JUICYVID),
+            tube("megatube", "MegaTube (18+)", R.drawable.ic_src_megatube, Tubes.MEGATUBE),
+            tube("sortporn", "SortPorn (18+)", R.drawable.ic_src_sortporn, Tubes.SORTPORN),
+            tube("fapcat", "FapCat (18+)", R.drawable.ic_src_fapcat, Tubes.FAPCAT),
+            tube("maturekinkys", "MatureKinkys (18+)", R.drawable.ic_src_maturekinkys, Tubes.MATUREKINKYS),
+            tube("xozilla", "Xozilla (18+)", R.drawable.ic_src_xozilla, Tubes.XOZILLA),
+            tube("femdomvc", "FemdomVC (18+)", R.drawable.ic_src_femdomvc, Tubes.FEMDOMVC),
             adultSite("bellesa", "Bellesa (18+)", R.drawable.ic_src_bellesa, Sites.BELLESA),
             web("spankbang", "SpankBang (18+)", R.drawable.ic_src_spankbang, WebSites.SPANKBANG),
             web("fourkporn", "4kporn (18+)", R.drawable.ic_src_fourkporn, WebSites.FOURKPORN),
             web("jable", "Jable (18+)", R.drawable.ic_src_jable, WebSites.JABLE),
             web("missav", "MissAV (18+)", R.drawable.ic_src_missav, WebSites.MISSAV),
-            web("ashemaletube", "aShemaleTube (18+)", R.drawable.ic_src_ashemaletube, WebSites.ASHEMALETUBE).orientation(Source.TRANS),
-            web("boyfriendtv", "BoyfriendTV (18+)", R.drawable.ic_src_boyfriendtv, WebSites.BOYFRIENDTV).orientation(Source.GAY));
+            web("ashemaletube", "aShemaleTube (18+)", R.drawable.ic_src_ashemaletube, WebSites.ASHEMALETUBE),
+            web("boyfriendtv", "BoyfriendTV (18+)", R.drawable.ic_src_boyfriendtv, WebSites.BOYFRIENDTV));
 
     private static Source site(String key, int icon, Site site, double weight) {
         return new Source(key, site.name, icon, site.serviceId, weight, true, false) {
@@ -160,6 +172,11 @@ public final class Sources {
 
     private static Source adultSite(String key, String name, int icon, Site site) {
         return new Source(key, name, icon, site.serviceId, 0.6, false, true) {
+            @Override
+            public boolean usesWebView() {
+                return true;
+            }
+
             @Override
             public Page search(String circuit, String query, Filters f, String next) throws Exception {
                 return site.search(circuit, query, next);

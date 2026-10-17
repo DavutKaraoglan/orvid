@@ -71,10 +71,6 @@
     <string name="all_adult">所有成人来源 (18+)</string>
     <string name="no_results_filters">没有结果。已启用的筛选：%1$s</string>
     <string name="filter_date">上传日期</string>
-    <string name="filter_orientation">性取向</string>
-    <string name="orient_straight">异性恋</string>
-    <string name="orient_gay">男同</string>
-    <string name="orient_trans">跨性别</string>
     <string name="date_week">本周</string>
     <string name="date_month">本月</string>
     <string name="date_year">今年</string>
@@ -101,4 +97,12 @@
     <string name="panic_exit">紧急退出（双指向下滑动）</string>
     <string name="tor_bridges">Tor 网桥（网络屏蔽 Tor 时）</string>
     <string name="tor_bridge_hint">如果你的网络屏蔽了 Tor，请在筛选面板的“隐私”中开启网桥。</string>
+    <string name="not_interested">不感兴趣</string>
+    <string name="not_interested_done">知道了。不会再推荐类似的视频。</string>
+    <string name="source_off">关闭此来源</string>
+    <string name="source_off_done">已关闭 %1$s。可在筛选中重新开启。</string>
+    <string name="filter_orientation">性取向</string>
+    <string name="orient_straight">异性恋</string>
+    <string name="orient_gay">男同</string>
+    <string name="orient_trans">跨性别</string>
 </resources>

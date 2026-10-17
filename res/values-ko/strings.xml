@@ -71,10 +71,6 @@
     <string name="all_adult">모든 성인 소스 (18+)</string>
     <string name="no_results_filters">결과 없음. 사용 중인 필터: %1$s</string>
     <string name="filter_date">업로드 날짜</string>
-    <string name="filter_orientation">성향</string>
-    <string name="orient_straight">이성애</string>
-    <string name="orient_gay">게이</string>
-    <string name="orient_trans">트랜스</string>
     <string name="date_week">이번 주</string>
     <string name="date_month">이번 달</string>
     <string name="date_year">올해</string>
@@ -101,4 +97,12 @@
     <string name="panic_exit">긴급 종료(두 손가락으로 아래로 스와이프)</string>
     <string name="tor_bridges">Tor 브리지(네트워크에서 Tor를 차단하는 경우)</string>
     <string name="tor_bridge_hint">네트워크에서 Tor를 차단하면 필터 패널의 개인정보 보호에서 브리지를 켜세요.</string>
+    <string name="not_interested">관심 없음</string>
+    <string name="not_interested_done">알겠습니다. 이런 동영상은 추천되지 않습니다.</string>
+    <string name="source_off">이 소스 끄기</string>
+    <string name="source_off_done">%1$s을(를) 껐습니다. 필터에서 다시 켤 수 있습니다.</string>
+    <string name="filter_orientation">성향</string>
+    <string name="orient_straight">이성애</string>
+    <string name="orient_gay">게이</string>
+    <string name="orient_trans">트랜스</string>
 </resources>

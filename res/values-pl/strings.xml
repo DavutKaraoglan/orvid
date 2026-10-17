@@ -71,10 +71,6 @@
     <string name="all_adult">Wszystkie źródła dla dorosłych (18+)</string>
     <string name="no_results_filters">Brak wyników. Aktywne filtry: %1$s</string>
     <string name="filter_date">Data dodania</string>
-    <string name="filter_orientation">Orientacja</string>
-    <string name="orient_straight">Hetero</string>
-    <string name="orient_gay">Gej</string>
-    <string name="orient_trans">Trans</string>
     <string name="date_week">W tym tygodniu</string>
     <string name="date_month">W tym miesiącu</string>
     <string name="date_year">W tym roku</string>
@@ -101,4 +97,12 @@
     <string name="panic_exit">Szybkie wyjście (przesuń w dół dwoma palcami)</string>
     <string name="tor_bridges">Most Tor (jeśli twoja sieć blokuje Tor)</string>
     <string name="tor_bridge_hint">Jeśli twoja sieć blokuje Tor, włącz most w sekcji Prywatność w panelu filtrów.</string>
+    <string name="not_interested">Nie interesuje mnie</string>
+    <string name="not_interested_done">Jasne. Podobne filmy nie będą już proponowane.</string>
+    <string name="source_off">Wyłącz to źródło</string>
+    <string name="source_off_done">%1$s jest wyłączone. Możesz je włączyć ponownie w filtrach.</string>
+    <string name="filter_orientation">Orientacja</string>
+    <string name="orient_straight">Hetero</string>
+    <string name="orient_gay">Gej</string>
+    <string name="orient_trans">Trans</string>
 </resources>

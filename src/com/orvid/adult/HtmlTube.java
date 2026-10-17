@@ -87,7 +87,9 @@ public final class HtmlTube {
     private static final Pattern SOURCE = Pattern.compile("<source\\b[^>]*>");
     private static final Pattern KVS = Pattern.compile("\\b(video_(?:alt_)?url\\d*)\\s*:\\s*'([^']+)'");
     private static final Pattern STREAM_MARKER = Pattern.compile(
-            "<source\\b[^>]*(?:type=[\"']video|\\.mp4|\\.m3u8)|video_(?:alt_)?url\\d*\\s*:\\s*'");
+            "<source\\b[^>]*(?:type=[\"']video|\\.mp4|\\.m3u8)|video_(?:alt_)?url\\d*\\s*:\\s*'|dataEncodings\\s*=");
+    private static final Pattern ENCODING = Pattern.compile(
+            "\"quality\"\\s*:\\s*\"(\\d{3,4})\"\\s*,\\s*\"filename\"\\s*:\\s*\"([^\"]+)\"");
     private static final Pattern LICENSE = Pattern.compile("license_code\\s*:\\s*'([^']+)'");
     private static final Pattern SRC = Pattern.compile("\\bsrc=[\"']([^\"']+)[\"']");
     private static final Pattern LABEL = Pattern.compile("\\b(?:title|label|res|size)=[\"']([^\"']+)[\"']");
@@ -122,7 +124,7 @@ public final class HtmlTube {
         String html = Web.get(circuit, url, "tube search " + URI.create(site).getHost(), null);
         Page p = new Page();
         Set<String> seen = new HashSet<>();
-        String[] cards = html.split(Pattern.quote(cardMarker));
+        String[] cards = html.split("(?=" + Pattern.quote(cardMarker) + ")");
         for (int i = 1; i < cards.length; i++) {
             String b = cards[i];
             if (mustContain != null && !mustContain.matcher(b).find()) continue;
@@ -212,6 +214,7 @@ public final class HtmlTube {
                 u = license == null ? null : kvsReal(u, license);
                 if (u == null) continue;
             }
+            if (!u.contains("/get_file/") && !u.contains(".mp4") && !u.contains(".m3u8")) continue;
             Matcher label = Pattern.compile(Pattern.quote(kvs.group(1)) + "_text\\s*:\\s*'([^']*)'").matcher(html);
             int q = 480;
             if (label.find()) {
@@ -219,6 +222,20 @@ public final class HtmlTube {
                 if (n.find()) q = Integer.parseInt(n.group(1));
             }
             u = absolute(u);
+            if (q <= cap && q > best) {
+                best = q;
+                m.mp4 = u;
+            }
+            if (q < lowestQ) {
+                lowestQ = q;
+                lowest = u;
+            }
+        }
+        Matcher enc = ENCODING.matcher(html);
+        while (enc.find()) {
+            String u = absolute(enc.group(2).replace("\\/", "/"));
+            if (!u.contains(".mp4")) continue;
+            int q = Integer.parseInt(enc.group(1));
             if (q <= cap && q > best) {
                 best = q;
                 m.mp4 = u;
@@ -249,7 +266,7 @@ public final class HtmlTube {
         return out.length() == 0 ? title : out.toString();
     }
 
-    static String kvsReal(String videoUrl, String license) {
+    public static String kvsReal(String videoUrl, String license) {
         if (!videoUrl.startsWith("function/0/")) return null;
         String rest = videoUrl.substring("function/0/".length());
         int scheme = rest.indexOf("://");

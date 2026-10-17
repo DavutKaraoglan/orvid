@@ -117,7 +117,8 @@ public final class MainActivity extends Activity implements Tor.Listener {
             runSearch(fixed);
         });
 
-        filters = Filters.load(getSharedPreferences("settings", MODE_PRIVATE));
+        filters = Filters.current != null ? Filters.current : Filters.load(getSharedPreferences("settings", MODE_PRIVATE));
+        Filters.current = filters;
         com.orvid.yt.Related.safeSearch = filters.hideAdult;
         adapter = new VideoAdapter(this, OrvidApp.get().layoutMode(), item -> {
             if (com.orvid.web.WebSites.forUrl(item.getUrl()) != null || com.orvid.adult.Tubes.webOnly(item.getUrl())) {
@@ -131,7 +132,6 @@ public final class MainActivity extends Activity implements Tor.Listener {
                         .putExtra(PlayerActivity.EXTRA_THUMB, Ui.thumbnail(item.getThumbnails(), 640)));
             overridePendingTransition(0, 0);
         });
-        previewer = new Previewer(this);
         com.orvid.web.WebSearch.prompter = new com.orvid.web.WebSearch.Prompter() {
             private android.app.Dialog dialog;
 
@@ -164,7 +164,6 @@ public final class MainActivity extends Activity implements Tor.Listener {
                 dialog = null;
             }
         };
-        adapter.setPreviewer(previewer);
         list.setAdapter(adapter);
         layoutButton = findViewById(R.id.btn_layout);
         layoutButton.setImageResource(R.drawable.ic_filter);
@@ -306,7 +305,6 @@ public final class MainActivity extends Activity implements Tor.Listener {
     @Override
     protected void onPause() {
         super.onPause();
-        if (previewer != null) previewer.stop();
         detachMini();
     }
 
@@ -320,6 +318,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
     @Override
     protected void onStart() {
         super.onStart();
+        if (adapter != null && filters != null) adapter.pruneOff(filters);
         Tor.get().addListener(this);
         refreshTor();
         com.orvid.app.UpdateCheck.run(this);
@@ -409,6 +408,13 @@ public final class MainActivity extends Activity implements Tor.Listener {
     private Exception lastSourceError;
 
     private void runSearch(final String input) {
+        String link = com.orvid.play.Generic.linkIn(input);
+        if (link != null) {
+            dismissSuggest();
+            openingPlayer = true;
+            startActivity(new Intent(this, PlayerActivity.class).putExtra(PlayerActivity.EXTRA_URL, link));
+            return;
+        }
         OrvidApp.get().images().warm();
         dismissSuggest();
         if (running != null) running.cancel();
@@ -736,6 +742,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
         if (ranked.isEmpty() && pendingSources > 0) return;
         shown = true;
         adapter.set(ranked);
+        com.orvid.play.Session.lastSearch = new ArrayList<>(ranked);
         list.setSelection(0);
         prepareTop(ranked);
     }
@@ -763,6 +770,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
         for (StreamInfoItem i : ranked) if (seen.add(i.getUrl())) merged.add(i);
         for (StreamInfoItem i : current.subList(keep, current.size())) if (seen.add(i.getUrl())) merged.add(i);
         adapter.set(merged);
+        com.orvid.play.Session.lastSearch = new ArrayList<>(merged);
     }
 
     private void sourceFailed(int generation, Exception e) {
@@ -1000,7 +1008,6 @@ public final class MainActivity extends Activity implements Tor.Listener {
         if (suggestJob != null) field.removeCallbacks(suggestJob);
         if (suggestPopup != null && suggestPopup.isShowing()) suggestPopup.dismiss();
     }
-    private Previewer previewer;
 
     @Override
     public boolean dispatchTouchEvent(android.view.MotionEvent e) {
@@ -1019,7 +1026,6 @@ public final class MainActivity extends Activity implements Tor.Listener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (previewer != null) previewer.release();
         detachMini();
         if (isFinishing()) com.orvid.play.Session.release();
     }

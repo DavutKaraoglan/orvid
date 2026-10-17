@@ -71,10 +71,6 @@
     <string name="all_adult">Все источники для взрослых (18+)</string>
     <string name="no_results_filters">Ничего не найдено. Активные фильтры: %1$s</string>
     <string name="filter_date">Дата загрузки</string>
-    <string name="filter_orientation">Ориентация</string>
-    <string name="orient_straight">Гетеро</string>
-    <string name="orient_gay">Гей</string>
-    <string name="orient_trans">Транс</string>
     <string name="date_week">За неделю</string>
     <string name="date_month">За месяц</string>
     <string name="date_year">За год</string>
@@ -101,4 +97,12 @@
     <string name="panic_exit">Экстренный выход (проведите вниз двумя пальцами)</string>
     <string name="tor_bridges">Мост Tor (если ваша сеть блокирует Tor)</string>
     <string name="tor_bridge_hint">Если ваша сеть блокирует Tor, включите мост в разделе «Конфиденциальность» на панели фильтров.</string>
+    <string name="not_interested">Не интересует</string>
+    <string name="not_interested_done">Понятно. Похожие видео больше не будут предлагаться.</string>
+    <string name="source_off">Отключить этот источник</string>
+    <string name="source_off_done">Источник %1$s отключён. Его можно снова включить в фильтрах.</string>
+    <string name="filter_orientation">Ориентация</string>
+    <string name="orient_straight">Гетеро</string>
+    <string name="orient_gay">Гей</string>
+    <string name="orient_trans">Транс</string>
 </resources>

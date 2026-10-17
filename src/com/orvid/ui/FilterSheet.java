@@ -186,6 +186,7 @@ final class FilterSheet {
             }
         }
 
+
         if (com.orvid.search.Source.adultUnlocked) {
             section(activity, column, R.string.filter_orientation);
             chips(activity, column, new int[] {R.string.filter_any, R.string.orient_straight, R.string.orient_gay, R.string.orient_trans},

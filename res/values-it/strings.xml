@@ -71,10 +71,6 @@
     <string name="all_adult">Tutte le fonti per adulti (18+)</string>
     <string name="no_results_filters">Nessun risultato. Filtri attivi: %1$s</string>
     <string name="filter_date">Data di caricamento</string>
-    <string name="filter_orientation">Orientamento</string>
-    <string name="orient_straight">Etero</string>
-    <string name="orient_gay">Gay</string>
-    <string name="orient_trans">Trans</string>
     <string name="date_week">Questa settimana</string>
     <string name="date_month">Questo mese</string>
     <string name="date_year">Quest\'anno</string>
@@ -101,4 +97,12 @@
     <string name="panic_exit">Uscita rapida (scorri in basso con due dita)</string>
     <string name="tor_bridges">Bridge Tor (se la tua rete blocca Tor)</string>
     <string name="tor_bridge_hint">Se la tua rete blocca Tor, attiva il bridge in Privacy, nel pannello dei filtri.</string>
+    <string name="not_interested">Non mi interessa</string>
+    <string name="not_interested_done">Ok. Non verranno più suggeriti video come questo.</string>
+    <string name="source_off">Disattiva questa fonte</string>
+    <string name="source_off_done">%1$s è disattivata. Puoi riattivarla nei filtri.</string>
+    <string name="filter_orientation">Orientamento</string>
+    <string name="orient_straight">Etero</string>
+    <string name="orient_gay">Gay</string>
+    <string name="orient_trans">Trans</string>
 </resources>

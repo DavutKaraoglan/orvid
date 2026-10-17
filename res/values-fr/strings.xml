@@ -71,10 +71,6 @@
     <string name="all_adult">Toutes les sources pour adultes (18+)</string>
     <string name="no_results_filters">Aucun résultat. Filtres actifs : %1$s</string>
     <string name="filter_date">Date de mise en ligne</string>
-    <string name="filter_orientation">Orientation</string>
-    <string name="orient_straight">Hétéro</string>
-    <string name="orient_gay">Gay</string>
-    <string name="orient_trans">Trans</string>
     <string name="date_week">Cette semaine</string>
     <string name="date_month">Ce mois-ci</string>
     <string name="date_year">Cette année</string>
@@ -101,4 +97,12 @@
     <string name="panic_exit">Sortie d\'urgence (balayez vers le bas avec deux doigts)</string>
     <string name="tor_bridges">Pont Tor (si votre réseau bloque Tor)</string>
     <string name="tor_bridge_hint">Si votre réseau bloque Tor, activez le pont dans Confidentialité, dans le panneau des filtres.</string>
+    <string name="not_interested">Pas intéressé</string>
+    <string name="not_interested_done">Compris. Les vidéos de ce type ne seront plus proposées.</string>
+    <string name="source_off">Désactiver cette source</string>
+    <string name="source_off_done">%1$s est désactivée. Vous pouvez la réactiver dans les filtres.</string>
+    <string name="filter_orientation">Orientation</string>
+    <string name="orient_straight">Hétéro</string>
+    <string name="orient_gay">Gay</string>
+    <string name="orient_trans">Trans</string>
 </resources>

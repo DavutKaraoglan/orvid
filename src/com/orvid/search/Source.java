@@ -29,11 +29,7 @@ public abstract class Source {
     public final boolean adult;
 
     public static volatile boolean adultUnlocked;
-    public static final int MIXED = 0;
-    public static final int GAY = 2;
-    public static final int TRANS = 3;
     static final java.util.Map<Integer, Source> BY_SERVICE = new java.util.concurrent.ConcurrentHashMap<>();
-    public int orientation = MIXED;
     public String script;
 
     public Source script(String value) {
@@ -46,10 +42,6 @@ public abstract class Source {
         return adult ? 5 : 4;
     }
 
-    public Source orientation(int value) {
-        orientation = value;
-        return this;
-    }
     static final java.util.Set<String> ADULT_KEYS = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     protected Source(String key, String name, int icon, int serviceId, double weight, boolean defaultOn, boolean adult) {
@@ -66,13 +58,15 @@ public abstract class Source {
 
     public abstract Page search(String circuit, String query, Filters filters, String next) throws Exception;
 
+    public boolean usesWebView() {
+        return false;
+    }
+
     public boolean wanted(Filters f, Query q) {
         if (!q.site.isEmpty() || f.type == Filters.TYPE_SHORTS) return false;
         if (adult && (f.hideAdult || !adultUnlocked)) return false;
+        if (adult && !f.sourceFits(this)) return false;
         if (script != null && !script.equals(q.script())) return false;
-        if (adult && f.orientation == Filters.ORIENT_STRAIGHT && orientation != MIXED) return false;
-        if (adult && f.orientation == Filters.ORIENT_TRANS && orientation == GAY) return false;
-        if (adult && f.orientation == Filters.ORIENT_GAY && orientation == TRANS) return false;
         return f.on(this);
     }
 }

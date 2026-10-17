@@ -71,10 +71,6 @@
     <string name="all_adult">Tüm yetişkin kaynaklar (18+)</string>
     <string name="no_results_filters">Sonuç yok. Açık filtreler: %1$s</string>
     <string name="filter_date">Yükleme tarihi</string>
-    <string name="filter_orientation">Yönelim</string>
-    <string name="orient_straight">Straight</string>
-    <string name="orient_gay">Gay</string>
-    <string name="orient_trans">Trans</string>
     <string name="date_week">Son 1 hafta</string>
     <string name="date_month">Son 1 ay</string>
     <string name="date_year">Son 1 yıl</string>
@@ -101,4 +97,12 @@
     <string name="panic_exit">Panik çıkışı (iki parmakla aşağı kaydır)</string>
     <string name="tor_bridges">Tor köprüsü (ağın Tor\'u engelliyorsa)</string>
     <string name="tor_bridge_hint">Ağın Tor\'u engelliyorsa filtre panelindeki Gizlilik bölümünden köprüyü aç.</string>
+    <string name="not_interested">İlgilenmiyorum</string>
+    <string name="not_interested_done">Anlaşıldı. Bunun gibi videolar önerilmeyecek.</string>
+    <string name="source_off">Bu kaynağı kapat</string>
+    <string name="source_off_done">%1$s kapatıldı. Filtrelerden tekrar açabilirsin.</string>
+    <string name="filter_orientation">Yönelim</string>
+    <string name="orient_straight">Straight</string>
+    <string name="orient_gay">Gay</string>
+    <string name="orient_trans">Trans</string>
 </resources>

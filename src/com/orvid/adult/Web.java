@@ -119,7 +119,7 @@ public final class Web {
         }
     }
 
-    static String unescape(String s) {
+    public static String unescape(String s) {
         if (s == null) return "";
         return s.replace("&quot;", "\"").replace("&#039;", "'").replace("&#39;", "'").replace("&amp;", "&")
                 .replace("&lt;", "<").replace("&gt;", ">").replace("&nbsp;", " ").trim();

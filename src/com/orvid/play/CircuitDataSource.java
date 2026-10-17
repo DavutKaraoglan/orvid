@@ -100,14 +100,10 @@ public final class CircuitDataSource extends BaseDataSource {
         return C.LENGTH_UNSET;
     }
 
-    private long connect() throws IOException {
-        closeConnection();
-        long last = end > 0 ? end - 1 : -1;
-        long chunkLast = position + chunkSize - 1;
-        if (last >= 0 && last < chunkLast) chunkLast = last;
-        chunkEnd = chunkLast + 1;
-        String url = spec.uri.toString();
-        long began = System.currentTimeMillis();
+    private String effective;
+    private Uri effectiveFor;
+
+    private int request(String url, long chunkLast) throws IOException {
         try {
             connection = Fetch.on(circuit, () -> Fetch.open(url));
         } catch (IOException e) {
@@ -130,7 +126,39 @@ public final class CircuitDataSource extends BaseDataSource {
                 connection.setRequestProperty(h.getKey(), h.getValue());
             }
         }
-        int code = connection.getResponseCode();
+        return connection.getResponseCode();
+    }
+
+    private long connect() throws IOException {
+        closeConnection();
+        long last = end > 0 ? end - 1 : -1;
+        long chunkLast = position + chunkSize - 1;
+        if (last >= 0 && last < chunkLast) chunkLast = last;
+        chunkEnd = chunkLast + 1;
+        boolean reused = effective != null && effectiveFor == spec.uri;
+        String url = reused ? effective : spec.uri.toString();
+        long began = System.currentTimeMillis();
+        int code = 0;
+        for (int attempt = 0; attempt < 2; attempt++) {
+            code = request(url, chunkLast);
+            for (int hop = 0; hop < 5 && code >= 300 && code < 400; hop++) {
+                String location = connection.getHeaderField("Location");
+                if (location == null) break;
+                String next = java.net.URI.create(url).resolve(location).toString().replaceFirst("^http://", "https://");
+                closeConnection();
+                url = next;
+                code = request(url, chunkLast);
+            }
+            if (code == 200 || code == 206 || !reused) break;
+            closeConnection();
+            reused = false;
+            effective = null;
+            url = spec.uri.toString();
+        }
+        if (code == 200 || code == 206) {
+            effective = url;
+            effectiveFor = spec.uri;
+        }
         headers = connection.getHeaderFields();
         if (code != 206 && code != 200) {
             Diag.mark("media HTTP " + code + " " + kind(url));

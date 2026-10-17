@@ -7,7 +7,7 @@ import com.orvid.app.OrvidApp;
 
 public final class Panic {
 
-    private static final float DROP_DP = 140;
+    private static final float DROP_DP = 100;
     private static final float SPAN_DRIFT = 0.35f;
 
     private float startX;
@@ -52,11 +52,14 @@ public final class Panic {
     }
 
     private static void exit(Activity activity) {
+        activity.getWindow().getDecorView().setVisibility(android.view.View.INVISIBLE);
         try {
+            activity.moveTaskToBack(true);
             activity.finishAndRemoveTask();
+            activity.overridePendingTransition(0, 0);
         } catch (RuntimeException ignored) {
         }
-        OrvidApp.get().wipeAndExit();
+        new Thread(() -> OrvidApp.get().wipeAndExit(), "orvid-panic").start();
     }
 
     private static float midX(MotionEvent e) {

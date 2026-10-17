@@ -20,6 +20,7 @@ public final class Session {
     public static String circuit;
     public static String relatedToken;
     public static final List<StreamInfoItem> related = new ArrayList<>();
+    public static volatile List<StreamInfoItem> lastSearch = new ArrayList<>();
 
     private Session() {
     }

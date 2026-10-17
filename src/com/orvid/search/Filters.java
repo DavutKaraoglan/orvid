@@ -30,22 +30,57 @@ public final class Filters {
     public static final int DATE_MONTH = 2;
     public static final int DATE_YEAR = 3;
 
-    public static final int ORIENT_ANY = 0;
-    public static final int ORIENT_STRAIGHT = 1;
-    public static final int ORIENT_GAY = 2;
-    public static final int ORIENT_TRANS = 3;
-    private static final java.util.regex.Pattern GAY_WORDS = java.util.regex.Pattern.compile(
-            "\\b(gay|gays|twink|twinks|homo|m4m|bareback gay|gay porn)\\b", java.util.regex.Pattern.CASE_INSENSITIVE);
-    private static final java.util.regex.Pattern TRANS_WORDS = java.util.regex.Pattern.compile(
-            "\\b(trans|transgender|tranny|shemale|shemales|ladyboy|ladyboys|tgirl|tgirls|t-girl|ts)\\b",
-            java.util.regex.Pattern.CASE_INSENSITIVE);
 
-    public int orientation;
     public int date;
     public int type;
     public int duration;
     public int sort;
     public boolean hideAdult;
+    public static volatile Filters current;
+
+    public static final int ORIENT_ANY = 0;
+    public static final int ORIENT_STRAIGHT = 1;
+    public static final int ORIENT_GAY = 2;
+    public static final int ORIENT_TRANS = 3;
+    private static final java.util.regex.Pattern GAY_WORDS = java.util.regex.Pattern.compile(
+            "\\b(gay|gays|twink|twinks|homo|homosexual|male on male|man on man|men on men|guy on guy|dude on dude|boy on boy|"
+                    + "bareback gay|gaysex|gay sex|str8 guy|bi guys|bisexual men|frat boys?|muscle hunk|hunks)\\b");
+    private static final java.util.regex.Pattern TRANS_WORDS = java.util.regex.Pattern.compile(
+            "\\b(trans|transgender|transsexual|tranny|trannies|shemale|shemales|she male|ladyboy|ladyboys|tgirl|tgirls|t girl|"
+                    + "ts|ts girl|travesti|travestis|futanari|futa|newhalf|femboy|femboys|sissy|crossdresser|crossdressers)\\b");
+    private static final java.util.Set<String> GAY_SOURCES = new java.util.HashSet<>(java.util.Arrays.asList("gayporntube", "boyfriendtv"));
+    private static final java.util.Set<String> TRANS_SOURCES = new java.util.HashSet<>(java.util.Arrays.asList("ashemaletube"));
+    public int orientation;
+
+    public boolean sourceFits(Source s) {
+        if (!s.adult || orientation == ORIENT_ANY) return true;
+        boolean gay = GAY_SOURCES.contains(s.key);
+        boolean trans = TRANS_SOURCES.contains(s.key);
+        if (orientation == ORIENT_STRAIGHT) return !gay && !trans;
+        if (orientation == ORIENT_GAY) return !trans;
+        return !gay;
+    }
+
+    public boolean serviceOn(int serviceId) {
+        if (serviceId == org.schabi.newpipe.extractor.ServiceList.YouTube.getServiceId()) return youtube;
+        if (serviceId == com.orvid.dm.Dailymotion.SERVICE_ID) return dailymotion;
+        if (serviceId == com.orvid.vk.Vk.SERVICE_ID) return vk;
+        Source src = Source.BY_SERVICE.get(serviceId);
+        return src == null || on(src);
+    }
+
+    public boolean orientationAccepts(StreamInfoItem item) {
+        if (orientation == ORIENT_ANY) return true;
+        Source src = Source.BY_SERVICE.get(item.getServiceId());
+        if (src == null || !src.adult) return true;
+        String title = Query.fold(item.getName() == null ? "" : item.getName()).replace('-', ' ');
+        boolean gay = GAY_SOURCES.contains(src.key) || GAY_WORDS.matcher(title).find();
+        boolean trans = TRANS_SOURCES.contains(src.key) || TRANS_WORDS.matcher(title).find();
+        if (orientation == ORIENT_STRAIGHT) return !gay && !trans;
+        if (orientation == ORIENT_GAY) return gay && !trans;
+        return trans;
+    }
+
     public boolean youtube = true;
     public boolean dailymotion = true;
     public boolean vk = true;
@@ -152,19 +187,10 @@ public final class Filters {
         return 0;
     }
 
-    private boolean orientationAccepts(StreamInfoItem item) {
-        if (orientation == ORIENT_ANY) return true;
-        Source src = Source.BY_SERVICE.get(item.getServiceId());
-        if (src == null || !src.adult) return true;
-        String title = item.getName() == null ? "" : item.getName();
-        boolean gay = src.orientation == Source.GAY || GAY_WORDS.matcher(title).find();
-        boolean trans = src.orientation == Source.TRANS || TRANS_WORDS.matcher(title).find();
-        if (orientation == ORIENT_STRAIGHT) return !gay && !trans;
-        if (orientation == ORIENT_GAY) return gay;
-        return trans;
-    }
 
     public boolean accepts(StreamInfoItem item) {
+        if (!serviceOn(item.getServiceId())) return false;
+        if (NotInterested.hides(item)) return false;
         if (!orientationAccepts(item)) return false;
         long since = since();
         if (since > 0) {
@@ -184,6 +210,32 @@ public final class Filters {
         return arrange(q, sources, weights, null);
     }
 
+    static List<StreamInfoItem> onTopic(Query q, List<StreamInfoItem> ranked) {
+        List<String> keys = Ranker.keyTerms(q.terms);
+        if (keys.isEmpty()) keys = q.terms;
+        if (keys.isEmpty() && q.phrases.isEmpty()) return ranked;
+        int need = keys.size() <= 2 ? keys.size() : (int) Math.ceil(keys.size() * 0.6);
+        List<StreamInfoItem> out = new ArrayList<>();
+        for (StreamInfoItem item : ranked) {
+            String title = Query.fold(item.getName() == null ? "" : item.getName());
+            boolean phrases = true;
+            for (String ph : q.phrases) phrases &= title.contains(Query.fold(ph));
+            if (!phrases) continue;
+            List<String> words = Query.words(title);
+            int hits = 0;
+            for (String k : keys) {
+                for (String w : words) {
+                    if (Ranker.sameWord(k, w) || Query.wordMatches(k, w)) {
+                        hits++;
+                        break;
+                    }
+                }
+            }
+            if (hits >= need) out.add(item);
+        }
+        return out.isEmpty() ? ranked : out;
+    }
+
     public List<StreamInfoItem> arrange(Query q, List<List<StreamInfoItem>> sources, double[] weights, boolean[] tagged) {
         List<List<StreamInfoItem>> kept = new ArrayList<>();
         for (List<StreamInfoItem> list : sources) {
@@ -193,6 +245,7 @@ public final class Filters {
         }
         List<StreamInfoItem> ranked = Ranker.rank(q, kept, weights, tagged);
         if (sort == SORT_RELEVANCE) return ranked;
+        ranked = onTopic(q, ranked);
         if (sort == SORT_LONGEST) {
             List<StreamInfoItem> out = new ArrayList<>(ranked);
             Collections.sort(out, (a, b) -> Long.compare(b.getDuration(), a.getDuration()));

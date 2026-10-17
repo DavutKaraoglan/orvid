@@ -71,10 +71,6 @@
     <string name="all_adult">Alle Quellen für Erwachsene (18+)</string>
     <string name="no_results_filters">Keine Ergebnisse. Aktive Filter: %1$s</string>
     <string name="filter_date">Hochgeladen</string>
-    <string name="filter_orientation">Orientierung</string>
-    <string name="orient_straight">Hetero</string>
-    <string name="orient_gay">Schwul</string>
-    <string name="orient_trans">Trans</string>
     <string name="date_week">Diese Woche</string>
     <string name="date_month">Diesen Monat</string>
     <string name="date_year">Dieses Jahr</string>
@@ -101,4 +97,12 @@
     <string name="panic_exit">Notausgang (mit zwei Fingern nach unten wischen)</string>
     <string name="tor_bridges">Tor-Brücke (falls dein Netz Tor sperrt)</string>
     <string name="tor_bridge_hint">Falls dein Netz Tor sperrt, schalte die Brücke unter Privatsphäre im Filterbereich ein.</string>
+    <string name="not_interested">Kein Interesse</string>
+    <string name="not_interested_done">Verstanden. Videos wie dieses werden nicht mehr vorgeschlagen.</string>
+    <string name="source_off">Diese Quelle ausschalten</string>
+    <string name="source_off_done">%1$s ist ausgeschaltet. Du kannst sie in den Filtern wieder einschalten.</string>
+    <string name="filter_orientation">Orientierung</string>
+    <string name="orient_straight">Hetero</string>
+    <string name="orient_gay">Schwul</string>
+    <string name="orient_trans">Trans</string>
 </resources>

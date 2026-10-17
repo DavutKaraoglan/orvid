@@ -62,8 +62,24 @@ final class PlayerControls implements Player.Listener {
         preview.setVisibility(View.GONE);
     }
 
+    private void sizePreview() {
+        View parent = (View) preview.getParent();
+        boolean landscape = parent.getWidth() > parent.getHeight();
+        int max = Ui.dp(activity, landscape ? 360 : 260);
+        int width = Math.min(max, (int) (parent.getWidth() * (landscape ? 0.34f : 0.5f)));
+        float aspect = storyboard.aspect() > 0.5f && storyboard.aspect() < 3f ? storyboard.aspect() : 16f / 9f;
+        int height = Math.round(width / aspect);
+        ViewGroup.LayoutParams lp = preview.getLayoutParams();
+        if (lp.width != width || lp.height != height) {
+            lp.width = width;
+            lp.height = height;
+            preview.setLayoutParams(lp);
+        }
+    }
+
     private void showPreview(int progress) {
         if (storyboard == null) return;
+        sizePreview();
         long ms = position(progress);
         int width = preview.getLayoutParams().width;
         int track = seek.getWidth() - seek.getPaddingStart() - seek.getPaddingEnd();
@@ -90,7 +106,9 @@ final class PlayerControls implements Player.Listener {
     private boolean visible;
     private boolean dragging;
 
-    private final Runnable hide = this::hide;
+    private final Runnable hide = () -> {
+        if (!dragging) hide();
+    };
     private final Runnable tick = new Runnable() {
         @Override
         public void run() {
@@ -309,6 +327,7 @@ final class PlayerControls implements Player.Listener {
 
     private void scheduleHide() {
         overlay.removeCallbacks(hide);
+        if (dragging) return;
         if (player.isPlaying()) overlay.postDelayed(hide, HIDE_MS);
     }
 

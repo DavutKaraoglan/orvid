@@ -139,6 +139,8 @@ public final class PlayerActivity extends Activity {
         subtitle = findViewById(R.id.subtitle);
 
         header = LayoutInflater.from(this).inflate(R.layout.header_player, details, false);
+        hideWhenEmpty(header.findViewById(R.id.uploader));
+        hideWhenEmpty(header.findViewById(R.id.sub));
         details.addHeaderView(header, null, false);
         description = header.findViewById(R.id.description);
         expand = header.findViewById(R.id.expand);
@@ -172,6 +174,7 @@ public final class PlayerActivity extends Activity {
         pageUrl = linkFrom(getIntent());
         final boolean reuse = pageUrl != null && Session.has(pageUrl);
         String thumb = reuse ? Session.thumb : getIntent().getStringExtra(EXTRA_THUMB);
+        coverUrl = thumb;
         if (thumb != null) {
             OrvidApp.get().images().load(poster, thumb,
                     Math.min(640, getResources().getDisplayMetrics().widthPixels), pageUrl);
@@ -238,7 +241,7 @@ public final class PlayerActivity extends Activity {
                 poster.setVisibility(View.GONE);
                 stage.removeCallbacks(sampler);
                 stage.postDelayed(sampler, 200);
-                stage.postDelayed(PlayerActivity.this::loadRelated, 1200);
+                stage.postDelayed(PlayerActivity.this::loadRelated, 400);
             }
 
             @Override
@@ -326,6 +329,8 @@ public final class PlayerActivity extends Activity {
     }
 
     private void route() {
+        java.util.regex.Matcher phEmbed = java.util.regex.Pattern.compile("pornhub\\.com/embed/([A-Za-z0-9]+)").matcher(pageUrl);
+        if (phEmbed.find()) pageUrl = "https://www.pornhub.com/view_video.php?viewkey=" + phEmbed.group(1);
         videoId = Visionos.videoId(pageUrl);
         if (videoId == null) {
             java.util.concurrent.Future<com.orvid.play.Resolve.Stream> ready = com.orvid.play.Resolve.takePrepared(pageUrl);
@@ -370,7 +375,40 @@ public final class PlayerActivity extends Activity {
             com.orvid.adult.PornOne.Media m = com.orvid.adult.PornOne.resolve(c, pageUrl);
             return new com.orvid.play.Direct(m.title, "", m.mp4, false, null);
         });
-        else loadNewPipe(true);
+        else if (newPipeHandles(pageUrl)) loadNewPipe(true);
+        else loadGeneric();
+    }
+
+    private static boolean newPipeHandles(String url) {
+        try {
+            NewPipe.getServiceByUrl(url);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void loadGeneric() {
+        new Job<Hedge.Result<com.orvid.play.Direct>>(this) {
+            @Override
+            protected Hedge.Result<com.orvid.play.Direct> load() throws Exception {
+                return Hedge.call(Visionos.takePlayCircuit(), Visionos::takeCircuit, Fetch.torMode() ? 2500 : 0,
+                        c -> com.orvid.play.Generic.resolve(c, pageUrl));
+            }
+
+            @Override
+            protected void show(Hedge.Result<com.orvid.play.Direct> r) {
+                playDirect(r.value, r.value.circuit != null ? r.value.circuit : r.circuit);
+            }
+
+            @Override
+            protected void fail(Exception error) {
+                Diag.mark("generic embed FAIL " + error);
+                startActivity(new Intent(PlayerActivity.this, WebPlayerActivity.class)
+                        .putExtra(WebPlayerActivity.EXTRA_URL, pageUrl));
+                finish();
+            }
+        }.start();
     }
 
     private void restoreFromSession() {
@@ -573,7 +611,30 @@ public final class PlayerActivity extends Activity {
     private int reclaims;
     private com.orvid.play.Storyboard.Spec pendingSprite;
 
+    private String coverUrl;
+    private boolean coverSpriteTried;
+
     private void applySprite() {
+        if (pendingSprite == null && !coverSpriteTried) {
+            coverSpriteTried = true;
+            com.orvid.play.Storyboard.Spec shots = com.orvid.play.Storyboard.screens(coverUrl);
+            if (shots != null && pageUrl != null) {
+                android.net.Uri page = android.net.Uri.parse(pageUrl);
+                shots.referer = page.getScheme() + "://" + page.getHost() + "/";
+            }
+            if (shots != null) {
+                final String c = circuit;
+                RELATED_POOL.execute(() -> {
+                    int n = com.orvid.play.Storyboard.probeCount(shots, c);
+                    Diag.mark("cover screens " + n);
+                    if (n >= 3) runOnUiThread(() -> {
+                        if (isFinishing()) return;
+                        pendingSprite = shots.withCount(n);
+                        applySprite();
+                    });
+                });
+            }
+        }
         long duration = player.getDuration();
         if (pendingSprite == null || duration <= 0 || duration == C.TIME_UNSET) return;
         com.orvid.play.Storyboard sb = com.orvid.play.Storyboard.grid(pendingSprite, duration, circuit);
@@ -632,6 +693,24 @@ public final class PlayerActivity extends Activity {
 
     private boolean relatedRequested;
 
+    private static void hideWhenEmpty(TextView view) {
+        view.setVisibility(view.getText().length() == 0 ? View.GONE : View.VISIBLE);
+        view.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                view.setVisibility(s.toString().trim().isEmpty() ? View.GONE : View.VISIBLE);
+            }
+        });
+    }
+
     private void loadRelated() {
         if (relatedRequested || isFinishing()) return;
         relatedRequested = true;
@@ -640,111 +719,257 @@ public final class PlayerActivity extends Activity {
             return;
         }
         if (circuit == null) {
-            appendRelated(new ArrayList<>());
+            loadRelatedElsewhere();
             return;
         }
         final String c0 = circuit;
         final String title = ((TextView) header.findViewById(R.id.name)).getText().toString();
         final String channel = ((TextView) header.findViewById(R.id.uploader)).getText().toString();
+        relatedPending++;
         new Job<List<StreamInfoItem>>(this) {
             @Override
             protected List<StreamInfoItem> load() throws Exception {
                 com.orvid.yt.Search.Page p = com.orvid.yt.Related.page(c0, videoId);
                 relatedToken = p.continuation;
                 return com.orvid.search.Ranker.similar(title, channel, pageUrl, p.items,
-                        java.util.Collections.<StreamInfoItem>emptyList());
+                        java.util.Collections.<StreamInfoItem>emptyList(), true);
             }
 
             @Override
             protected void show(List<StreamInfoItem> first) {
                 appendRelated(first);
                 loadRelatedByText(c0, title, channel);
+                loadRelatedAcross(title, channel, false, null, true);
+                relatedDone();
             }
 
             @Override
             protected void fail(Exception error) {
                 Diag.mark("related next FAIL " + error);
                 loadRelatedByText(c0, title, channel);
+                relatedDone();
             }
         }.start();
+    }
+
+    private static final int RELATED_MIN = 16;
+
+    private void loadRelatedAcross(String title, String channel, boolean adult, com.orvid.search.Source own,
+                                   boolean skipYouTube) {
+        String keys = relatedKeys(com.orvid.search.Query.parse(title), title);
+        if (keys.isEmpty()) return;
+        final com.orvid.search.Filters filters = relatedFilters();
+        relatedPending++;
+        new Job<List<StreamInfoItem>>(this) {
+            @Override
+            protected List<StreamInfoItem> load() {
+                List<StreamInfoItem> found = relatedFromOthers(keys, own, adult, filters);
+                if (skipYouTube) found.removeIf(i -> i.getServiceId() == org.schabi.newpipe.extractor.ServiceList.YouTube.getServiceId());
+                return com.orvid.search.Ranker.similar(title, channel, pageUrl,
+                        java.util.Collections.<StreamInfoItem>emptyList(), found, false, adult ? RELATED_MIN : 0);
+            }
+
+            @Override
+            protected void show(List<StreamInfoItem> items) {
+                appendRelated(items);
+                relatedDone();
+            }
+
+            @Override
+            protected void fail(Exception error) {
+                relatedDone();
+            }
+        }.start();
+    }
+    private int relatedPending;
+    private int relatedFallbacks;
+
+    private void relatedDone() {
+        if (relatedPending > 0) relatedPending--;
+        if (relatedPending > 0 || related.getCount() > 0 || isFinishing()) return;
+        if (relatedFallbacks == 0) {
+            List<StreamInfoItem> fromSearch = new ArrayList<>();
+            for (StreamInfoItem i : Session.lastSearch) {
+                if (!i.getUrl().equals(pageUrl) && !com.orvid.search.NotInterested.hides(i)) fromSearch.add(i);
+            }
+            if (!fromSearch.isEmpty()) {
+                Diag.mark("related from last search " + fromSearch.size());
+                appendRelated(fromSearch);
+                if (related.getCount() > 0) return;
+            }
+        }
+        if (relatedFallbacks >= 3) return;
+        relatedFallbacks++;
+        loadRelatedFallback(relatedFallbacks);
+    }
+
+    private void loadRelatedFallback(int round) {
+        final String title = ((TextView) header.findViewById(R.id.name)).getText().toString();
+        final String channel = ((TextView) header.findViewById(R.id.uploader)).getText().toString();
+        com.orvid.search.Query q = com.orvid.search.Query.parse(title);
+        List<String> keys = com.orvid.search.Ranker.keyTerms(q.terms);
+        if (keys.isEmpty()) keys = q.terms;
+        if (keys.isEmpty()) return;
+        int take = round == 1 ? Math.min(5, keys.size()) : round == 2 ? Math.min(2, keys.size()) : 1;
+        final String query = String.join(" ", keys.subList(0, take));
+        final com.orvid.search.Source own = pageUrl == null ? null : Sources.forUrl(pageUrl);
+        final boolean adult = own != null && own.adult;
+        final com.orvid.search.Filters filters = relatedFilters();
+        Diag.mark("related fallback " + round + " [" + query + "]");
+        relatedPending++;
+        new Job<List<StreamInfoItem>>(this) {
+            @Override
+            protected List<StreamInfoItem> load() {
+                return com.orvid.search.Ranker.similar(title, channel, pageUrl,
+                        java.util.Collections.<StreamInfoItem>emptyList(),
+                        relatedFromOthers(query, null, adult, filters), false, RELATED_MIN);
+            }
+
+            @Override
+            protected void show(List<StreamInfoItem> items) {
+                appendRelated(items);
+                relatedDone();
+            }
+
+            @Override
+            protected void fail(Exception error) {
+                Diag.mark("related fallback FAIL " + error);
+                relatedDone();
+            }
+        }.start();
+    }
+
+    private static String relatedKeys(com.orvid.search.Query q, String title) {
+        List<String> keys = com.orvid.search.Ranker.keyTerms(q.terms);
+        if (keys.isEmpty()) keys = q.terms;
+        if (keys.isEmpty()) return title.trim();
+        return String.join(" ", keys.subList(0, Math.min(5, keys.size())));
     }
 
     private void loadRelatedElsewhere() {
         final String title = ((TextView) header.findViewById(R.id.name)).getText().toString();
         final String channel = ((TextView) header.findViewById(R.id.uploader)).getText().toString();
         com.orvid.search.Query q = com.orvid.search.Query.parse(title);
-        if (q.terms.isEmpty() || pageUrl == null) {
-            appendRelated(new ArrayList<>());
+        final String keys = relatedKeys(q, title);
+        if (keys.isEmpty() || pageUrl == null) {
+            relatedPending++;
+            relatedDone();
             return;
         }
-        final String keys = String.join(" ", q.terms.subList(0, Math.min(5, q.terms.size())));
         final com.orvid.search.Source own = Sources.forUrl(pageUrl);
         final boolean adult = own != null && own.adult;
         final int service = own != null ? own.serviceId
                 : com.orvid.dm.Dailymotion.videoId(pageUrl) != null ? com.orvid.dm.Dailymotion.SERVICE_ID
                 : com.orvid.vk.Vk.videoId(pageUrl) != null ? com.orvid.vk.Vk.SERVICE_ID : -1;
-        final com.orvid.search.Filters filters = com.orvid.search.Filters.load(getSharedPreferences("settings", MODE_PRIVATE));
+        final com.orvid.search.Filters filters = relatedFilters();
+        loadRelatedAcross(title, channel, adult, own, false);
+        relatedPending++;
         new Job<List<StreamInfoItem>>(this) {
             @Override
             protected List<StreamInfoItem> load() throws Exception {
                 List<StreamInfoItem> same = new ArrayList<>();
                 List<StreamInfoItem> other = new ArrayList<>();
                 String c = Visionos.takeCircuit();
+                String sameKeys = keys;
+                if (service == com.orvid.ay.Aylo.SERVICE_ID) {
+                    try {
+                        List<String> tags = Fetch.retrying(c, cc -> com.orvid.ay.Aylo.tags(cc, pageUrl));
+                        if (!tags.isEmpty()) sameKeys = String.join(" ", tags.subList(0, Math.min(3, tags.size())));
+                    } catch (Exception e) {
+                        Diag.mark("related tags FAIL " + e);
+                    }
+                }
+                final String query = sameKeys;
                 try {
                     if (own != null) {
-                        same.addAll(Fetch.retrying(c, cc -> own.search(cc, keys, filters, null)).items);
+                        same.addAll(Fetch.retrying(c, cc -> own.search(cc, query, filters, null)).items);
                     } else if (service == com.orvid.dm.Dailymotion.SERVICE_ID) {
-                        same.addAll(Fetch.retrying(c, cc -> com.orvid.dm.Dailymotion.search(cc, keys, 1,
+                        same.addAll(Fetch.retrying(c, cc -> com.orvid.dm.Dailymotion.search(cc, query, 1,
                                 filters.dailymotionParams(), false)).items);
                     } else if (service == com.orvid.vk.Vk.SERVICE_ID) {
-                        same.addAll(Fetch.retrying(c, cc -> com.orvid.vk.Vk.search(cc, keys, null)).items);
+                        same.addAll(Fetch.retrying(c, cc -> com.orvid.vk.Vk.search(cc, query, null)).items);
                     }
                 } catch (Exception e) {
                     Diag.mark("related same-source FAIL " + e);
                 }
-                if (!adult && same.size() < 8 && filters.youtube) {
-                    try {
-                        other.addAll(com.orvid.yt.Search.first(Visionos.takeCircuit(), keys, null).items);
-                    } catch (Exception e) {
-                        Diag.mark("related youtube FAIL " + e);
-                    }
-                }
-                return com.orvid.search.Ranker.similar(title, channel, pageUrl, same, other);
+
+                return com.orvid.search.Ranker.similar(title, channel, pageUrl, same, other, false, RELATED_MIN);
             }
 
             @Override
             protected void show(List<StreamInfoItem> items) {
                 appendRelated(items);
+                relatedDone();
             }
 
             @Override
             protected void fail(Exception error) {
                 Diag.mark("related elsewhere FAIL " + error);
-                appendRelated(new ArrayList<>());
+                relatedDone();
             }
         }.start();
+    }
+
+    private static List<StreamInfoItem> relatedFromOthers(String keys, com.orvid.search.Source own, boolean adult,
+                                                          com.orvid.search.Filters filters) {
+        com.orvid.search.Query q = com.orvid.search.Query.parse(keys);
+        List<java.util.concurrent.Callable<List<StreamInfoItem>>> jobs = new ArrayList<>();
+        if (!adult && filters.youtube) {
+            jobs.add(() -> Fetch.retrying(Visionos.takeCircuit(), cc -> com.orvid.yt.Search.first(cc, keys, null)).items);
+        }
+        List<com.orvid.search.Source> pool = new ArrayList<>();
+        for (com.orvid.search.Source s : Sources.EXTRA) {
+            if (s == own || s.adult != adult || s.usesWebView() || !s.wanted(filters, q)) continue;
+            pool.add(s);
+        }
+        pool.sort((x, y) -> Double.compare(y.weight, x.weight));
+        for (com.orvid.search.Source s : pool.subList(0, Math.min(3, pool.size()))) {
+            jobs.add(() -> Fetch.retrying(Fetch.newCircuit("rel"), cc -> s.search(cc, keys, filters, null)).items);
+        }
+        List<StreamInfoItem> out = new ArrayList<>();
+        if (jobs.isEmpty()) return out;
+        java.util.concurrent.ExecutorService ex = java.util.concurrent.Executors.newFixedThreadPool(jobs.size());
+        try {
+            List<java.util.concurrent.Future<List<StreamInfoItem>>> futures = new ArrayList<>();
+            for (java.util.concurrent.Callable<List<StreamInfoItem>> j : jobs) futures.add(ex.submit(j));
+            long deadline = System.currentTimeMillis() + 12000;
+            for (java.util.concurrent.Future<List<StreamInfoItem>> f : futures) {
+                try {
+                    out.addAll(f.get(Math.max(1, deadline - System.currentTimeMillis()), java.util.concurrent.TimeUnit.MILLISECONDS));
+                } catch (Exception e) {
+                    f.cancel(true);
+                }
+            }
+        } finally {
+            ex.shutdownNow();
+        }
+        return out;
     }
 
     private void loadRelatedByText(String c0, String title, String channel) {
         com.orvid.search.Query q = com.orvid.search.Query.parse(title);
         if (q.terms.isEmpty() || !relatedFilters().youtube) return;
-        final String keys = String.join(" ", q.terms.subList(0, Math.min(5, q.terms.size())));
+        final String keys = relatedKeys(q, title);
+        final int minimum = related.getCount() < RELATED_MIN ? RELATED_MIN : 0;
+        relatedPending++;
         new Job<List<StreamInfoItem>>(this) {
             @Override
             protected List<StreamInfoItem> load() throws Exception {
                 List<StreamInfoItem> found = com.orvid.yt.Search.first(c0, keys, null).items;
                 return com.orvid.search.Ranker.similar(title, channel, pageUrl,
-                        java.util.Collections.<StreamInfoItem>emptyList(), found);
+                        java.util.Collections.<StreamInfoItem>emptyList(), found, false, minimum);
             }
 
             @Override
             protected void show(List<StreamInfoItem> more) {
                 appendRelated(more);
+                relatedDone();
             }
 
             @Override
             protected void fail(Exception error) {
                 Diag.mark("related search FAIL " + error);
+                relatedDone();
             }
         }.start();
     }
@@ -757,19 +982,19 @@ public final class PlayerActivity extends Activity {
         }
         com.orvid.search.Filters allowed = relatedFilters();
         List<StreamInfoItem> fresh = new ArrayList<>();
-        for (StreamInfoItem i : items) if (sourceOn(allowed, i) && relatedSeen.add(i.getUrl())) fresh.add(i);
+        for (StreamInfoItem i : items) {
+            if (sourceOn(allowed, i) && allowed.orientationAccepts(i) && relatedSeen.add(i.getUrl())) fresh.add(i);
+        }
         related.add(fresh);
         Session.related.addAll(fresh);
         header.findViewById(R.id.related_label).setVisibility(related.getCount() == 0 ? View.GONE : View.VISIBLE);
     }
 
-    private com.orvid.search.Filters relatedFilters;
 
     private com.orvid.search.Filters relatedFilters() {
-        if (relatedFilters == null) {
-            relatedFilters = com.orvid.search.Filters.load(getSharedPreferences("settings", MODE_PRIVATE));
-        }
-        return relatedFilters;
+        if (com.orvid.search.Filters.current != null) return com.orvid.search.Filters.current;
+        com.orvid.search.Filters.current = com.orvid.search.Filters.load(getSharedPreferences("settings", MODE_PRIVATE));
+        return com.orvid.search.Filters.current;
     }
 
     private static boolean sourceOn(com.orvid.search.Filters f, StreamInfoItem item) {
@@ -1037,6 +1262,7 @@ public final class PlayerActivity extends Activity {
         sources.add(d.hls ? new HlsMediaSource.Factory(data).createMediaSource(item)
                 : new ProgressiveMediaSource.Factory(data).createMediaSource(item));
         pendingSprite = d.sprite;
+        if (pendingSprite != null && pendingSprite.referer == null) pendingSprite.referer = d.referer;
         startPlayback();
     }
 

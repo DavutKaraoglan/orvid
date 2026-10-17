@@ -45,17 +45,49 @@ final class VideoAdapter extends BaseAdapter {
     private final Context context;
     private final OnPick onPick;
     private final List<StreamInfoItem> items = new ArrayList<>();
+
+    private void turnOffSource(StreamInfoItem item) {
+        android.content.SharedPreferences prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE);
+        if (com.orvid.search.Filters.current == null) com.orvid.search.Filters.current = com.orvid.search.Filters.load(prefs);
+        com.orvid.search.Filters f = com.orvid.search.Filters.current;
+        int sid = item.getServiceId();
+        String name;
+        if (sid == org.schabi.newpipe.extractor.ServiceList.YouTube.getServiceId()) {
+            f.youtube = false;
+            name = "YouTube";
+        } else if (sid == com.orvid.dm.Dailymotion.SERVICE_ID) {
+            f.dailymotion = false;
+            name = context.getString(R.string.source_dailymotion);
+        } else if (sid == com.orvid.vk.Vk.SERVICE_ID) {
+            f.vk = false;
+            name = "VK Video";
+        } else {
+            com.orvid.search.Source s = Sources.byService(sid);
+            if (s == null) return;
+            f.set(s, false);
+            name = s.name;
+        }
+        boolean any = f.youtube || f.dailymotion || f.vk;
+        for (com.orvid.search.Source s : Sources.EXTRA) any |= f.on(s);
+        if (!any) f.youtube = true;
+        f.save(prefs);
+        if (items.removeIf(i -> i.getServiceId() == sid)) notifyDataSetChanged();
+        android.widget.Toast.makeText(context, context.getString(R.string.source_off_done, name), android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    void pruneOff(com.orvid.search.Filters f) {
+        if (items.removeIf(i -> !f.serviceOn(i.getServiceId()))) notifyDataSetChanged();
+    }
+
+    void prune() {
+        if (items.removeIf(com.orvid.search.NotInterested::hides)) notifyDataSetChanged();
+    }
     private final int screenWidth;
     private int mode;
     private boolean idle = true;
     private com.orvid.search.Query query;
 
-    private Previewer previewer;
-    private boolean previewing;
 
-    void setPreviewer(Previewer previewer) {
-        this.previewer = previewer;
-    }
 
     void setQuery(com.orvid.search.Query query) {
         this.query = query;
@@ -233,6 +265,7 @@ final class VideoAdapter extends BaseAdapter {
         View sub2 = view.findViewById(R.id.sub2);
         if (sub2 != null) sub2.setVisibility(View.GONE);
         if (sub != null) {
+            sub.setVisibility(View.VISIBLE);
             sub.setText("　");
             skeletonBar(sub, new android.graphics.drawable.InsetDrawable(
                     context.getDrawable(R.drawable.bg_skeleton), 0, Ui.dp(context, 3), Ui.dp(context, 120), Ui.dp(context, 3)));
@@ -295,17 +328,26 @@ final class VideoAdapter extends BaseAdapter {
                 : item.getServiceId() == com.orvid.vk.Vk.SERVICE_ID ? "VK"
                 : Sources.byService(item.getServiceId()) != null ? Sources.byService(item.getServiceId()).name : "";
         if (sub != null) {
-            if (mode == GRID) sub.setText(Ui.joinDot(item.getUploaderName(), source));
-            else if (mode == COMPACT) {
-                sub.setText(Ui.joinDot(item.getUploaderName(), source));
-                String more = Ui.joinDot(views, date);
+            String text;
+            if (mode == GRID) {
+                text = Ui.joinDot(item.getUploaderName(), source);
+            } else if (mode == COMPACT) {
+                String first = Ui.joinDot(item.getUploaderName(), source);
+                String second = Ui.joinDot(views, date);
+                String more = first.isEmpty() ? "" : second;
+                text = first.isEmpty() ? second : first;
                 TextView sub2 = view.findViewById(R.id.sub2);
                 if (sub2 != null) {
                     sub2.setText(more);
                     sub2.setVisibility(more.isEmpty() ? View.GONE : View.VISIBLE);
+                } else if (!more.isEmpty()) {
+                    text = text + "\n" + more;
                 }
+            } else {
+                text = Ui.joinDot(item.getUploaderName(), source, views, date);
             }
-            else sub.setText(Ui.joinDot(item.getUploaderName(), source, views, date));
+            sub.setText(text);
+            sub.setVisibility(text.isEmpty() ? View.GONE : View.VISIBLE);
         }
 
         boolean live = item.getStreamType() == StreamType.LIVE_STREAM
@@ -336,11 +378,21 @@ final class VideoAdapter extends BaseAdapter {
             avatar.setBackground(dot);
         }
         view.setOnClickListener(v -> onPick.pick(item));
-        view.setOnLongClickListener(thumb == null || previewer == null ? null : v -> {
-            if (!(thumb.getParent() instanceof android.widget.FrameLayout)) return false;
-            previewing = true;
-            if (v.getParent() != null) v.getParent().requestDisallowInterceptTouchEvent(true);
-            previewer.start((android.widget.FrameLayout) thumb.getParent(), item);
+        view.setOnLongClickListener(v -> {
+            android.widget.PopupMenu menu = new android.widget.PopupMenu(context, thumb != null ? thumb : v);
+            menu.getMenu().add(0, 1, 0, R.string.not_interested);
+            menu.getMenu().add(0, 2, 1, R.string.source_off);
+            menu.setOnMenuItemClickListener(m -> {
+                if (m.getItemId() == 2) {
+                    turnOffSource(item);
+                    return true;
+                }
+                com.orvid.search.NotInterested.add(item);
+                prune();
+                android.widget.Toast.makeText(context, R.string.not_interested_done, android.widget.Toast.LENGTH_SHORT).show();
+                return true;
+            });
+            menu.show();
             return true;
         });
         view.setOnTouchListener((v, e) -> {
@@ -363,10 +415,6 @@ final class VideoAdapter extends BaseAdapter {
                     v.removeCallbacks((Runnable) warm);
                     v.setTag(R.id.prepare_job, null);
                 }
-            }
-            if ((action == android.view.MotionEvent.ACTION_UP || action == android.view.MotionEvent.ACTION_CANCEL) && previewing) {
-                previewing = false;
-                previewer.stop();
             }
             return false;
         });

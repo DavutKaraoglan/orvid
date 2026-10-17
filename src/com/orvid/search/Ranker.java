@@ -278,27 +278,80 @@ public final class Ranker {
         return false;
     }
 
+    private static final java.util.Set<String> TITLE_NOISE = new java.util.HashSet<>(java.util.Arrays.asList(
+            "official", "video", "videos", "music", "audio", "lyrics", "lyric", "full", "hd", "4k", "8k", "hq", "uhd",
+            "live", "new", "latest", "part", "episode", "ep", "ft", "feat", "vs", "remix", "mv", "trailer", "teaser",
+            "clip", "song", "songs", "cover", "version", "edit", "shorts", "short", "best", "top", "vlog", "mix",
+            "compilation", "original", "extended", "reaction", "review", "explained", "highlights", "season",
+            "resmi", "klip", "sarki", "canli", "bolum", "tam", "yeni", "izle", "film", "dizi", "fragman",
+            "youtube", "tiktok", "free", "watch", "you", "your", "this", "that", "from", "about", "what", "why",
+            "is", "are", "was", "my", "me", "we", "it", "at", "by", "or", "be", "not", "all", "one", "day", "time"));
+
+    public static List<String> keyTerms(List<String> terms) {
+        List<String> out = new ArrayList<>();
+        for (String t : terms) {
+            if (t.length() < 3 || t.chars().allMatch(Character::isDigit) || TITLE_NOISE.contains(t)) continue;
+            out.add(t);
+        }
+        return out;
+    }
+
+    private static final java.util.Set<String> ENDINGS = new java.util.HashSet<>(java.util.Arrays.asList(
+            "s", "es", "ler", "lar", "in", "nin", "un", "nun", "i", "u", "e", "a", "de", "da"));
+
+    static boolean sameWord(String term, String word) {
+        if (word.equals(term)) return true;
+        String longer = word.length() > term.length() ? word : term;
+        String shorter = longer == word ? term : word;
+        return shorter.length() >= 4 && longer.startsWith(shorter) && ENDINGS.contains(longer.substring(shorter.length()));
+    }
+
     public static List<StreamInfoItem> similar(String title, String channel, String selfUrl,
                                                List<StreamInfoItem> next, List<StreamInfoItem> search) {
-        Query q = Query.parse(title);
+        return similar(title, channel, selfUrl, next, search, false);
+    }
+
+    public static List<StreamInfoItem> similar(String title, String channel, String selfUrl,
+                                               List<StreamInfoItem> next, List<StreamInfoItem> search,
+                                               boolean trustNext) {
+        return similar(title, channel, selfUrl, next, search, trustNext, 0);
+    }
+
+    public static List<StreamInfoItem> similar(String title, String channel, String selfUrl,
+                                               List<StreamInfoItem> next, List<StreamInfoItem> search,
+                                               boolean trustNext, int minimum) {
+        List<String> keys = keyTerms(Query.parse(title).terms);
+        int needed = keys.size() >= 3 ? 2 : 1;
         String ownChannel = Query.fold(channel == null ? "" : channel);
         List<Scored> all = new ArrayList<>();
         java.util.Set<String> seen = new java.util.HashSet<>();
         seen.add(selfUrl);
         int order = 0;
+        List<StreamInfoItem> weak = new ArrayList<>();
         List<List<StreamInfoItem>> sources = java.util.Arrays.asList(next, search);
         double[] weights = {1.0, 0.8};
         for (int src = 0; src < sources.size(); src++) {
             List<StreamInfoItem> list = sources.get(src);
+            boolean trusted = src == 0 && trustNext;
             for (int rank = 0; rank < list.size(); rank++) {
                 StreamInfoItem item = list.get(rank);
-                if (!seen.add(item.getUrl())) continue;
+                if (!seen.add(item.getUrl()) || NotInterested.hides(item)) continue;
                 List<String> words = Query.words(Query.fold(item.getName() == null ? "" : item.getName()));
                 int overlap = 0;
-                for (String t : q.terms) if (contains(words, t)) overlap++;
+                for (String t : keys) {
+                    for (String w : words) {
+                        if (sameWord(t, w)) {
+                            overlap++;
+                            break;
+                        }
+                    }
+                }
                 boolean sameChannel = !ownChannel.isEmpty()
                         && ownChannel.equals(Query.fold(item.getUploaderName() == null ? "" : item.getUploaderName()));
-                if (overlap == 0 && !sameChannel) continue;
+                if (!sameChannel && overlap < (trusted ? 1 : needed)) {
+                    weak.add(item);
+                    continue;
+                }
                 double s = overlap * 3 + (sameChannel ? 4 : 0) + 4.0 * weights[src] / (1 + rank * 0.3);
                 long views = item.getViewCount();
                 if (views > 0) s += Math.log10(views + 1) * 0.25;
@@ -308,6 +361,7 @@ public final class Ranker {
         Collections.sort(all, (a, b) -> a.score != b.score ? Double.compare(b.score, a.score) : a.order - b.order);
         List<StreamInfoItem> out = new ArrayList<>(all.size());
         for (Scored s : all) out.add(s.item);
+        for (int i = 0; out.size() < minimum && i < weak.size(); i++) out.add(weak.get(i));
         return out;
     }
 

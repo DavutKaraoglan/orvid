@@ -71,10 +71,6 @@
     <string name="all_adult">すべての成人向けソース (18+)</string>
     <string name="no_results_filters">結果がありません。有効なフィルタ: %1$s</string>
     <string name="filter_date">アップロード日</string>
-    <string name="filter_orientation">指向</string>
-    <string name="orient_straight">ストレート</string>
-    <string name="orient_gay">ゲイ</string>
-    <string name="orient_trans">トランス</string>
     <string name="date_week">今週</string>
     <string name="date_month">今月</string>
     <string name="date_year">今年</string>
@@ -101,4 +97,12 @@
     <string name="panic_exit">緊急終了 (2 本指で下にスワイプ)</string>
     <string name="tor_bridges">Tor ブリッジ (ネットワークが Tor をブロックしている場合)</string>
     <string name="tor_bridge_hint">ネットワークが Tor をブロックしている場合は、フィルタパネルのプライバシーでブリッジをオンにしてください。</string>
+    <string name="not_interested">興味なし</string>
+    <string name="not_interested_done">了解しました。このような動画は表示されなくなります。</string>
+    <string name="source_off">このソースをオフにする</string>
+    <string name="source_off_done">%1$s をオフにしました。フィルタから再びオンにできます。</string>
+    <string name="filter_orientation">指向</string>
+    <string name="orient_straight">ストレート</string>
+    <string name="orient_gay">ゲイ</string>
+    <string name="orient_trans">トランス</string>
 </resources>

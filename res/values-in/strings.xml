@@ -71,10 +71,6 @@
     <string name="all_adult">Semua sumber dewasa (18+)</string>
     <string name="no_results_filters">Tidak ada hasil. Filter aktif: %1$s</string>
     <string name="filter_date">Tanggal unggah</string>
-    <string name="filter_orientation">Orientasi</string>
-    <string name="orient_straight">Hetero</string>
-    <string name="orient_gay">Gay</string>
-    <string name="orient_trans">Trans</string>
     <string name="date_week">Minggu ini</string>
     <string name="date_month">Bulan ini</string>
     <string name="date_year">Tahun ini</string>
@@ -101,4 +97,12 @@
     <string name="panic_exit">Keluar darurat (geser ke bawah dengan dua jari)</string>
     <string name="tor_bridges">Bridge Tor (jika jaringan Anda memblokir Tor)</string>
     <string name="tor_bridge_hint">Jika jaringan Anda memblokir Tor, aktifkan bridge di bagian Privasi pada panel filter.</string>
+    <string name="not_interested">Tidak tertarik</string>
+    <string name="not_interested_done">Oke. Video seperti ini tidak akan disarankan.</string>
+    <string name="source_off">Matikan sumber ini</string>
+    <string name="source_off_done">%1$s dimatikan. Anda bisa menyalakannya lagi di filter.</string>
+    <string name="filter_orientation">Orientasi</string>
+    <string name="orient_straight">Hetero</string>
+    <string name="orient_gay">Gay</string>
+    <string name="orient_trans">Trans</string>
 </resources>
