@@ -227,12 +227,14 @@ final class VideoAdapter extends BaseAdapter {
         }
         if (name != null) {
             name.setText("　");
-            name.setBackground(new android.graphics.drawable.InsetDrawable(
+            skeletonBar(name, new android.graphics.drawable.InsetDrawable(
                     context.getDrawable(R.drawable.bg_skeleton), 0, Ui.dp(context, 3), Ui.dp(context, 24), Ui.dp(context, 3)));
         }
+        View sub2 = view.findViewById(R.id.sub2);
+        if (sub2 != null) sub2.setVisibility(View.GONE);
         if (sub != null) {
             sub.setText("　");
-            sub.setBackground(new android.graphics.drawable.InsetDrawable(
+            skeletonBar(sub, new android.graphics.drawable.InsetDrawable(
                     context.getDrawable(R.drawable.bg_skeleton), 0, Ui.dp(context, 3), Ui.dp(context, 120), Ui.dp(context, 3)));
         }
         view.setOnClickListener(null);
@@ -246,6 +248,12 @@ final class VideoAdapter extends BaseAdapter {
             pulse.start();
             view.setTag(R.id.skeleton_anim, pulse);
         }
+    }
+
+    private static void skeletonBar(View v, android.graphics.drawable.Drawable bar) {
+        int l = v.getPaddingLeft(), t = v.getPaddingTop(), r = v.getPaddingRight(), b = v.getPaddingBottom();
+        v.setBackground(bar);
+        v.setPadding(l, t, r, b);
     }
 
     private static void unskeleton(View view, TextView name, TextView sub) {
@@ -288,7 +296,15 @@ final class VideoAdapter extends BaseAdapter {
                 : Sources.byService(item.getServiceId()) != null ? Sources.byService(item.getServiceId()).name : "";
         if (sub != null) {
             if (mode == GRID) sub.setText(Ui.joinDot(item.getUploaderName(), source));
-            else if (mode == COMPACT) sub.setText(Ui.joinDot(item.getUploaderName(), source) + "\n" + Ui.joinDot(views, date));
+            else if (mode == COMPACT) {
+                sub.setText(Ui.joinDot(item.getUploaderName(), source));
+                String more = Ui.joinDot(views, date);
+                TextView sub2 = view.findViewById(R.id.sub2);
+                if (sub2 != null) {
+                    sub2.setText(more);
+                    sub2.setVisibility(more.isEmpty() ? View.GONE : View.VISIBLE);
+                }
+            }
             else sub.setText(Ui.joinDot(item.getUploaderName(), source, views, date));
         }
 

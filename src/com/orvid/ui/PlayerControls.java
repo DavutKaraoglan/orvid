@@ -330,18 +330,33 @@ final class PlayerControls implements Player.Listener {
         refreshCc();
     }
 
+    private boolean autoOn() {
+        AutoCaptions auto = autoCaptions();
+        return auto != null && auto.mode() != AutoCaptions.OFF;
+    }
+
+    private void autoOff() {
+        if (autoOn()) autoCaptions().setMode(AutoCaptions.OFF);
+    }
+
+    private void textOff() {
+        player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
+                .clearOverridesOfType(C.TRACK_TYPE_TEXT).setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build());
+    }
+
     private void toggleSubtitles() {
         List<Choice> text = choices(C.TRACK_TYPE_TEXT);
-        if (text.isEmpty()) {
-            AutoCaptions auto = autoCaptions();
-            if (auto == null || !auto.available()) return;
-            auto.setMode(auto.mode() == AutoCaptions.OFF ? AutoCaptions.TRANSLATED : AutoCaptions.OFF);
+        if (autoOn() || !selectedLabel(text).isEmpty()) {
+            autoOff();
+            if (!text.isEmpty()) textOff();
             refreshCc();
             return;
         }
-        if (!selectedLabel(text).isEmpty()) {
-            player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
-                    .clearOverridesOfType(C.TRACK_TYPE_TEXT).setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build());
+        if (text.isEmpty()) {
+            AutoCaptions auto = autoCaptions();
+            if (auto == null || !auto.available()) return;
+            auto.setMode(AutoCaptions.TRANSLATED);
+            refreshCc();
             return;
         }
         String mine = Locale.getDefault().getLanguage();
@@ -595,11 +610,13 @@ final class PlayerControls implements Player.Listener {
             refreshCc();
         });
         sheet.choice(activity.getString(R.string.auto_captions_original), m == AutoCaptions.ORIGINAL, () -> {
+            if (!choices(C.TRACK_TYPE_TEXT).isEmpty()) textOff();
             auto.setMode(AutoCaptions.ORIGINAL);
             sheet.dismiss();
             refreshCc();
         });
         sheet.choice(activity.getString(R.string.auto_captions_translated, auto.targetName()), m == AutoCaptions.TRANSLATED, () -> {
+            if (!choices(C.TRACK_TYPE_TEXT).isEmpty()) textOff();
             auto.setMode(AutoCaptions.TRANSLATED);
             sheet.dismiss();
             refreshCc();
@@ -612,7 +629,7 @@ final class PlayerControls implements Player.Listener {
         AutoCaptions auto = autoCaptions();
         boolean autoOk = auto != null && auto.available();
         cc.setVisibility(text.isEmpty() && !autoOk ? View.GONE : View.VISIBLE);
-        boolean on = !selectedLabel(text).isEmpty() || (text.isEmpty() && auto != null && auto.mode() != AutoCaptions.OFF);
+        boolean on = !selectedLabel(text).isEmpty() || autoOn();
         cc.setAlpha(on ? 1f : 0.55f);
     }
 
@@ -628,6 +645,7 @@ final class PlayerControls implements Player.Listener {
         }
         for (Choice c : list) {
             sheet.choice(c.label, c.selected, () -> {
+                if (type == C.TRACK_TYPE_TEXT) autoOff();
                 player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
                         .setTrackTypeDisabled(type, false)
                         .setOverrideForType(new TrackSelectionOverride(c.group, 0)).build());
