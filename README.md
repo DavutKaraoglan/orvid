@@ -12,6 +12,12 @@ Android video player that searches YouTube and 50+ other sites at once and sends
 - **Privacy tools.** Optional app lock with fingerprint or PIN that also hides the app in recent apps, and a panic exit: swipe down with two fingers to close Orvid and wipe its memory.
 - **Memory only.** Orvid does not record what you watch, and thumbnails stay in memory. Closing the app clears its cache and cookies and stops Tor. Tor's relay list is kept on the phone so the next start connects faster.
 
+## Download
+
+Get the APK from [Releases](https://github.com/DavutKaraoglan/orvid/releases/latest), or add Orvid to Obtainium to get updates:
+
+<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/DavutKaraoglan/orvid"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="54"></a>
+
 Requires Android 8.0+. Auto captions need an arm64 phone.
 
 ## Build
