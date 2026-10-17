@@ -26,9 +26,19 @@ final class VideoAdapter extends BaseAdapter {
     static final int GRID3 = 4;
 
     private static final long PREPARE_DELAY_MS = 120;
+    private static final android.view.ViewOutlineProvider OVAL = new android.view.ViewOutlineProvider() {
+        @Override
+        public void getOutline(View view, android.graphics.Outline outline) {
+            outline.setOval(0, 0, view.getWidth(), view.getHeight());
+        }
+    };
 
     private static float slop(View v) {
         return android.view.ViewConfiguration.get(v.getContext()).getScaledTouchSlop();
+    }
+
+    int mode() {
+        return mode;
     }
 
     static int columns(int mode) {
@@ -68,7 +78,7 @@ final class VideoAdapter extends BaseAdapter {
             name = s.name;
         }
         boolean any = f.youtube || f.dailymotion || f.vk;
-        for (com.orvid.search.Source s : Sources.EXTRA) any |= f.on(s);
+        for (com.orvid.search.Source s : Sources.current()) any |= f.on(s);
         if (!any) f.youtube = true;
         f.save(prefs);
         if (items.removeIf(i -> i.getServiceId() == sid)) notifyDataSetChanged();
@@ -139,6 +149,78 @@ final class VideoAdapter extends BaseAdapter {
         }
     }
 
+    private Previewer previewer;
+
+    private View previewThumb;
+    private String previewUrl;
+
+    void releasePreview() {
+        if (previewer != null) previewer.release();
+        previewer = null;
+        previewThumb = null;
+        previewUrl = null;
+    }
+
+    long previewPosition(String url) {
+        return previewer == null ? -1 : previewer.position(url);
+    }
+
+    private void devOverlay(View thumb, StreamInfoItem item) {
+        if (!(thumb.getParent() instanceof android.widget.FrameLayout)) return;
+        android.widget.FrameLayout box = (android.widget.FrameLayout) thumb.getParent();
+        TextView label = box.findViewWithTag("dev");
+        if (!com.orvid.app.DevInfo.on) {
+            if (label != null) label.setVisibility(View.GONE);
+            return;
+        }
+        if (label == null) {
+            label = new TextView(context);
+            label.setTag("dev");
+            label.setTextColor(0xFFFFFFFF);
+            label.setTextSize(9);
+            label.setTypeface(android.graphics.Typeface.MONOSPACE);
+            label.setBackgroundColor(0xB3000000);
+            int pad = Ui.dp(context, 3);
+            label.setPadding(pad, pad, pad, pad);
+            box.addView(label, new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, android.view.Gravity.TOP | android.view.Gravity.START));
+        }
+        label.setVisibility(View.VISIBLE);
+        label.bringToFront();
+        String rank = com.orvid.app.DevInfo.rank(item);
+        String warm = com.orvid.app.DevInfo.warm(item.getUrl());
+        String thumbInfo = com.orvid.app.DevInfo.thumb(item.getUrl());
+        int position = items.indexOf(item);
+        label.setText("#" + (position + 1) + " " + (rank == null ? "-" : rank)
+                + "\nprep " + (warm == null ? "-" : warm)
+                + "\nthumb " + (thumbInfo == null ? "…" : thumbInfo)
+                + "\nv=" + item.getViewCount() + " d=" + item.getDuration() + "s");
+    }
+
+    void stopPreview() {
+        if (previewer != null) previewer.stop();
+        previewThumb = null;
+        previewUrl = null;
+    }
+
+    void checkPreview() {
+        if (previewThumb == null) return;
+        android.graphics.Rect shown = new android.graphics.Rect();
+        boolean visible = previewThumb.isAttachedToWindow() && previewThumb.getGlobalVisibleRect(shown)
+                && shown.height() * 3 >= previewThumb.getHeight();
+        if (!visible) stopPreview();
+    }
+
+    private static boolean onThumb(View thumb, View card) {
+        Object down = card.getTag(R.id.touch_down);
+        if (thumb == null || !(down instanceof float[])) return false;
+        int[] at = new int[2];
+        thumb.getLocationOnScreen(at);
+        float x = ((float[]) down)[0];
+        float y = ((float[]) down)[1];
+        return x >= at[0] && x < at[0] + thumb.getWidth() && y >= at[1] && y < at[1] + thumb.getHeight();
+    }
+
     void add(List<StreamInfoItem> more) {
         if (skeletons > 0) {
             skeletons = 0;
@@ -151,6 +233,14 @@ final class VideoAdapter extends BaseAdapter {
 
     int itemCount() {
         return items.size();
+    }
+
+    List<StreamInfoItem> itemsInRows(int firstRow, int lastRow) {
+        int cols = columns(mode);
+        List<StreamInfoItem> out = new ArrayList<>();
+        if (skeletons > 0) return out;
+        for (int i = Math.max(0, firstRow) * cols; i < Math.min(items.size(), (lastRow + 1) * cols); i++) out.add(items.get(i));
+        return out;
     }
 
     List<StreamInfoItem> items() {
@@ -300,12 +390,12 @@ final class VideoAdapter extends BaseAdapter {
         if (sub != null) sub.setBackground(null);
     }
 
-    private static int sourceIcon(int service) {
-        if (service == com.orvid.dm.Dailymotion.SERVICE_ID) return R.drawable.ic_src_dailymotion;
-        if (service == com.orvid.vk.Vk.SERVICE_ID) return R.drawable.ic_src_vk;
+    private android.graphics.drawable.Drawable sourceIcon(int service) {
+        if (service == com.orvid.dm.Dailymotion.SERVICE_ID) return context.getDrawable(R.drawable.ic_src_dailymotion);
+        if (service == com.orvid.vk.Vk.SERVICE_ID) return context.getDrawable(R.drawable.ic_src_vk);
         com.orvid.search.Source extra = Sources.byService(service);
-        if (extra != null) return extra.icon;
-        return R.drawable.ic_src_youtube;
+        if (extra != null) return Ui.sourceIcon(context, extra);
+        return context.getDrawable(R.drawable.ic_src_youtube);
     }
 
     private void bindCell(View view, StreamInfoItem item, int thumbWidth) {
@@ -357,13 +447,15 @@ final class VideoAdapter extends BaseAdapter {
         duration.setVisibility(badge.isEmpty() ? View.GONE : View.VISIBLE);
         android.widget.ImageView sourceIcon = view.findViewById(R.id.source_icon);
         if (sourceIcon != null) {
-            sourceIcon.setImageResource(sourceIcon(item.getServiceId()));
+            sourceIcon.setImageDrawable(sourceIcon(item.getServiceId()));
             int sid = item.getServiceId();
             sourceIcon.setImageTintList(sid == com.orvid.dm.Dailymotion.SERVICE_ID || sid == com.orvid.ia.Archive.SERVICE_ID
                     ? android.content.res.ColorStateList.valueOf(0xFFFFFFFF) : null);
             sourceIcon.setVisibility(View.VISIBLE);
         }
         if (thumb != null) {
+            if (thumb == previewThumb && !item.getUrl().equals(previewUrl)) stopPreview();
+            devOverlay(thumb, item);
             OrvidApp.get().images().load(thumb, Ui.thumbnail(item.getThumbnails(), thumbWidth), thumbWidth, item.getUrl());
         }
         TextView avatar = view.findViewById(R.id.avatar);
@@ -377,8 +469,26 @@ final class VideoAdapter extends BaseAdapter {
             dot.setColor(android.graphics.Color.HSVToColor(new float[] {hue, 0.45f, 0.62f}));
             avatar.setBackground(dot);
         }
+        android.widget.ImageView avatarImage = view.findViewById(R.id.avatar_image);
+        if (avatarImage != null) {
+            if (avatarImage.getOutlineProvider() != OVAL) {
+                avatarImage.setOutlineProvider(OVAL);
+                avatarImage.setClipToOutline(true);
+            }
+            int size = avatarImage.getLayoutParams().width;
+            OrvidApp.get().images().loadAvatar(avatarImage, Ui.thumbnail(item.getUploaderAvatars(), size), size);
+        }
         view.setOnClickListener(v -> onPick.pick(item));
         view.setOnLongClickListener(v -> {
+            if (onThumb(thumb, v) && thumb.getParent() instanceof android.widget.FrameLayout) {
+                if (previewer == null) previewer = new Previewer(context);
+                previewer.start((android.widget.FrameLayout) thumb.getParent(), item);
+                previewThumb = thumb;
+                previewUrl = item.getUrl();
+                com.orvid.play.Warm.prepare(previewUrl);
+                return true;
+            }
+            stopPreview();
             android.widget.PopupMenu menu = new android.widget.PopupMenu(context, thumb != null ? thumb : v);
             menu.getMenu().add(0, 1, 0, R.string.not_interested);
             menu.getMenu().add(0, 2, 1, R.string.source_off);
@@ -397,11 +507,12 @@ final class VideoAdapter extends BaseAdapter {
         });
         view.setOnTouchListener((v, e) -> {
             int action = e.getActionMasked();
+            if (action == android.view.MotionEvent.ACTION_DOWN) v.setTag(R.id.touch_down, new float[]{e.getRawX(), e.getRawY()});
             if (action == android.view.MotionEvent.ACTION_DOWN && idle) {
                 String id = Visionos.videoId(item.getUrl());
                 String page = item.getUrl();
                 if (id != null || com.orvid.play.Resolve.preparable(page)) {
-                    Runnable warm = id != null ? () -> Visionos.prepare(id) : () -> com.orvid.play.Resolve.prepare(page);
+                    Runnable warm = () -> com.orvid.play.Warm.link(page);
                     v.setTag(R.id.prepare_job, warm);
                     v.setTag(R.id.prepare_down, new float[]{e.getX(), e.getY()});
                     v.postDelayed(warm, PREPARE_DELAY_MS);

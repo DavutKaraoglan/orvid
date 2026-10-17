@@ -32,6 +32,12 @@ public final class CircuitDataSource extends BaseDataSource {
         return host.endsWith(".cloudfront.net") || host.endsWith(".ttvnw.net") || host.endsWith(".twitchcdn.net");
     }
 
+    private static final java.util.concurrent.atomic.AtomicLong RECEIVED = new java.util.concurrent.atomic.AtomicLong();
+
+    public static long received() {
+        return RECEIVED.get();
+    }
+
     public static final class Factory implements DataSource.Factory {
         private final String circuit;
         private final String userAgent;
@@ -70,6 +76,8 @@ public final class CircuitDataSource extends BaseDataSource {
     private long partsFrom = -1;
     private long[] partStart;
     private java.util.List<java.util.concurrent.Future<byte[]>> parts;
+    private byte[] memory;
+    private long memoryEnd;
 
     private CircuitDataSource(String circuit, String userAgent) {
         super(true);
@@ -83,11 +91,28 @@ public final class CircuitDataSource extends BaseDataSource {
         transferInitializing(dataSpec);
         position = dataSpec.position;
         end = dataSpec.length == C.LENGTH_UNSET ? -1 : dataSpec.position + dataSpec.length;
+        partsFrom = -1;
+        parts = null;
+        memory = null;
+        Warm.Entry warm = Warm.get(dataSpec.uri.toString());
+        if (warm != null && position < warm.head.length) {
+            memory = warm.head;
+            memoryEnd = end > 0 ? Math.min(end, memory.length) : memory.length;
+            chunkSize = CHUNK;
+            chunkEnd = 0;
+            opened = true;
+            transferStarted(dataSpec);
+            Diag.mark("media warm @" + position / 1024 + "KB of " + memory.length / 1024 + "KB");
+            if (dataSpec.length != C.LENGTH_UNSET) return dataSpec.length;
+            if (warm.total > 0) {
+                end = warm.total;
+                return warm.total - position;
+            }
+            return C.LENGTH_UNSET;
+        }
         boolean parallel = dataSpec.position == 0 && dataSpec.length == C.LENGTH_UNSET
                 && parallelHost(dataSpec.uri.toString());
         chunkSize = parallel ? HEAD_PART : CHUNK;
-        partsFrom = -1;
-        parts = null;
         long total = connect();
         if (parallel && total > HEAD_PART * 2 && chunkEnd == HEAD_PART) startParts(total);
         opened = true;
@@ -263,6 +288,7 @@ public final class CircuitDataSource extends BaseDataSource {
         System.arraycopy(data, at, buffer, offset, n);
         position += n;
         bytesTransferred(n);
+        RECEIVED.addAndGet(n);
         return n;
     }
 
@@ -270,8 +296,19 @@ public final class CircuitDataSource extends BaseDataSource {
     public int read(byte[] buffer, int offset, int length) throws IOException {
         if (length == 0) return 0;
         if (end > 0 && position >= end) return C.RESULT_END_OF_INPUT;
+        if (memory != null) {
+            if (position < memoryEnd) {
+                int n = (int) Math.min(length, memoryEnd - position);
+                System.arraycopy(memory, (int) position, buffer, offset, n);
+                position += n;
+                bytesTransferred(n);
+        RECEIVED.addAndGet(n);
+                return n;
+            }
+            memory = null;
+        }
         if (parts != null && position >= partsFrom) return readParts(buffer, offset, length);
-        if (position >= chunkEnd) connect();
+        if (position >= chunkEnd || stream == null) connect();
         int n = stream.read(buffer, offset, length);
         if (n < 0) {
             if (chunkEnd != Long.MAX_VALUE && (end < 0 || position < end)) {
@@ -284,6 +321,7 @@ public final class CircuitDataSource extends BaseDataSource {
         }
         position += n;
         bytesTransferred(n);
+        RECEIVED.addAndGet(n);
         return n;
     }
 
@@ -310,6 +348,7 @@ public final class CircuitDataSource extends BaseDataSource {
 
     @Override
     public void close() {
+        memory = null;
         closeConnection();
         if (parts != null) {
             for (java.util.concurrent.Future<byte[]> f : parts) f.cancel(true);

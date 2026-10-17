@@ -29,7 +29,7 @@ public final class SearchProbe extends Activity {
         if (text == null) return;
         Source.adultUnlocked = adult;
         Filters f = new Filters();
-        for (Source s : Sources.EXTRA) f.set(s, true);
+        for (Source s : Sources.current()) f.set(s, true);
         Query q = Query.parse(text);
         long t0 = System.currentTimeMillis();
         AtomicLong first = new AtomicLong();
@@ -55,7 +55,7 @@ public final class SearchProbe extends Activity {
                 report.accept("youtube FAIL", 0);
             }
         });
-        for (Source src : Sources.EXTRA) {
+        for (Source src : Sources.current()) {
             if (!src.wanted(f, q)) continue;
             pending.incrementAndGet();
             PARALLEL.execute(() -> {

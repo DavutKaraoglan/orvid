@@ -27,6 +27,7 @@ public abstract class Source {
     public final double weight;
     public final boolean defaultOn;
     public final boolean adult;
+    public String iconFile;
 
     public static volatile boolean adultUnlocked;
     static final java.util.Map<Integer, Source> BY_SERVICE = new java.util.concurrent.ConcurrentHashMap<>();
@@ -63,7 +64,7 @@ public abstract class Source {
     }
 
     public boolean wanted(Filters f, Query q) {
-        if (!q.site.isEmpty() || f.type == Filters.TYPE_SHORTS) return false;
+        if (!q.siteIs(key, name) || f.type == Filters.TYPE_SHORTS) return false;
         if (adult && (f.hideAdult || !adultUnlocked)) return false;
         if (adult && !f.sourceFits(this)) return false;
         if (script != null && !script.equals(q.script())) return false;

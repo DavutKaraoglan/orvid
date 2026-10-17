@@ -29,9 +29,10 @@ final class BitChute extends Site {
         for (int i = 0; i < videos.size(); i++) {
             JsonObject v = videos.getObject(i);
             String id = v.getString("video_id", null);
-            if (id == null) continue;
+            long seconds = clock(v.getString("duration", null));
+            if (id == null || seconds == 0) continue;
             StreamInfoItem item = item("https://www.bitchute.com/video/" + id + "/", v.getString("video_name", ""),
-                    v.getObject("channel").getString("channel_name", ""), clock(v.getString("duration", null)),
+                    v.getObject("channel").getString("channel_name", ""), seconds,
                     v.getLong("view_count", -1), v.getString("thumbnail_url", null));
             com.orvid.search.Dates.set(item, v.getString("date_published", null));
             p.items.add(item);

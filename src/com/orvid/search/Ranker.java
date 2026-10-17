@@ -10,6 +10,13 @@ public final class Ranker {
 
     private static final double LOOSE = -2;
     private static final int MIN_STRICT = 3;
+    private static final double POPULARITY = 1.5;
+    private static final double FOREIGN_SCRIPT = 8.0;
+    private static final double EXACT_CHANNEL = 6.0;
+
+    private static String compact(String folded) {
+        return folded.replaceAll("[^\\p{L}\\p{N}]+", "");
+    }
 
     private Ranker() {
     }
@@ -44,6 +51,7 @@ public final class Ranker {
             for (int rank = 0; rank < list.size(); rank++) {
                 StreamInfoItem item = list.get(rank);
                 double s = score(q, ctx, item, rank, weights[src]);
+                com.orvid.app.DevInfo.rank(item, src, rank, s);
                 if (s >= 0) {
                     all.add(new Scored(item, s, order++));
                     strictBySource[src]++;
@@ -68,15 +76,18 @@ public final class Ranker {
     }
 
     static void popularity(Context ctx, List<List<StreamInfoItem>> sources) {
+        List<Double> logs = new ArrayList<>();
         for (List<StreamInfoItem> list : sources) {
-            List<StreamInfoItem> counted = new ArrayList<>();
-            for (StreamInfoItem item : list) if (item.getViewCount() > 0) counted.add(item);
-            if (counted.size() < 3) continue;
-            counted.sort((a, b) -> Long.compare(a.getViewCount(), b.getViewCount()));
-            for (int i = 0; i < counted.size(); i++) {
-                ctx.popularity.put(counted.get(i), (i + 1.0) / counted.size());
+            for (StreamInfoItem item : list) {
+                if (item.getViewCount() < 0) continue;
+                double log = Math.log10(item.getViewCount() + 1);
+                ctx.popularity.put(item, log);
+                logs.add(log);
             }
         }
+        if (logs.isEmpty()) return;
+        Collections.sort(logs);
+        ctx.unknownPopularity = logs.get(logs.size() / 2);
     }
 
     private static final java.util.regex.Pattern NOISE = java.util.regex.Pattern.compile(
@@ -130,6 +141,7 @@ public final class Ranker {
     static List<StreamInfoItem> diversify(List<Scored> sorted) {
         List<Scored> pool = new ArrayList<>(sorted);
         List<StreamInfoItem> out = new ArrayList<>(pool.size());
+        java.util.Map<String, Integer> channels = new java.util.HashMap<>();
         while (!pool.isEmpty()) {
             int pick = 0;
             int n = out.size();
@@ -147,9 +159,28 @@ public final class Ranker {
                     }
                 }
             }
-            out.add(pool.remove(pick).item);
+            if (pick == 0 && channels.getOrDefault(channelKey(pool.get(0).item), 0) >= SAME_CHANNEL) {
+                double best = pool.get(0).score;
+                for (int i = 1; i < Math.min(pool.size(), 8); i++) {
+                    Scored s = pool.get(i);
+                    if (channels.getOrDefault(channelKey(s.item), 0) < SAME_CHANNEL && s.score >= best * 0.6) {
+                        pick = i;
+                        break;
+                    }
+                }
+            }
+            StreamInfoItem chosen = pool.remove(pick).item;
+            channels.merge(channelKey(chosen), 1, Integer::sum);
+            out.add(chosen);
         }
         return out;
+    }
+
+    private static final int SAME_CHANNEL = 2;
+
+    private static String channelKey(StreamInfoItem item) {
+        String channel = item.getUploaderName();
+        return item.getServiceId() + "/" + (channel == null || channel.isEmpty() ? item.getUrl() : Query.fold(channel));
     }
 
     static void anchorPerSource(Query q, Context ctx, List<List<StreamInfoItem>> sources) {
@@ -180,6 +211,7 @@ public final class Ranker {
         final List<String> topic = new ArrayList<>();
         final java.util.Set<String> trustedChannels = new java.util.HashSet<>();
         final java.util.Map<StreamInfoItem, Double> popularity = new java.util.IdentityHashMap<>();
+        double unknownPopularity;
     }
 
     static Context context(Query q, List<StreamInfoItem> primary) {
@@ -234,6 +266,18 @@ public final class Ranker {
         for (String p : q.phrases) {
             if (!title.contains(p) && !channel.contains(p)) return Double.NEGATIVE_INFINITY;
         }
+        for (String r : q.required) {
+            if (!contains(titleWords, r) && !contains(channelWords, r)) return Double.NEGATIVE_INFINITY;
+        }
+        for (String t : q.inTitle) {
+            if (!contains(titleWords, t)) return Double.NEGATIVE_INFINITY;
+        }
+        if ((q.beforeYear > 0 || q.afterYear > 0) && item.getUploadDate() != null) {
+            int year = item.getUploadDate().offsetDateTime().getYear();
+            if (q.beforeYear > 0 && year >= q.beforeYear || q.afterYear > 0 && year <= q.afterYear) {
+                return Double.NEGATIVE_INFINITY;
+            }
+        }
 
         double s = 0;
         int matched = 0;
@@ -252,7 +296,7 @@ public final class Ranker {
         for (String w : ctx.topic) if (titleWords.contains(w)) topicHits++;
         s += Math.min(3, topicHits) * 1.5;
         if (!q.terms.isEmpty()) {
-            int need = Math.max(1, (ctx.anchored.size() + 1) / 2);
+            int need = q.anyOf ? 1 : Math.max(1, (ctx.anchored.size() + 1) / 2);
             boolean trusted = ctx.trustedChannels.contains(channel);
             if (!ctx.anchored.isEmpty() && anchoredMatched < need && !trusted && topicHits < 2) {
                 return LOOSE - (matched * 0.1);
@@ -261,14 +305,13 @@ public final class Ranker {
             String joined = String.join(" ", q.terms);
             if (q.terms.size() > 1 && title.contains(joined)) s += 4;
         }
+        if (!q.terms.isEmpty() && compact(channel).equals(String.join("", q.terms))) s += EXACT_CHANNEL;
         s += q.phrases.size() * 4;
         s += 6.0 * weight / (1 + rank * 0.35);
         Double popular = ctx.popularity.get(item);
-        if (popular != null) {
-            s += popular * 2.0;
-        } else {
-            long views = item.getViewCount();
-            if (views > 0) s += Math.log10(views + 1) * 0.35;
+        s += (popular != null ? popular : ctx.unknownPopularity) * POPULARITY;
+        if (!Query.script(item.getName() == null ? "" : item.getName()).equals(q.script())) {
+            s = Math.max(0, s - FOREIGN_SCRIPT);
         }
         return s;
     }

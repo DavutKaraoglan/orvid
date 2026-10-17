@@ -59,6 +59,20 @@ public final class Ui {
     private static final java.util.regex.Pattern YT_THUMB =
             java.util.regex.Pattern.compile("^https://i\\.ytimg\\.com/vi(?:_webp)?/([A-Za-z0-9_-]{11})/");
 
+    private static final java.util.Map<String, android.graphics.Bitmap> ICONS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static android.graphics.drawable.Drawable sourceIcon(Context context, com.orvid.search.Source s) {
+        if (s.iconFile != null) {
+            android.graphics.Bitmap b = ICONS.get(s.iconFile);
+            if (b == null) {
+                b = android.graphics.BitmapFactory.decodeFile(s.iconFile);
+                if (b != null) ICONS.put(s.iconFile, b);
+            }
+            if (b != null) return new android.graphics.drawable.BitmapDrawable(context.getResources(), b);
+        }
+        return s.icon != 0 ? context.getDrawable(s.icon) : null;
+    }
+
     public static String thumbnail(List<Image> images, int targetWidth) {
         String picked = pickThumbnail(images, targetWidth);
         if (picked == null) return null;

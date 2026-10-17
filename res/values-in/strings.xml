@@ -74,7 +74,6 @@
     <string name="date_week">Minggu ini</string>
     <string name="date_month">Bulan ini</string>
     <string name="date_year">Tahun ini</string>
-    <string name="auto_captions">Subtitel otomatis</string>
     <string name="auto_captions_original">Bahasa asli</string>
     <string name="auto_captions_translated">Diterjemahkan ke %s</string>
     <string name="auto_captions_downloading">Mengunduh model subtitel %1$d%%</string>
@@ -105,4 +104,24 @@
     <string name="orient_straight">Hetero</string>
     <string name="orient_gay">Gay</string>
     <string name="orient_trans">Trans</string>
+    <string name="next_video">Video berikutnya</string>
+    <string name="previous_video">Video sebelumnya</string>
+    <string name="hide_junk">Sembunyikan video yang sangat pendek atau sangat panjang</string>
+    <string name="nothing_here">Belum ada apa pun di sini. Tambahkan repositori sumber untuk mulai mencari.</string>
+    <string name="add_repo">Tambah repositori</string>
+    <string name="repo_url_hint">Tautan repositori</string>
+    <string name="repo_add">Tambah</string>
+    <string name="repo_adding">Menambahkan repositori…</string>
+    <string name="repo_failed">Tidak dapat menambahkan repositori: %1$s</string>
+    <string name="repositories">Repositori</string>
+    <string name="repo_update">Perbarui</string>
+    <string name="repo_remove">Hapus</string>
+    <string name="repo_info">%1$s\n%2$d sumber</string>
+    <string name="repo_find_hint">Tautan repositori dibagikan di GitHub dan halaman proyek. Repositori Orvid juga mencantumkan repositori lain.</string>
+    <string name="repo_official">Sumber Orvid</string>
+    <string name="other_repos">Repositori lain</string>
+    <string name="secret_added">Sumber tersembunyi ditambahkan</string>
+    <string name="secret_how">Sumber ini tetap tersembunyi sampai kamu membukanya. Di layar utama, renggangkan dua jari, konfirmasi usiamu, lalu aktifkan sumber di panel filter.</string>
+    <string name="dev_mode">Mode pengembang</string>
+    <string name="subtitle_failed">Subtitel tidak dapat dimuat</string>
 </resources>

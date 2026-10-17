@@ -63,7 +63,7 @@ if [ "${DEV:-0}" = 1 ]; then
   SRCDIRS+=("$ROOT/dev/src")
   MANIFEST="$OUT/AndroidManifest.dev.xml"
   sed -e 's#<uses-permission android:name="android.permission.INTERNET" />#&\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />#' \
-      -e 's#</application>#        <activity android:name=".dev.DevUpdate" android:exported="true" android:launchMode="singleTop" android:theme="@android:style/Theme.Translucent.NoTitleBar" />\n        <activity android:name=".dev.CfProbe" android:exported="true" android:theme="@android:style/Theme.Material.NoActionBar" />\n        <activity android:name=".dev.SearchProbe" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" />\n        <activity android:name=".dev.ThumbProbe" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" />\n    </application>#' \
+      -e 's#</application>#        <activity android:name=".dev.DevUpdate" android:exported="true" android:launchMode="singleTop" android:theme="@android:style/Theme.Translucent.NoTitleBar" />\n        <activity android:name=".dev.SearchProbe" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" />\n        <activity android:name=".dev.ThumbProbe" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" />\n        <activity android:name=".dev.Drive$Cmd" android:exported="true" android:noHistory="true" android:excludeFromRecents="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" />\n        <provider android:name=".dev.Drive$Init" android:authorities="com.orvid.dev.drive" android:exported="false" />\n    </application>#' \
       "$ROOT/AndroidManifest.xml" > "$MANIFEST"
 fi
 LIBRES=()

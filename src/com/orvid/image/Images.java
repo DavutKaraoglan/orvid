@@ -48,6 +48,10 @@ public final class Images {
         return t;
     });
 
+    public boolean busy() {
+        return pool.getActiveCount() > 0 || !pool.getQueue().isEmpty();
+    }
+
     public void warm() {
         long now = System.currentTimeMillis();
         if (now - warmedAt < WARM_EVERY_MS) return;
@@ -68,7 +72,8 @@ public final class Images {
     private final java.util.Set<String> ahead = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private static final long BATCH_MS = 120;
     private static final int VISIBLE = 0;
-    private static final int AHEAD = 1;
+    private static final int AVATAR = 1;
+    private static final int AHEAD = 2;
 
     private final class Job implements Runnable, Comparable<Job> {
         final int priority;
@@ -95,6 +100,14 @@ public final class Images {
     }
 
     public void load(final ImageView view, final String url, final int targetWidth, final String page) {
+        load(view, url, targetWidth, page, VISIBLE);
+    }
+
+    public void loadAvatar(ImageView view, String url, int targetWidth) {
+        load(view, url, targetWidth, null, AVATAR);
+    }
+
+    private void load(final ImageView view, final String url, final int targetWidth, final String page, final int priority) {
         if (url == null || url.isEmpty()) {
             view.setTag(R.id.image_key, null);
             view.setImageDrawable(null);
@@ -119,10 +132,12 @@ public final class Images {
         }
         fresh.add(view);
         String wanted = smaller(url, targetWidth);
-        pool.execute(new Job(VISIBLE, () -> {
+        pool.execute(new Job(priority, () -> {
             try {
                 if (!wanted(key)) return;
+                long began = android.os.SystemClock.uptimeMillis();
                 byte[] bytes = obtain(wanted, page);
+                if (bytes != null) com.orvid.app.DevInfo.thumb(page, bytes.length, android.os.SystemClock.uptimeMillis() - began);
                 Bitmap bitmap = bytes == null ? null : decode(bytes, targetWidth);
                 if (bitmap == null) return;
                 memory.put(key, bitmap);

@@ -74,7 +74,6 @@
     <string name="date_week">इस हफ़्ते</string>
     <string name="date_month">इस महीने</string>
     <string name="date_year">इस साल</string>
-    <string name="auto_captions">अपने-आप सबटाइटल</string>
     <string name="auto_captions_original">मूल भाषा</string>
     <string name="auto_captions_translated">%s में अनुवादित</string>
     <string name="auto_captions_downloading">सबटाइटल मॉडल डाउनलोड हो रहा है %1$d%%</string>
@@ -105,4 +104,24 @@
     <string name="orient_straight">स्ट्रेट</string>
     <string name="orient_gay">गे</string>
     <string name="orient_trans">ट्रांस</string>
+    <string name="next_video">अगला वीडियो</string>
+    <string name="previous_video">पिछला वीडियो</string>
+    <string name="hide_junk">बहुत छोटे या बहुत लंबे वीडियो छिपाएं</string>
+    <string name="nothing_here">यहाँ अभी कुछ नहीं है। खोज शुरू करने के लिए एक स्रोत रिपॉज़िटरी जोड़ें।</string>
+    <string name="add_repo">रिपॉज़िटरी जोड़ें</string>
+    <string name="repo_url_hint">रिपॉज़िटरी लिंक</string>
+    <string name="repo_add">जोड़ें</string>
+    <string name="repo_adding">रिपॉज़िटरी जोड़ी जा रही है…</string>
+    <string name="repo_failed">रिपॉज़िटरी नहीं जोड़ी जा सकी: %1$s</string>
+    <string name="repositories">रिपॉज़िटरी</string>
+    <string name="repo_update">अपडेट करें</string>
+    <string name="repo_remove">हटाएँ</string>
+    <string name="repo_info">%1$s\n%2$d स्रोत</string>
+    <string name="repo_find_hint">रिपॉज़िटरी लिंक GitHub और प्रोजेक्ट पेजों पर साझा किए जाते हैं। Orvid की अपनी रिपॉज़िटरी दूसरी रिपॉज़िटरी भी दिखाती है।</string>
+    <string name="repo_official">Orvid स्रोत</string>
+    <string name="other_repos">अन्य रिपॉज़िटरी</string>
+    <string name="secret_added">छिपे स्रोत जोड़े गए</string>
+    <string name="secret_how">ये स्रोत तब तक छिपे रहते हैं जब तक आप इन्हें खोलते नहीं। मुख्य स्क्रीन पर दो उंगलियाँ फैलाएँ, अपनी उम्र की पुष्टि करें, फिर फ़िल्टर पैनल में स्रोत चालू करें।</string>
+    <string name="dev_mode">डेवलपर मोड</string>
+    <string name="subtitle_failed">उपशीर्षक लोड नहीं हो सके</string>
 </resources>

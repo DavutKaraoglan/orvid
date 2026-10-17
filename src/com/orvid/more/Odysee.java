@@ -17,6 +17,8 @@ final class Odysee extends Site {
         super(136, "Odysee", "odysee\\.com/(@[^/?#]+/[^?#]+|[^@/?#][^/?#]*)");
     }
 
+    private static final String REFERER = "https://odysee.com/";
+
     @Override
     public Source.Page search(String circuit, String query, String next) throws IOException {
         int from = next == null ? 0 : Integer.parseInt(next);
@@ -46,6 +48,7 @@ final class Odysee extends Site {
                 java.net.HttpURLConnection c = com.orvid.net.Fetch.open(url);
                 c.setRequestProperty("User-Agent", com.orvid.net.Fetch.USER_AGENT);
                 c.setRequestProperty("Range", "bytes=0-0");
+                c.setRequestProperty("Referer", REFERER);
                 int code = c.getResponseCode();
                 c.disconnect();
                 return code;
@@ -81,7 +84,7 @@ final class Odysee extends Site {
         } catch (IOException ignored) {
         }
         int code = probe(circuit, stream);
-        if (code == 401 || code == 403 || code == 429) throw new IOException("This Odysee video needs an account");
-        return new Direct(title, author, stream, stream.contains(".m3u8"), null);
+        if (code == 401 || code == 403 || code == 429) throw new IOException("Odysee is not serving this video right now (HTTP " + code + ")");
+        return new Direct(title, author, stream, stream.contains(".m3u8"), REFERER);
     }
 }

@@ -80,6 +80,9 @@ public final class PlayerActivity extends Activity {
     public static final String EXTRA_SERVICE = "service";
     public static final String EXTRA_THUMB = "thumb";
     public static final String EXTRA_INSTANT = "instant";
+    public static final String EXTRA_START_MS = "start_ms";
+    public static final String EXTRA_TITLE = "title";
+    public static final String EXTRA_AVATAR = "avatar";
     private static final Pattern LINK = Pattern.compile("https?://\\S+");
 
     private TextureView surface;
@@ -133,6 +136,9 @@ public final class PlayerActivity extends Activity {
         ambient = findViewById(R.id.ambient);
         poster = findViewById(R.id.poster);
         stage = findViewById(R.id.stage);
+        stage.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            if (r - l != or - ol || b - t != ob - ot) v.post(this::fitSurface);
+        });
         details = findViewById(R.id.details);
         buffering = findViewById(R.id.buffering);
         debug = findViewById(R.id.debug);
@@ -142,6 +148,22 @@ public final class PlayerActivity extends Activity {
         hideWhenEmpty(header.findViewById(R.id.uploader));
         hideWhenEmpty(header.findViewById(R.id.sub));
         details.addHeaderView(header, null, false);
+        ((TextView) header.findViewById(R.id.name)).addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence t, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence t, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable t) {
+                if (t.length() > 0 && !relatedRequested && (videoId != null || streamStarted)) {
+                    stage.post(PlayerActivity.this::loadRelated);
+                }
+            }
+        });
         description = header.findViewById(R.id.description);
         expand = header.findViewById(R.id.expand);
         header.findViewById(R.id.title_block).setOnClickListener(v -> toggleDescription());
@@ -155,7 +177,14 @@ public final class PlayerActivity extends Activity {
 
             @Override
             public void onScroll(android.widget.AbsListView view, int first, int visible, int total) {
-                if (related.getCount() > 0 && first + visible >= total - 4) loadMoreRelated();
+                if (related.getCount() > 0 && first + visible >= total - 2) {
+                    if (!hiddenRelated.isEmpty()) {
+                        relatedShown += RELATED_STEP;
+                        reveal(java.util.Collections.<StreamInfoItem>emptyList());
+                    } else {
+                        loadMoreRelated();
+                    }
+                }
             }
         });
 
@@ -172,6 +201,7 @@ public final class PlayerActivity extends Activity {
         applyDebug();
 
         pageUrl = linkFrom(getIntent());
+        resumeAt = Math.max(0, getIntent().getLongExtra(EXTRA_START_MS, 0));
         final boolean reuse = pageUrl != null && Session.has(pageUrl);
         String thumb = reuse ? Session.thumb : getIntent().getStringExtra(EXTRA_THUMB);
         coverUrl = thumb;
@@ -241,7 +271,9 @@ public final class PlayerActivity extends Activity {
                 poster.setVisibility(View.GONE);
                 stage.removeCallbacks(sampler);
                 stage.postDelayed(sampler, 200);
-                stage.postDelayed(PlayerActivity.this::loadRelated, 400);
+                stage.postDelayed(PlayerActivity.this::loadRelated, relatedEarly != null ? 0 : 400);
+                stage.removeCallbacks(warmNext);
+                stage.postDelayed(warmNext, NEXT_WARM_CHECK_MS);
             }
 
             @Override
@@ -268,6 +300,23 @@ public final class PlayerActivity extends Activity {
             public void onPlayerError(PlaybackException error) {
                 Diag.mark("player ERROR " + error.getErrorCodeName() + " "
                         + (error.getCause() == null ? "" : error.getCause().toString()));
+                if (textOn() && textDrops < 2) {
+                    textDrops++;
+                    Diag.mark("subtitle failed, playing without it");
+                    long at = Math.max(0, player.getCurrentPosition());
+                    player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
+                            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build());
+                    player.seekTo(at);
+                    player.prepare();
+                    android.widget.Toast.makeText(PlayerActivity.this, R.string.subtitle_failed, android.widget.Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW && liveRecovers < LIVE_RECOVERS) {
+                    liveRecovers++;
+                    player.seekToDefaultPosition();
+                    player.prepare();
+                    return;
+                }
                 if (error.errorCode == PlaybackException.ERROR_CODE_DECODING_RESOURCES_RECLAIMED && reclaims < 3) {
                     reclaims++;
                     player.prepare();
@@ -305,6 +354,14 @@ public final class PlayerActivity extends Activity {
             if (r - l != or - ol || b - t != ob - ot) stage.post(this::fitSurface);
         });
         controls = new PlayerControls(this, player, stage, this::minimize, side);
+        controls.setSkip(this::openPrevious, this::openNext);
+        related.registerDataSetObserver(new android.database.DataSetObserver() {
+            @Override
+            public void onChanged() {
+                refreshSkip();
+            }
+        });
+        refreshSkip();
 
         sheet = findViewById(R.id.sheet);
         sheet.setScroller(details);
@@ -325,6 +382,13 @@ public final class PlayerActivity extends Activity {
         }
         related.setSkeleton(4);
         header.findViewById(R.id.related_label).setVisibility(View.VISIBLE);
+        Session.avatar = getIntent().getStringExtra(EXTRA_AVATAR);
+        showAvatar(Session.avatar);
+        String title = getIntent().getStringExtra(EXTRA_TITLE);
+        if (title != null && !title.isEmpty()) {
+            ((TextView) header.findViewById(R.id.name)).setText(title);
+            controls.setTitle(title);
+        }
         route();
     }
 
@@ -332,6 +396,10 @@ public final class PlayerActivity extends Activity {
         java.util.regex.Matcher phEmbed = java.util.regex.Pattern.compile("pornhub\\.com/embed/([A-Za-z0-9]+)").matcher(pageUrl);
         if (phEmbed.find()) pageUrl = "https://www.pornhub.com/view_video.php?viewkey=" + phEmbed.group(1);
         videoId = Visionos.videoId(pageUrl);
+        if (videoId != null) {
+            final String id = videoId;
+            relatedEarly = RELATED_POOL.submit(() -> com.orvid.yt.Related.page(Visionos.takeCircuit(), id));
+        }
         if (videoId == null) {
             java.util.concurrent.Future<com.orvid.play.Resolve.Stream> ready = com.orvid.play.Resolve.takePrepared(pageUrl);
             if (ready != null) {
@@ -347,7 +415,9 @@ public final class PlayerActivity extends Activity {
                     .setMaxVideoBitrate(Integer.MAX_VALUE).build());
         }
         String twClip = com.orvid.tw.Twitch.clipSlug(pageUrl);
+        final com.orvid.ext.ExtSource ext = com.orvid.ext.Registry.forUrl(pageUrl);
         if (videoId != null) loadFast();
+        else if (ext != null) loadDirect(c -> ext.resolve(c, pageUrl));
         else if (dmId != null) loadDailymotion(dmId);
         else if (vkId != null) loadVk(vkId);
         else if (twVod != null || twClip != null) loadTwitch(twVod, twClip);
@@ -412,6 +482,7 @@ public final class PlayerActivity extends Activity {
     }
 
     private void restoreFromSession() {
+        showAvatar(Session.avatar);
         ((TextView) header.findViewById(R.id.name)).setText(Session.title);
         ((TextView) header.findViewById(R.id.uploader)).setText(Session.author);
         ((TextView) header.findViewById(R.id.sub)).setText(Session.sub);
@@ -425,6 +496,10 @@ public final class PlayerActivity extends Activity {
         for (StreamInfoItem i : saved) relatedSeen.add(i.getUrl());
         related.set(saved);
         header.findViewById(R.id.related_label).setVisibility(saved.isEmpty() ? View.GONE : View.VISIBLE);
+        if (saved.isEmpty()) {
+            relatedRequested = false;
+            stage.post(this::loadRelated);
+        }
         firstFrame = true;
         poster.setVisibility(View.GONE);
         VideoSize size = player.getVideoSize();
@@ -474,6 +549,7 @@ public final class PlayerActivity extends Activity {
         controls.setStoryboard(sb);
         LinearLayout row = header.findViewById(R.id.frames_row);
         row.removeAllViews();
+        pendingFrames.clear();
         header.findViewById(R.id.frames).setVisibility(View.GONE);
         if (sb == null) return;
         int w = Ui.dp(this, 128);
@@ -501,9 +577,19 @@ public final class PlayerActivity extends Activity {
                 player.seekTo(ms);
                 player.setPlayWhenReady(true);
             });
-            sb.frameAt(ms, img::setImageBitmap);
+            pendingFrames.add(() -> sb.frameAt(ms, img::setImageBitmap));
         }
-        if (description.getVisibility() == View.VISIBLE) header.findViewById(R.id.frames).setVisibility(View.VISIBLE);
+        if (description.getVisibility() == View.VISIBLE) {
+            header.findViewById(R.id.frames).setVisibility(View.VISIBLE);
+            loadFrames();
+        }
+    }
+
+    private final List<Runnable> pendingFrames = new ArrayList<>();
+
+    private void loadFrames() {
+        for (Runnable r : pendingFrames) r.run();
+        pendingFrames.clear();
     }
 
     private void toggleDescription() {
@@ -512,27 +598,81 @@ public final class PlayerActivity extends Activity {
         View frames = header.findViewById(R.id.frames);
         LinearLayout row = header.findViewById(R.id.frames_row);
         frames.setVisibility(open && row.getChildCount() > 0 ? View.VISIBLE : View.GONE);
+        if (open) loadFrames();
         ((TextView) header.findViewById(R.id.name)).setMaxLines(open ? Integer.MAX_VALUE : 2);
         expand.setRotation(open ? 180 : 0);
     }
 
+    private static final int BACK_LIMIT = 20;
+    private String nextAvatar;
+    private static final java.util.ArrayDeque<String[]> BACK = new java.util.ArrayDeque<>();
+
+    static void clearBack() {
+        BACK.clear();
+    }
+
     private void openRelated(StreamInfoItem item) {
+        if (pageUrl != null) {
+            String shown = ((TextView) header.findViewById(R.id.name)).getText().toString();
+            BACK.push(new String[] {pageUrl, Integer.toString(getIntent().getIntExtra(EXTRA_SERVICE, -1)), coverUrl, shown});
+            while (BACK.size() > BACK_LIMIT) BACK.removeLast();
+        }
+        nextAvatar = Ui.thumbnail(item.getUploaderAvatars(), Ui.dp(this, 32));
+        switchTo(item.getUrl(), item.getServiceId(), Ui.thumbnail(item.getThumbnails(), 640), item.getName());
+    }
+
+    private void openNext() {
+        List<StreamInfoItem> list = related.items();
+        if (!list.isEmpty()) openRelated(list.get(0));
+    }
+
+    private void openPrevious() {
+        String[] last = BACK.poll();
+        if (last != null) switchTo(last[0], Integer.parseInt(last[1]), last[2], last[3]);
+    }
+
+    private void refreshSkip() {
+        if (controls != null) controls.showSkip(!BACK.isEmpty(), !related.items().isEmpty());
+    }
+
+    private void showAvatar(String use) {
+        android.widget.ImageView avatar = header.findViewById(R.id.uploader_avatar);
+        if (use == null || use.isEmpty()) {
+            avatar.setVisibility(View.GONE);
+            return;
+        }
+        avatar.setVisibility(View.VISIBLE);
+        avatar.setOutlineProvider(new android.view.ViewOutlineProvider() {
+            @Override
+            public void getOutline(View v, android.graphics.Outline o) {
+                o.setOval(0, 0, v.getWidth(), v.getHeight());
+            }
+        });
+        avatar.setClipToOutline(true);
+        OrvidApp.get().images().loadAvatar(avatar, use, Ui.dp(this, 32));
+    }
+
+    private void switchTo(String url, int service, String thumb, String title) {
         startActivity(new Intent(this, PlayerActivity.class)
-                .putExtra(EXTRA_URL, item.getUrl())
-                .putExtra(EXTRA_SERVICE, item.getServiceId())
-                .putExtra(EXTRA_THUMB, Ui.thumbnail(item.getThumbnails(), 640))
+                .putExtra(EXTRA_TITLE, title)
+                .putExtra(EXTRA_AVATAR, nextAvatar)
+                .putExtra(EXTRA_URL, url)
+                .putExtra(EXTRA_SERVICE, service)
+                .putExtra(EXTRA_THUMB, thumb)
                 .putExtra(EXTRA_INSTANT, true));
         overridePendingTransition(0, 0);
         finish();
         overridePendingTransition(0, 0);
     }
 
+    private static final int PREPARE_WAIT_S = 45;
+
     private void loadFast() {
         new Job<Visionos.Prepared>(this) {
             @Override
             protected Visionos.Prepared load() throws Exception {
                 Diag.mark("fast extract start");
-                Visionos.Prepared p = Visionos.prepare(videoId).get();
+                Visionos.Prepared p = Visionos.prepareNow(videoId).get(PREPARE_WAIT_S, java.util.concurrent.TimeUnit.SECONDS);
                 Diag.mark("fast extract done");
                 return p;
             }
@@ -605,9 +745,29 @@ public final class PlayerActivity extends Activity {
             return;
         }
         startPlayback();
+        com.orvid.play.Warm.caption(circuit, likelyCaption(v.captions));
+    }
+
+    private static String likelyCaption(List<Visionos.Caption> captions) {
+        String mine = java.util.Locale.getDefault().getLanguage();
+        for (Visionos.Caption c : captions) {
+            if (c.language.equals(mine) || c.language.startsWith(mine + "-")) return c.url;
+        }
+        return captions.isEmpty() ? null : captions.get(0).url;
     }
 
     private static final int TOR_TWITCH_MAX_BITRATE = 2_000_000;
+    private static final int LIVE_RECOVERS = 5;
+    private int textDrops;
+
+    private boolean textOn() {
+        if (player.getTrackSelectionParameters().disabledTrackTypes.contains(C.TRACK_TYPE_TEXT)) return false;
+        for (androidx.media3.common.Tracks.Group g : player.getCurrentTracks().getGroups()) {
+            if (g.getType() == C.TRACK_TYPE_TEXT && g.isSelected()) return true;
+        }
+        return false;
+    }
+    private int liveRecovers;
     private int reclaims;
     private com.orvid.play.Storyboard.Spec pendingSprite;
 
@@ -644,12 +804,38 @@ public final class PlayerActivity extends Activity {
     private static final long STALL_START_MS = 8000;
     private static final long STALL_PLAYING_MS = 10000;
     private static final long STALL_PROGRESS_MS = 3000;
+    private static final long STALL_PROGRESS_BYTES = 128 * 1024;
     private int stallSwitches;
     private long stallBuffered;
     private final Runnable stallWatch = this::onStall;
 
+    private static final long NEXT_WARM_BUFFER_MS = 20000;
+    private static final long NEXT_WARM_CHECK_MS = 3000;
+    private static final int NEXT_FIRST_FRAME = 2;
+    private boolean nextWarmed;
+    private final Runnable warmNext = new Runnable() {
+        @Override
+        public void run() {
+            if (isFinishing() || nextWarmed) return;
+            List<StreamInfoItem> next = related.items();
+            if (!next.isEmpty() && player.getTotalBufferedDuration() >= NEXT_WARM_BUFFER_MS) {
+                nextWarmed = true;
+                com.orvid.play.Warm.prepare(next.get(0).getUrl());
+                for (int i = 1; i < Math.min(next.size(), 1 + NEXT_FIRST_FRAME); i++) {
+                    com.orvid.play.Warm.prepare(next.get(i).getUrl(), true);
+                }
+                for (StreamInfoItem item : next) com.orvid.play.Warm.link(item.getUrl());
+                return;
+            }
+            stage.postDelayed(this, NEXT_WARM_CHECK_MS);
+        }
+    };
+
+    private long stallBytes;
+
     private void watchStall() {
         stallBuffered = player.getBufferedPosition();
+        stallBytes = com.orvid.play.CircuitDataSource.received();
         stage.postDelayed(stallWatch, firstFrame ? STALL_PLAYING_MS : STALL_START_MS);
     }
 
@@ -657,7 +843,8 @@ public final class PlayerActivity extends Activity {
         if (isFinishing() || !Fetch.torMode() || player.getPlaybackState() != Player.STATE_BUFFERING
                 || !player.getPlayWhenReady() || stallSwitches >= 2 || pageUrl == null) return;
         long buffered = player.getBufferedPosition();
-        if (buffered - stallBuffered >= STALL_PROGRESS_MS) {
+        long bytes = com.orvid.play.CircuitDataSource.received();
+        if (buffered - stallBuffered >= STALL_PROGRESS_MS || bytes - stallBytes >= STALL_PROGRESS_BYTES) {
             watchStall();
             return;
         }
@@ -711,6 +898,8 @@ public final class PlayerActivity extends Activity {
         });
     }
 
+    private java.util.concurrent.Future<com.orvid.yt.Search.Page> relatedEarly;
+
     private void loadRelated() {
         if (relatedRequested || isFinishing()) return;
         relatedRequested = true;
@@ -718,18 +907,24 @@ public final class PlayerActivity extends Activity {
             loadRelatedElsewhere();
             return;
         }
-        if (circuit == null) {
+        if (circuit == null && relatedEarly == null) {
             loadRelatedElsewhere();
             return;
         }
-        final String c0 = circuit;
+        final String c0 = circuit != null ? circuit : Visionos.takeCircuit();
+        final java.util.concurrent.Future<com.orvid.yt.Search.Page> early = relatedEarly;
         final String title = ((TextView) header.findViewById(R.id.name)).getText().toString();
         final String channel = ((TextView) header.findViewById(R.id.uploader)).getText().toString();
         relatedPending++;
         new Job<List<StreamInfoItem>>(this) {
             @Override
             protected List<StreamInfoItem> load() throws Exception {
-                com.orvid.yt.Search.Page p = com.orvid.yt.Related.page(c0, videoId);
+                com.orvid.yt.Search.Page p;
+                try {
+                    p = early != null ? early.get() : com.orvid.yt.Related.page(Visionos.takeCircuit(), videoId);
+                } catch (java.util.concurrent.ExecutionException e) {
+                    p = com.orvid.yt.Related.page(Visionos.takeCircuit(), videoId);
+                }
                 relatedToken = p.continuation;
                 return com.orvid.search.Ranker.similar(title, channel, pageUrl, p.items,
                         java.util.Collections.<StreamInfoItem>emptyList(), true);
@@ -738,8 +933,10 @@ public final class PlayerActivity extends Activity {
             @Override
             protected void show(List<StreamInfoItem> first) {
                 appendRelated(first);
-                loadRelatedByText(c0, title, channel);
-                loadRelatedAcross(title, channel, false, null, true);
+                if (first.size() < RELATED_STEP) {
+                    loadRelatedByText(c0, title, channel);
+                    loadRelatedAcross(title, channel, false, null, true);
+                }
                 relatedDone();
             }
 
@@ -749,7 +946,7 @@ public final class PlayerActivity extends Activity {
                 loadRelatedByText(c0, title, channel);
                 relatedDone();
             }
-        }.start();
+        }.startBackground();
     }
 
     private static final int RELATED_MIN = 16;
@@ -779,7 +976,7 @@ public final class PlayerActivity extends Activity {
             protected void fail(Exception error) {
                 relatedDone();
             }
-        }.start();
+        }.startBackground();
     }
     private int relatedPending;
     private int relatedFallbacks;
@@ -836,7 +1033,7 @@ public final class PlayerActivity extends Activity {
                 Diag.mark("related fallback FAIL " + error);
                 relatedDone();
             }
-        }.start();
+        }.startBackground();
     }
 
     private static String relatedKeys(com.orvid.search.Query q, String title) {
@@ -862,7 +1059,6 @@ public final class PlayerActivity extends Activity {
                 : com.orvid.dm.Dailymotion.videoId(pageUrl) != null ? com.orvid.dm.Dailymotion.SERVICE_ID
                 : com.orvid.vk.Vk.videoId(pageUrl) != null ? com.orvid.vk.Vk.SERVICE_ID : -1;
         final com.orvid.search.Filters filters = relatedFilters();
-        loadRelatedAcross(title, channel, adult, own, false);
         relatedPending++;
         new Job<List<StreamInfoItem>>(this) {
             @Override
@@ -899,26 +1095,28 @@ public final class PlayerActivity extends Activity {
             @Override
             protected void show(List<StreamInfoItem> items) {
                 appendRelated(items);
+                if (items.size() < RELATED_STEP) loadRelatedAcross(title, channel, adult, own, false);
                 relatedDone();
             }
 
             @Override
             protected void fail(Exception error) {
                 Diag.mark("related elsewhere FAIL " + error);
+                loadRelatedAcross(title, channel, adult, own, false);
                 relatedDone();
             }
-        }.start();
+        }.startBackground();
     }
 
     private static List<StreamInfoItem> relatedFromOthers(String keys, com.orvid.search.Source own, boolean adult,
                                                           com.orvid.search.Filters filters) {
         com.orvid.search.Query q = com.orvid.search.Query.parse(keys);
         List<java.util.concurrent.Callable<List<StreamInfoItem>>> jobs = new ArrayList<>();
-        if (!adult && filters.youtube) {
+        if (!adult && filters.youtube && com.orvid.ext.Registry.engineOn("youtube")) {
             jobs.add(() -> Fetch.retrying(Visionos.takeCircuit(), cc -> com.orvid.yt.Search.first(cc, keys, null)).items);
         }
         List<com.orvid.search.Source> pool = new ArrayList<>();
-        for (com.orvid.search.Source s : Sources.EXTRA) {
+        for (com.orvid.search.Source s : Sources.current()) {
             if (s == own || s.adult != adult || s.usesWebView() || !s.wanted(filters, q)) continue;
             pool.add(s);
         }
@@ -948,7 +1146,7 @@ public final class PlayerActivity extends Activity {
 
     private void loadRelatedByText(String c0, String title, String channel) {
         com.orvid.search.Query q = com.orvid.search.Query.parse(title);
-        if (q.terms.isEmpty() || !relatedFilters().youtube) return;
+        if (q.terms.isEmpty() || !relatedFilters().youtube || !com.orvid.ext.Registry.engineOn("youtube")) return;
         final String keys = relatedKeys(q, title);
         final int minimum = related.getCount() < RELATED_MIN ? RELATED_MIN : 0;
         relatedPending++;
@@ -971,7 +1169,21 @@ public final class PlayerActivity extends Activity {
                 Diag.mark("related search FAIL " + error);
                 relatedDone();
             }
-        }.start();
+        }.startBackground();
+    }
+
+    private static final int RELATED_STEP = 6;
+    private int relatedShown = RELATED_STEP;
+    private final List<StreamInfoItem> hiddenRelated = new ArrayList<>();
+
+    private void reveal(List<StreamInfoItem> fresh) {
+        hiddenRelated.addAll(fresh);
+        int room = relatedShown - related.items().size();
+        if (room <= 0 || hiddenRelated.isEmpty()) return;
+        List<StreamInfoItem> now = new ArrayList<>(hiddenRelated.subList(0, Math.min(room, hiddenRelated.size())));
+        hiddenRelated.subList(0, now.size()).clear();
+        related.add(now);
+        if (nextWarmed) for (StreamInfoItem item : now) com.orvid.play.Warm.link(item.getUrl());
     }
 
     private void appendRelated(List<StreamInfoItem> items) {
@@ -985,7 +1197,7 @@ public final class PlayerActivity extends Activity {
         for (StreamInfoItem i : items) {
             if (sourceOn(allowed, i) && allowed.orientationAccepts(i) && relatedSeen.add(i.getUrl())) fresh.add(i);
         }
-        related.add(fresh);
+        reveal(fresh);
         Session.related.addAll(fresh);
         header.findViewById(R.id.related_label).setVisibility(related.getCount() == 0 ? View.GONE : View.VISIBLE);
     }
@@ -1011,15 +1223,28 @@ public final class PlayerActivity extends Activity {
     private boolean relatedLoading;
     private final java.util.Set<String> relatedSeen = new java.util.HashSet<>();
 
+    private final java.util.Set<String> relatedSeeds = new java.util.HashSet<>();
+
+    private String nextSeed() {
+        for (StreamInfoItem i : related.items()) {
+            String id = Visionos.videoId(i.getUrl());
+            if (id != null && relatedSeeds.add(id)) return id;
+        }
+        return null;
+    }
+
     private void loadMoreRelated() {
+        if (relatedLoading) return;
         final String token = relatedToken;
-        if (relatedLoading || token == null || circuit == null) return;
+        final String seed = token == null ? nextSeed() : null;
+        if (token == null && seed == null) return;
         relatedLoading = true;
-        final String c0 = circuit;
+        final String c0 = circuit != null ? circuit : Visionos.takeCircuit();
         new Job<com.orvid.yt.Search.Page>(this) {
             @Override
             protected com.orvid.yt.Search.Page load() throws Exception {
-                return Fetch.retrying(c0, c -> com.orvid.yt.Related.more(c, token));
+                return Fetch.retrying(c0, c -> token != null
+                        ? com.orvid.yt.Related.more(c, token) : com.orvid.yt.Related.page(c, seed));
             }
 
             @Override
@@ -1029,18 +1254,18 @@ public final class PlayerActivity extends Activity {
                 for (StreamInfoItem i : p.items) {
                     if (!i.getUrl().equals(pageUrl) && sourceOn(relatedFilters(), i) && relatedSeen.add(i.getUrl())) fresh.add(i);
                 }
-                related.add(fresh);
+                reveal(fresh);
                 Session.related.addAll(fresh);
                 Session.relatedToken = relatedToken;
                 relatedLoading = false;
-                if (fresh.isEmpty() && relatedToken != null) loadMoreRelated();
+                if (fresh.isEmpty()) loadMoreRelated();
             }
 
             @Override
             protected void fail(Exception error) {
                 relatedLoading = false;
             }
-        }.start();
+        }.startBackground();
     }
 
     private static final java.util.concurrent.ExecutorService RELATED_POOL =
@@ -1266,12 +1491,14 @@ public final class PlayerActivity extends Activity {
         startPlayback();
     }
 
+    private static final int PREPARED_WAIT_S = 8;
+
     private void loadPrepared(java.util.concurrent.Future<com.orvid.play.Resolve.Stream> ready) {
         Diag.mark("using prepared stream");
         new Job<com.orvid.play.Resolve.Stream>(this) {
             @Override
             protected com.orvid.play.Resolve.Stream load() throws Exception {
-                com.orvid.play.Resolve.Stream s = ready.get(30, java.util.concurrent.TimeUnit.SECONDS);
+                com.orvid.play.Resolve.Stream s = ready.get(PREPARED_WAIT_S, java.util.concurrent.TimeUnit.SECONDS);
                 if (s == null || s.direct == null || s.direct.url == null) throw new java.io.IOException("not prepared");
                 return s;
             }
@@ -1530,7 +1757,18 @@ public final class PlayerActivity extends Activity {
         startPlayback();
     }
 
+    private static boolean gone(PlaybackException error) {
+        for (Throwable t = error; t != null; t = t.getCause()) {
+            if (t instanceof androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
+                int status = ((androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) t).responseCode;
+                return status == 404 || status == 410;
+            }
+        }
+        return false;
+    }
+
     private static boolean fatal(PlaybackException error) {
+        if (gone(error)) return true;
         int code = error.errorCode;
         return code == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED
                 || code == PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED
@@ -1542,8 +1780,14 @@ public final class PlayerActivity extends Activity {
         play(resumeAt);
     }
 
+    private boolean streamStarted;
+
     private void play(long positionMs) {
         Diag.mark("player open source " + sourceIndex);
+        if (!streamStarted) {
+            streamStarted = true;
+            if (((TextView) header.findViewById(R.id.name)).length() > 0) stage.post(this::loadRelated);
+        }
         buffering.setVisibility(View.VISIBLE);
         player.setMediaSource(sources.get(sourceIndex), positionMs);
         player.prepare();
@@ -1632,9 +1876,7 @@ public final class PlayerActivity extends Activity {
             related.set(new ArrayList<>());
             header.findViewById(R.id.related_label).setVisibility(View.GONE);
         }
-        TextView name = header.findViewById(R.id.name);
-        if (name.getText().length() == 0) name.setText(text);
-        else ((TextView) header.findViewById(R.id.sub)).setText(text);
+        ((TextView) header.findViewById(R.id.sub)).setText(text);
     }
 
     @Override

@@ -30,7 +30,7 @@ final class AutoCaptions implements Speech.Listener {
     static final int TRANSLATED = 2;
 
     static final SpeechTap TAP = new SpeechTap();
-    private static final int LEAD_SECONDS = 12;
+    private static final int LEAD_SECONDS = 8;
     private static volatile boolean lead;
 
     static final DefaultAudioSink.AudioTrackBufferSizeProvider BUFFER =
@@ -83,8 +83,10 @@ final class AutoCaptions implements Speech.Listener {
         this.prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE);
     }
 
+    static final boolean ENABLED = false;
+
     boolean available() {
-        return Speech.available(context.getApplicationInfo().nativeLibraryDir);
+        return ENABLED && Speech.available(context.getApplicationInfo().nativeLibraryDir);
     }
 
     int mode() {
@@ -178,13 +180,15 @@ final class AutoCaptions implements Speech.Listener {
         SpeechModel.ensure(context.getFilesDir(), circuit, modelListener);
     }
 
+    private boolean altAttributes;
+
     private void reprepare() {
-        long at = Math.max(0, player.getCurrentPosition());
-        boolean playing = player.getPlayWhenReady();
-        player.stop();
-        player.prepare();
-        player.seekTo(at);
-        player.setPlayWhenReady(playing);
+        altAttributes = !altAttributes;
+        player.setAudioAttributes(new androidx.media3.common.AudioAttributes.Builder()
+                .setUsage(androidx.media3.common.C.USAGE_MEDIA)
+                .setContentType(altAttributes ? androidx.media3.common.C.AUDIO_CONTENT_TYPE_MOVIE
+                        : androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC)
+                .build(), false);
     }
 
     void seeked() {

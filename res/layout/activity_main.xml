@@ -61,11 +61,10 @@
                 android:layout_gravity="start|center_vertical"
                 android:layout_marginStart="4dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/clear"
+                android:contentDescription="@string/search"
                 android:padding="9dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_close"
-                android:visibility="gone" />
+                android:src="@drawable/ic_search" />
         </FrameLayout>
 
         <ImageButton
@@ -80,6 +79,17 @@
             android:contentDescription="@string/search"
             android:src="@drawable/ic_search" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/dev_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#CC000000"
+        android:fontFamily="monospace"
+        android:padding="4dp"
+        android:textColor="#FF7CFC7C"
+        android:textSize="9sp"
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/tor_banner"
@@ -129,17 +139,39 @@
             android:indeterminateTint="@color/text_secondary"
             android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/message"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:gravity="center"
-            android:paddingStart="40dp"
-            android:paddingEnd="40dp"
-            android:lineSpacingMultiplier="1.2"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/message"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingStart="40dp"
+                android:paddingEnd="40dp"
+                android:lineSpacingMultiplier="1.2"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/add_repo"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_button"
+                android:gravity="center"
+                android:paddingStart="22dp"
+                android:paddingEnd="22dp"
+                android:text="@string/add_repo"
+                android:textColor="@color/on_accent"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
     </FrameLayout>
 
     <LinearLayout
@@ -163,6 +195,13 @@
                 android:id="@+id/mini_video"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
+
+            <ImageView
+                android:id="@+id/mini_cover"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:importantForAccessibility="no"
+                android:scaleType="centerCrop" />
         </FrameLayout>
 
         <LinearLayout

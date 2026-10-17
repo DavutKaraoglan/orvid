@@ -74,7 +74,6 @@
     <string name="date_week">За неделю</string>
     <string name="date_month">За месяц</string>
     <string name="date_year">За год</string>
-    <string name="auto_captions">Автосубтитры</string>
     <string name="auto_captions_original">Язык оригинала</string>
     <string name="auto_captions_translated">Перевод на: %s</string>
     <string name="auto_captions_downloading">Загрузка модели субтитров %1$d%%</string>
@@ -105,4 +104,24 @@
     <string name="orient_straight">Гетеро</string>
     <string name="orient_gay">Гей</string>
     <string name="orient_trans">Транс</string>
+    <string name="next_video">Следующее видео</string>
+    <string name="previous_video">Предыдущее видео</string>
+    <string name="hide_junk">Скрывать очень короткие и очень длинные видео</string>
+    <string name="nothing_here">Здесь пока ничего нет. Добавьте репозиторий источников, чтобы начать поиск.</string>
+    <string name="add_repo">Добавить репозиторий</string>
+    <string name="repo_url_hint">Ссылка на репозиторий</string>
+    <string name="repo_add">Добавить</string>
+    <string name="repo_adding">Добавление репозитория…</string>
+    <string name="repo_failed">Не удалось добавить репозиторий: %1$s</string>
+    <string name="repositories">Репозитории</string>
+    <string name="repo_update">Обновить</string>
+    <string name="repo_remove">Удалить</string>
+    <string name="repo_info">%1$s\nисточников %2$d</string>
+    <string name="repo_find_hint">Ссылки на репозитории публикуют на GitHub и на страницах проектов. Репозиторий Orvid также перечисляет другие.</string>
+    <string name="repo_official">Источники Orvid</string>
+    <string name="other_repos">Другие репозитории</string>
+    <string name="secret_added">Скрытые источники добавлены</string>
+    <string name="secret_how">Эти источники скрыты, пока вы их не откроете. На главном экране разведите два пальца, подтвердите возраст и включите источники в панели фильтров.</string>
+    <string name="dev_mode">Режим разработчика</string>
+    <string name="subtitle_failed">Не удалось загрузить субтитры</string>
 </resources>

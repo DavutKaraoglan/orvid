@@ -36,6 +36,9 @@ public final class Filters {
     public int duration;
     public int sort;
     public boolean hideAdult;
+    public boolean hideJunk = true;
+    private static final long JUNK_SHORT_S = 15;
+    private static final long JUNK_LONG_S = 3 * 3600;
     public static volatile Filters current;
 
     public static final int ORIENT_ANY = 0;
@@ -103,6 +106,7 @@ public final class Filters {
         f.sort = p.getInt("f_sort", SORT_RELEVANCE);
         f.youtube = p.getBoolean("f_youtube", true);
         f.hideAdult = p.getBoolean("f_hide_adult", false);
+        f.hideJunk = p.getBoolean("f_hide_junk", true);
         f.dailymotion = p.getBoolean("f_dailymotion", true);
         f.vk = p.getBoolean("f_vk", true);
         for (java.util.Map.Entry<String, ?> e : p.getAll().entrySet()) {
@@ -118,7 +122,7 @@ public final class Filters {
 
     public void save(SharedPreferences p) {
         p.edit().putInt("f_date", date).putInt("f_type", type).putInt("f_duration", duration).putInt("f_sort", sort)
-                .putBoolean("f_youtube", youtube).putBoolean("f_hide_adult", hideAdult).putBoolean("f_dailymotion", dailymotion).putBoolean("f_vk", vk).apply();
+                .putBoolean("f_youtube", youtube).putBoolean("f_hide_adult", hideAdult).putBoolean("f_hide_junk", hideJunk).putBoolean("f_dailymotion", dailymotion).putBoolean("f_vk", vk).apply();
         SharedPreferences.Editor e = p.edit().remove("f_twitch").remove("f_peertube");
         for (java.util.Map.Entry<String, Boolean> s : sources.entrySet()) {
             if (Source.ADULT_KEYS.contains(s.getKey())) e.remove("f_src_" + s.getKey());
@@ -198,6 +202,7 @@ public final class Filters {
             if (when == Long.MIN_VALUE || when * 1000 < since) return false;
         }
         long d = item.getDuration();
+        if (hideJunk && d > 0 && (d > JUNK_LONG_S || d < JUNK_SHORT_S && type != TYPE_SHORTS)) return false;
         if (type == TYPE_SHORTS) return d <= 0 || d <= 180;
         if (type == TYPE_VIDEOS && d > 0 && d <= 60) return false;
         if (d <= 0 || duration == DURATION_ANY) return true;

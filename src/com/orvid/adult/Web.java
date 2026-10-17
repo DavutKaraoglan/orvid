@@ -83,7 +83,7 @@ public final class Web {
         }
     }
 
-    static long duration(String text) {
+    public static long duration(String text) {
         if (text == null) return -1;
         if (text.contains(":")) return clock(text);
         java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+)\\s*(h|m|s)").matcher(text.toLowerCase());
@@ -108,7 +108,7 @@ public final class Web {
         }
     }
 
-    static long number(String text) {
+    public static long number(String text) {
         try {
             String t = text.trim().toUpperCase().replace(",", ".").replace(" ", "");
             double mult = t.endsWith("K") ? 1e3 : t.endsWith("M") ? 1e6 : 1;

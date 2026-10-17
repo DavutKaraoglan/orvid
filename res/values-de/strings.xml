@@ -74,7 +74,6 @@
     <string name="date_week">Diese Woche</string>
     <string name="date_month">Diesen Monat</string>
     <string name="date_year">Dieses Jahr</string>
-    <string name="auto_captions">Automatische Untertitel</string>
     <string name="auto_captions_original">Originalsprache</string>
     <string name="auto_captions_translated">Übersetzt ins %s</string>
     <string name="auto_captions_downloading">Untertitelmodell wird geladen %1$d%%</string>
@@ -105,4 +104,24 @@
     <string name="orient_straight">Hetero</string>
     <string name="orient_gay">Schwul</string>
     <string name="orient_trans">Trans</string>
+    <string name="next_video">Nächstes Video</string>
+    <string name="previous_video">Vorheriges Video</string>
+    <string name="hide_junk">Sehr kurze oder sehr lange Videos ausblenden</string>
+    <string name="nothing_here">Hier gibt es noch nichts. Füge ein Quellen-Repository hinzu, um zu suchen.</string>
+    <string name="add_repo">Repository hinzufügen</string>
+    <string name="repo_url_hint">Repository-Link</string>
+    <string name="repo_add">Hinzufügen</string>
+    <string name="repo_adding">Repository wird hinzugefügt…</string>
+    <string name="repo_failed">Repository konnte nicht hinzugefügt werden: %1$s</string>
+    <string name="repositories">Repositorys</string>
+    <string name="repo_update">Aktualisieren</string>
+    <string name="repo_remove">Entfernen</string>
+    <string name="repo_info">%1$s\n%2$d Quellen</string>
+    <string name="repo_find_hint">Repository-Links werden auf GitHub und Projektseiten geteilt. Orvids eigenes Repository listet auch weitere.</string>
+    <string name="repo_official">Orvid-Quellen</string>
+    <string name="other_repos">Weitere Repositorys</string>
+    <string name="secret_added">Versteckte Quellen hinzugefügt</string>
+    <string name="secret_how">Diese Quellen bleiben verborgen, bis du sie freischaltest. Spreize auf dem Hauptbildschirm zwei Finger, bestätige dein Alter und schalte die Quellen dann im Filterbereich ein.</string>
+    <string name="dev_mode">Entwicklermodus</string>
+    <string name="subtitle_failed">Untertitel konnten nicht geladen werden</string>
 </resources>

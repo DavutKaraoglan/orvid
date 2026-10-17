@@ -22,7 +22,7 @@ public final class Subtitles {
             if (c.language.equals(mine) || c.language.startsWith(mine + "-")) return all;
             if (base == null || base.auto && !c.auto) base = c;
         }
-        if (base != null) {
+        if (base != null && !com.orvid.net.Fetch.torMode()) {
             Visionos.Caption t = new Visionos.Caption();
             t.language = mine;
             t.name = context.getString(R.string.subtitle_translated,

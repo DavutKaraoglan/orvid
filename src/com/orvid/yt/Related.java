@@ -155,18 +155,23 @@ public final class Related {
             item.setUploadDate(new org.schabi.newpipe.extractor.localization.DateWrapper(
                     java.time.Instant.now().minusSeconds(age), true));
         }
-        List<Image> thumbs = new ArrayList<>();
-        JsonArray list = v.getObject("thumbnail").getArray("thumbnails");
+        item.setThumbnails(images(v.getObject("thumbnail").getArray("thumbnails")));
+        item.setUploaderAvatars(images(v.getObject("channelThumbnail")
+                .getObject("channelThumbnailWithLinkRenderer").getObject("thumbnail").getArray("thumbnails")));
+        return item;
+    }
+
+    private static List<Image> images(JsonArray list) {
+        List<Image> out = new ArrayList<>();
         for (int i = 0; i < list.size(); i++) {
             JsonObject t = list.getObject(i);
             String url = t.getString("url", null);
             if (url == null) continue;
             if (url.startsWith("//")) url = "https:" + url;
             int h = t.getInt("height", Image.HEIGHT_UNKNOWN);
-            thumbs.add(new Image(url, h, t.getInt("width", Image.WIDTH_UNKNOWN), Image.ResolutionLevel.fromHeight(h)));
+            out.add(new Image(url, h, t.getInt("width", Image.WIDTH_UNKNOWN), Image.ResolutionLevel.fromHeight(h)));
         }
-        item.setThumbnails(thumbs);
-        return item;
+        return out;
     }
 
     private static String text(JsonObject o) {

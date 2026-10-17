@@ -74,7 +74,6 @@
     <string name="date_week">Cette semaine</string>
     <string name="date_month">Ce mois-ci</string>
     <string name="date_year">Cette année</string>
-    <string name="auto_captions">Sous-titres automatiques</string>
     <string name="auto_captions_original">Langue d\'origine</string>
     <string name="auto_captions_translated">Traduits en %s</string>
     <string name="auto_captions_downloading">Téléchargement du modèle de sous-titres %1$d%%</string>
@@ -105,4 +104,24 @@
     <string name="orient_straight">Hétéro</string>
     <string name="orient_gay">Gay</string>
     <string name="orient_trans">Trans</string>
+    <string name="next_video">Vidéo suivante</string>
+    <string name="previous_video">Vidéo précédente</string>
+    <string name="hide_junk">Masquer les vidéos très courtes ou très longues</string>
+    <string name="nothing_here">Rien à afficher pour l’instant. Ajoutez un dépôt de sources pour commencer à chercher.</string>
+    <string name="add_repo">Ajouter un dépôt</string>
+    <string name="repo_url_hint">Lien du dépôt</string>
+    <string name="repo_add">Ajouter</string>
+    <string name="repo_adding">Ajout du dépôt…</string>
+    <string name="repo_failed">Impossible d’ajouter le dépôt : %1$s</string>
+    <string name="repositories">Dépôts</string>
+    <string name="repo_update">Mettre à jour</string>
+    <string name="repo_remove">Retirer</string>
+    <string name="repo_info">%1$s\n%2$d sources</string>
+    <string name="repo_find_hint">Les liens de dépôts sont partagés sur GitHub et sur les pages de projets. Le dépôt d’Orvid en liste aussi d’autres.</string>
+    <string name="repo_official">Sources Orvid</string>
+    <string name="other_repos">Autres dépôts</string>
+    <string name="secret_added">Sources cachées ajoutées</string>
+    <string name="secret_how">Ces sources restent cachées jusqu’à ce que vous les déverrouilliez. Sur l’écran principal, écartez deux doigts, confirmez votre âge, puis activez les sources dans le panneau des filtres.</string>
+    <string name="dev_mode">Mode développeur</string>
+    <string name="subtitle_failed">Impossible de charger les sous-titres</string>
 </resources>

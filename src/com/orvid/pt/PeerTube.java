@@ -113,7 +113,13 @@ public final class PeerTube {
             }
         }
         if (out.hls == null && out.mp4 == null) throw new IOException("no stream");
+        out.hls = repair(out.hls);
+        out.mp4 = repair(out.mp4);
         return out;
+    }
+
+    private static String repair(String url) {
+        return url == null ? null : url.replace("/streaming-playlistshls/", "/streaming-playlists/hls/");
     }
 
     private static JsonObject get(String circuit, String url, String label) throws IOException {

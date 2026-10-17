@@ -26,8 +26,15 @@ public abstract class Job<T> implements Runnable {
     protected void fail(Exception error) {
     }
 
+    private static final ExecutorService BACKGROUND = Executors.newFixedThreadPool(4);
+
     public final Job<T> start() {
         POOL.execute(this);
+        return this;
+    }
+
+    public final Job<T> startBackground() {
+        BACKGROUND.execute(this);
         return this;
     }
 

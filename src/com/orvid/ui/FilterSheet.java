@@ -93,35 +93,54 @@ final class FilterSheet {
                     changed[0] = true;
                 });
 
+        section(activity, column, R.string.repositories);
+        Runnable reload = () -> {
+            changed[0] = true;
+            dialog.dismiss();
+        };
+        for (com.orvid.ext.Repos.Repo r : com.orvid.ext.Repos.list(com.orvid.app.OrvidApp.get().extRoot())) {
+            row(activity, column, r.name + " · " + r.count, R.drawable.ic_filter, () -> RepoDialog.manage(activity, r, reload));
+        }
+        for (com.orvid.ext.Repos.Link l : com.orvid.ext.Repos.suggested(com.orvid.app.OrvidApp.get().extRoot())) {
+            if (l.adult && !com.orvid.search.Source.adultUnlocked) continue;
+            row(activity, column, RepoDialog.label(activity, l), R.drawable.ic_add, () -> RepoDialog.add(activity, l.url, reload));
+        }
+        row(activity, column, activity.getString(R.string.add_repo), R.drawable.ic_add, () -> RepoDialog.add(activity, reload));
+
         section(activity, column, R.string.filter_sources);
         java.util.List<Switch> normalSwitches = new java.util.ArrayList<>();
         boolean everyOn = filters.youtube && filters.dailymotion && filters.vk;
-        for (com.orvid.search.Source x : Sources.EXTRA) if (!x.adult && !filters.on(x)) everyOn = false;
+        for (com.orvid.search.Source x : Sources.current()) if (!x.adult && !filters.on(x)) everyOn = false;
         source(activity, column, activity.getString(R.string.all_sources), R.drawable.ic_filter, everyOn, on -> {
             for (Switch child : normalSwitches) child.setChecked(on);
         });
-        normalSwitches.add(source(activity, column, "YouTube", R.drawable.ic_src_youtube, filters.youtube, on -> {
-            filters.youtube = on;
-            changed[0] = true;
-        }));
-        normalSwitches.add(source(activity, column, activity.getString(R.string.source_dailymotion), R.drawable.ic_src_dailymotion,
-                filters.dailymotion, on -> {
-            filters.dailymotion = on;
-            changed[0] = true;
-        }));
-
-        normalSwitches.add(source(activity, column, "VK Video", R.drawable.ic_src_vk, filters.vk, on -> {
-            filters.vk = on;
-            changed[0] = true;
-        }));
+        if (com.orvid.ext.Registry.engineOn("youtube")) {
+            normalSwitches.add(source(activity, column, "YouTube", R.drawable.ic_src_youtube, filters.youtube, on -> {
+                filters.youtube = on;
+                changed[0] = true;
+            }));
+        }
+        if (com.orvid.ext.Registry.engineOn("dailymotion")) {
+            normalSwitches.add(source(activity, column, activity.getString(R.string.source_dailymotion), R.drawable.ic_src_dailymotion,
+                    filters.dailymotion, on -> {
+                filters.dailymotion = on;
+                changed[0] = true;
+            }));
+        }
+        if (com.orvid.ext.Registry.engineOn("vk")) {
+            normalSwitches.add(source(activity, column, "VK Video", R.drawable.ic_src_vk, filters.vk, on -> {
+                filters.vk = on;
+                changed[0] = true;
+            }));
+        }
         java.util.List<Switch> adultSwitches = new java.util.ArrayList<>();
         boolean masterAdded = false;
-        for (com.orvid.search.Source s : Sources.EXTRA) {
+        for (com.orvid.search.Source s : Sources.current()) {
             if (s.adult && !com.orvid.search.Source.adultUnlocked) continue;
             if (s.adult && !masterAdded) {
                 masterAdded = true;
                 boolean allOn = true;
-                for (com.orvid.search.Source x : Sources.EXTRA) if (x.adult && !filters.on(x)) allOn = false;
+                for (com.orvid.search.Source x : Sources.current()) if (x.adult && !filters.on(x)) allOn = false;
                 Switch master = source(activity, column, activity.getString(R.string.all_adult), R.drawable.ic_eighteen, allOn, on -> {
                 });
                 android.widget.CompoundButton.OnCheckedChangeListener[] holder = new android.widget.CompoundButton.OnCheckedChangeListener[1];
@@ -146,7 +165,7 @@ final class FilterSheet {
                 };
                 master.setOnCheckedChangeListener(holder[0]);
             }
-            Switch sw = source(activity, column, s.name, s.icon, filters.on(s), on -> {
+            Switch sw = source(activity, column, s.name, Ui.sourceIcon(activity, s), filters.on(s), on -> {
                 filters.set(s, on);
                 changed[0] = true;
             });
@@ -202,6 +221,11 @@ final class FilterSheet {
                     filters.hideAdult = on;
                     changed[0] = true;
                 });
+        source(activity, column, activity.getString(R.string.hide_junk), R.drawable.ic_filter,
+                filters.hideJunk, on -> {
+                    filters.hideJunk = on;
+                    changed[0] = true;
+                });
 
         section(activity, column, R.string.privacy);
         com.orvid.app.AppLock lock = com.orvid.app.OrvidApp.get().lock();
@@ -219,11 +243,23 @@ final class FilterSheet {
                 com.orvid.app.OrvidApp.get().bridges(), on -> com.orvid.app.OrvidApp.get().setBridges(on));
         source(activity, column, activity.getString(R.string.panic_exit), R.drawable.ic_panic,
                 com.orvid.app.OrvidApp.get().panicExit(), on -> com.orvid.app.OrvidApp.get().setPanicExit(on));
+        source(activity, column, activity.getString(R.string.dev_mode), R.drawable.ic_bug,
+                com.orvid.app.OrvidApp.get().devMode(), on -> {
+                    com.orvid.app.OrvidApp.get().setDevMode(on);
+                    changed[0] = true;
+                });
 
         dialog.setOnDismissListener(d -> {
-            boolean any = filters.youtube || filters.dailymotion || filters.vk;
-            for (com.orvid.search.Source s : Sources.EXTRA) any |= filters.on(s) && !(s.adult && filters.hideAdult);
-            if (!any) filters.youtube = true;
+            boolean any = filters.youtube && com.orvid.ext.Registry.engineOn("youtube")
+                    || filters.dailymotion && com.orvid.ext.Registry.engineOn("dailymotion")
+                    || filters.vk && com.orvid.ext.Registry.engineOn("vk");
+            for (com.orvid.search.Source s : Sources.current()) any |= filters.on(s) && !(s.adult && filters.hideAdult);
+            if (!any) {
+                filters.youtube = true;
+                filters.dailymotion = true;
+                filters.vk = true;
+                for (com.orvid.search.Source s : Sources.current()) if (!s.adult) filters.set(s, true);
+            }
             if (changed[0]) listener.onFilters(filters);
         });
         int maxHeight = (int) (activity.getResources().getDisplayMetrics().heightPixels * 0.62f);
@@ -247,6 +283,26 @@ final class FilterSheet {
 
     private interface BoolPick {
         void pick(boolean on);
+    }
+
+    private static void row(Activity a, LinearLayout column, String text, int icon, Runnable click) {
+        TextView row = new TextView(a);
+        row.setText(text);
+        android.graphics.drawable.Drawable d = a.getDrawable(icon);
+        int size = Ui.dp(a, 24);
+        if (d != null) {
+            d.setBounds(0, 0, size, size);
+            d.setTint(a.getColor(R.color.text_primary));
+        }
+        row.setCompoundDrawablesRelative(d, null, null, null);
+        row.setCompoundDrawablePadding(Ui.dp(a, 14));
+        row.setTextColor(a.getColor(R.color.text_primary));
+        row.setTextSize(15);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, Ui.dp(a, 12), 0, Ui.dp(a, 12));
+        row.setOnClickListener(v -> click.run());
+        column.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
     private static void section(Activity a, LinearLayout column, int title) {
@@ -281,9 +337,13 @@ final class FilterSheet {
     }
 
     private static Switch source(Activity a, LinearLayout column, String name, int icon, boolean on, BoolPick pick) {
+        return source(a, column, name, a.getDrawable(icon), on, pick);
+    }
+
+    private static Switch source(Activity a, LinearLayout column, String name, android.graphics.drawable.Drawable d,
+                                 boolean on, BoolPick pick) {
         Switch sw = new Switch(a);
         sw.setText(name);
-        android.graphics.drawable.Drawable d = a.getDrawable(icon);
         int size = Ui.dp(a, 24);
         if (d != null) d.setBounds(0, 0, size, size);
         sw.setCompoundDrawablesRelative(d, null, null, null);

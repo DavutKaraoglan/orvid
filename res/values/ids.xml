@@ -3,5 +3,6 @@
     <item name="image_key" type="id" />
     <item name="skeleton_anim" type="id" />
     <item name="prepare_job" type="id" />
+    <item name="touch_down" type="id" />
     <item name="prepare_down" type="id" />
 </resources>

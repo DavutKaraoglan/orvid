@@ -2,15 +2,31 @@
 
 # Orvid
 
-Android video player that searches YouTube and 50+ other sites at once and sends every request over Tor.
+Android video player that searches many video sites at once and sends every request over Tor. Sources come from repositories you add.
 
 <p align="center"><img src="docs/screenshots.webp" alt="Search results from many sites, the player, the source list and privacy settings"></p>
 
 - **Tor built in.** Orvid starts its own Tor client and gives each source and each video its own circuit. Requests wait until Tor is connected. If your network blocks Tor, turn on a bridge (obfs4, Snowflake or meek) under Privacy in the filter panel.
-- **Search many sites.** YouTube, Dailymotion, VK, Twitch, PeerTube, Internet Archive, Odysee, Rutube, TED and more, merged and ranked together. Adult sources stay hidden until unlocked with a gesture and an age check (spread two fingers apart on the main screen, then turn them on in the filter panel).
-- **Captions for any video.** whisper.cpp runs on the phone and writes captions for videos that have none. Translations go through Tor.
+- **Sources from repositories.** Orvid ships with no sources. Add a repository to search YouTube, Dailymotion, VK, Twitch, PeerTube, Internet Archive, Odysee, TED and more at once, merged and ranked together. Adult sources live in a separate repository and stay hidden until unlocked with a gesture and an age check (spread two fingers apart on the main screen, then turn them on in the filter panel).
+- **Fast start.** Orvid resolves the videos you are likely to open and fetches their first seconds while you browse, so videos start sooner.
 - **Privacy tools.** Optional app lock with fingerprint or PIN that also hides the app in recent apps, and a panic exit: swipe down with two fingers to close Orvid and wipe its memory.
 - **Memory only.** Orvid does not record what you watch, and thumbnails stay in memory. Closing the app clears its cache and cookies and stops Tor. Tor's relay list is kept on the phone so the next start connects faster.
+
+## Scope
+
+Orvid's goal is one private search box for videos from across the web. Any site with public videos fits: Orvid searches it and plays the videos straight from the site, through Tor.
+
+[Performance by version](docs/PERFORMANCE.md) compares search quality and start times across releases.
+
+## Getting started
+
+Search once and tap **Add repository**, or open Filters → Repositories → Add repository, and paste:
+
+```
+https://raw.githubusercontent.com/DavutKaraoglan/orvid-sources/main/
+```
+
+[orvid-sources](https://github.com/DavutKaraoglan/orvid-sources) explains the source format, so you can write sources for other sites.
 
 ## Download
 
@@ -18,7 +34,7 @@ Get the APK from [Releases](https://github.com/DavutKaraoglan/orvid/releases/lat
 
 <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/DavutKaraoglan/orvid"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="54"></a>
 
-Requires Android 8.0+. Auto captions need an arm64 phone.
+Requires Android 8.0+.
 
 ## Build
 

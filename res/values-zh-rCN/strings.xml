@@ -74,7 +74,6 @@
     <string name="date_week">本周</string>
     <string name="date_month">本月</string>
     <string name="date_year">今年</string>
-    <string name="auto_captions">自动字幕</string>
     <string name="auto_captions_original">原始语言</string>
     <string name="auto_captions_translated">翻译成%s</string>
     <string name="auto_captions_downloading">正在下载字幕模型 %1$d%%</string>
@@ -105,4 +104,24 @@
     <string name="orient_straight">异性恋</string>
     <string name="orient_gay">男同</string>
     <string name="orient_trans">跨性别</string>
+    <string name="next_video">下一个视频</string>
+    <string name="previous_video">上一个视频</string>
+    <string name="hide_junk">隐藏过短或过长的视频</string>
+    <string name="nothing_here">这里还没有内容。添加一个来源仓库即可开始搜索。</string>
+    <string name="add_repo">添加仓库</string>
+    <string name="repo_url_hint">仓库链接</string>
+    <string name="repo_add">添加</string>
+    <string name="repo_adding">正在添加仓库…</string>
+    <string name="repo_failed">无法添加仓库：%1$s</string>
+    <string name="repositories">仓库</string>
+    <string name="repo_update">更新</string>
+    <string name="repo_remove">移除</string>
+    <string name="repo_info">%1$s\n%2$d 个来源</string>
+    <string name="repo_find_hint">仓库链接会在 GitHub 和项目页面上分享。Orvid 自己的仓库也会列出其他仓库。</string>
+    <string name="repo_official">Orvid 来源</string>
+    <string name="other_repos">其他仓库</string>
+    <string name="secret_added">已添加隐藏来源</string>
+    <string name="secret_how">这些来源在解锁前保持隐藏。在主屏幕上将两根手指张开，确认年龄，然后在筛选面板中开启这些来源。</string>
+    <string name="dev_mode">开发者模式</string>
+    <string name="subtitle_failed">无法加载字幕</string>
 </resources>

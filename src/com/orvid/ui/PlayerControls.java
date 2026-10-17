@@ -113,6 +113,7 @@ final class PlayerControls implements Player.Listener {
         @Override
         public void run() {
             updateProgress();
+            if (boosting && !touching) endBoost();
             overlay.postDelayed(this, 500);
         }
     };
@@ -150,6 +151,7 @@ final class PlayerControls implements Player.Listener {
         });
         stage.findViewById(R.id.ctl_close).setOnClickListener(v -> close.run());
         stage.findViewById(R.id.ctl_settings).setOnClickListener(v -> {
+            if (sheetOpen()) return;
             overlay.removeCallbacks(hide);
             showSettings();
         });
@@ -221,12 +223,27 @@ final class PlayerControls implements Player.Listener {
                 case MotionEvent.ACTION_DOWN:
                     downX = e.getX();
                     downY = e.getY();
+                    touching = true;
                     scrubbing = false;
+                    swiping = false;
                     break;
                 case MotionEvent.ACTION_MOVE: {
                     if (boosting) return true;
                     float dx = e.getX() - downX;
                     float dy = e.getY() - downY;
+                    if (!swiping && !scrubbing && e.getPointerCount() == 1 && Math.abs(dy) > slop * 2
+                            && Math.abs(dy) > Math.abs(dx) * 1.5f && (isLandscape() ? dy > 0 : dy < 0)) {
+                        swiping = true;
+                        if (v.getParent() != null) v.getParent().requestDisallowInterceptTouchEvent(true);
+                    }
+                    if (swiping) {
+                        float pull = Math.max(0f, isLandscape() ? dy : -dy);
+                        float f = Math.min(1f, pull / (SWIPE_DP * 2 * activity.getResources().getDisplayMetrics().density));
+                        float scale = isLandscape() ? 1f - SWIPE_SCALE * f : 1f + SWIPE_SCALE * f;
+                        stageView.setScaleX(scale);
+                        stageView.setScaleY(scale);
+                        return true;
+                    }
                     long d = player.getDuration();
                     if (!scrubbing && !isLandscape() && d != C.TIME_UNSET && d > 0 && Math.abs(dx) > slop * 2
                             && Math.abs(dx) > Math.abs(dy) * 2 && e.getPointerCount() == 1) {
@@ -252,10 +269,25 @@ final class PlayerControls implements Player.Listener {
                 }
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
+                    touching = false;
+                    if (swiping) {
+                        swiping = false;
+                        float dy = e.getY() - downY;
+                        float pull = isLandscape() ? dy : -dy;
+                        boolean commit = e.getActionMasked() == MotionEvent.ACTION_UP
+                                && pull > SWIPE_DP * activity.getResources().getDisplayMetrics().density;
+                        if (commit) {
+                            stageView.setScaleX(1f);
+                            stageView.setScaleY(1f);
+                            toggleFullscreen();
+                        } else {
+                            stageView.animate().scaleX(1f).scaleY(1f).setDuration(160)
+                                    .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+                        }
+                        return true;
+                    }
                     if (boosting) {
-                        boosting = false;
-                        player.setPlaybackSpeed(boostFrom);
-                        boostLabel().setVisibility(View.GONE);
+                        endBoost();
                         gestures.onTouchEvent(e);
                         return true;
                     }
@@ -306,7 +338,33 @@ final class PlayerControls implements Player.Listener {
         return p + " / " + d;
     }
 
+    private static final long SKIP_GUARD_MS = 600;
+    private static final int SWIPE_DP = 48;
+    private static final float SWIPE_SCALE = 0.12f;
+    private boolean swiping;
+    private long shownAt;
+    private View previous;
+    private View next;
+
+    void setSkip(Runnable onPrevious, Runnable onNext) {
+        previous = stageView.findViewById(R.id.ctl_previous);
+        next = stageView.findViewById(R.id.ctl_next);
+        previous.setOnClickListener(v -> {
+            if (android.os.SystemClock.uptimeMillis() - shownAt >= SKIP_GUARD_MS) onPrevious.run();
+        });
+        next.setOnClickListener(v -> {
+            if (android.os.SystemClock.uptimeMillis() - shownAt >= SKIP_GUARD_MS) onNext.run();
+        });
+    }
+
+    void showSkip(boolean canPrevious, boolean canNext) {
+        if (previous == null) return;
+        previous.setVisibility(canPrevious ? View.VISIBLE : View.INVISIBLE);
+        next.setVisibility(canNext ? View.VISIBLE : View.INVISIBLE);
+    }
+
     void show() {
+        if (!visible) shownAt = android.os.SystemClock.uptimeMillis();
         visible = true;
         overlay.animate().cancel();
         overlay.setVisibility(View.VISIBLE);
@@ -361,11 +419,25 @@ final class PlayerControls implements Player.Listener {
     private void textOff() {
         player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
                 .clearOverridesOfType(C.TRACK_TYPE_TEXT).setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build());
+        TextView shown = stageView.findViewById(R.id.subtitle);
+        if (shown != null) {
+            shown.setText("");
+            shown.setVisibility(View.GONE);
+        }
+    }
+
+    private boolean textWanted() {
+        androidx.media3.common.TrackSelectionParameters p = player.getTrackSelectionParameters();
+        if (p.disabledTrackTypes.contains(C.TRACK_TYPE_TEXT)) return false;
+        for (androidx.media3.common.TrackSelectionOverride o : p.overrides.values()) {
+            if (o.getType() == C.TRACK_TYPE_TEXT) return true;
+        }
+        return !selectedLabel(choices(C.TRACK_TYPE_TEXT)).isEmpty();
     }
 
     private void toggleSubtitles() {
         List<Choice> text = choices(C.TRACK_TYPE_TEXT);
-        if (autoOn() || !selectedLabel(text).isEmpty()) {
+        if (autoOn() || textWanted()) {
             autoOff();
             if (!text.isEmpty()) textOff();
             refreshCc();
@@ -390,6 +462,7 @@ final class PlayerControls implements Player.Listener {
         player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
                 .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
                 .setOverrideForType(new TrackSelectionOverride(pick.group, 0)).build());
+        refreshCc();
     }
 
     private boolean boosting;
@@ -448,6 +521,19 @@ final class PlayerControls implements Player.Listener {
     void refreshFullscreenIcon() {
         boolean landscape = isLandscape();
         mini.setVisibility(landscape ? View.GONE : View.VISIBLE);
+        int inset = landscape ? Math.round(12 * activity.getResources().getDisplayMetrics().density) : 0;
+        seek.setPadding(inset, seek.getPaddingTop(), inset, seek.getPaddingBottom());
+        float drop = landscape ? 0 : (seek.getLayoutParams().height - mini.getLayoutParams().height) / 2f;
+        seek.setTranslationY(drop);
+        ((View) time.getParent()).setTranslationY(drop);
+        View row = (View) stageView.getParent();
+        row.setTranslationZ(landscape ? 0 : 1);
+        if (!landscape) {
+            for (android.view.ViewParent v = seek.getParent(); v instanceof android.view.ViewGroup; v = v.getParent()) {
+                ((android.view.ViewGroup) v).setClipChildren(false);
+                if (v == row.getParent()) break;
+            }
+        }
         title.setVisibility(landscape ? View.VISIBLE : View.GONE);
         fullscreen.setImageResource(landscape ? R.drawable.ic_fullscreen_exit_white : R.drawable.ic_fullscreen_white);
     }
@@ -463,7 +549,17 @@ final class PlayerControls implements Player.Listener {
         mini.setProgressTintList(c);
     }
 
+    private boolean touching;
+
+    private void endBoost() {
+        if (!boosting) return;
+        boosting = false;
+        player.setPlaybackSpeed(boostFrom);
+        boostLabel().setVisibility(View.GONE);
+    }
+
     void release() {
+        endBoost();
         overlay.removeCallbacks(tick);
         overlay.removeCallbacks(hide);
         player.removeListener(this);
@@ -480,21 +576,18 @@ final class PlayerControls implements Player.Listener {
         List<Choice> audio = choices(C.TRACK_TYPE_AUDIO);
         if (audio.size() > 1) {
             sheet.row(R.drawable.ic_voice, activity.getString(R.string.audio_track), selectedLabel(audio), () -> {
-                sheet.replaceWith(() -> showChoices(C.TRACK_TYPE_AUDIO, audio, false));
+                sheet.replaceWith(() -> showChoices(C.TRACK_TYPE_AUDIO, audio));
             });
         }
         List<Choice> text = choices(C.TRACK_TYPE_TEXT);
-        if (!text.isEmpty()) {
+        AutoCaptions auto = autoCaptions();
+        boolean autoOk = auto != null && auto.available();
+        if (!text.isEmpty() || autoOk) {
             String now = selectedLabel(text);
+            if (now.isEmpty() && autoOk && auto.mode() != AutoCaptions.OFF) now = autoLabel(auto);
             sheet.row(R.drawable.ic_subtitles, activity.getString(R.string.subtitles),
                     now.isEmpty() ? activity.getString(R.string.off) : now, () -> {
-                sheet.replaceWith(() -> showChoices(C.TRACK_TYPE_TEXT, text, true));
-            });
-        }
-        AutoCaptions auto = autoCaptions();
-        if (auto != null && auto.available()) {
-            sheet.row(R.drawable.ic_subtitles, activity.getString(R.string.auto_captions), autoLabel(auto), () -> {
-                sheet.replaceWith(() -> showAutoCaptions(auto));
+                sheet.replaceWith(this::showSubtitles);
             });
         }
         boolean debugOn = com.orvid.app.OrvidApp.get().debugOverlay();
@@ -620,14 +713,32 @@ final class PlayerControls implements Player.Listener {
         return activity.getString(R.string.off);
     }
 
-    private void showAutoCaptions(AutoCaptions auto) {
+    private void showSubtitles() {
         Sheet sheet = new Sheet();
-        int m = auto.mode();
-        sheet.choice(activity.getString(R.string.off), m == AutoCaptions.OFF, () -> {
-            auto.setMode(AutoCaptions.OFF);
+        List<Choice> text = choices(C.TRACK_TYPE_TEXT);
+        AutoCaptions auto = autoCaptions();
+        boolean autoOk = auto != null && auto.available();
+        int m = autoOk ? auto.mode() : AutoCaptions.OFF;
+        sheet.choice(activity.getString(R.string.off), selectedLabel(text).isEmpty() && m == AutoCaptions.OFF, () -> {
+            if (!text.isEmpty()) textOff();
+            if (autoOk) auto.setMode(AutoCaptions.OFF);
             sheet.dismiss();
             refreshCc();
         });
+        for (Choice c : text) {
+            sheet.choice(c.label, c.selected, () -> {
+                autoOff();
+                player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
+                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                        .setOverrideForType(new TrackSelectionOverride(c.group, 0)).build());
+                sheet.dismiss();
+                refreshCc();
+            });
+        }
+        if (!autoOk) {
+            sheet.show();
+            return;
+        }
         sheet.choice(activity.getString(R.string.auto_captions_original), m == AutoCaptions.ORIGINAL, () -> {
             if (!choices(C.TRACK_TYPE_TEXT).isEmpty()) textOff();
             auto.setMode(AutoCaptions.ORIGINAL);
@@ -648,23 +759,15 @@ final class PlayerControls implements Player.Listener {
         AutoCaptions auto = autoCaptions();
         boolean autoOk = auto != null && auto.available();
         cc.setVisibility(text.isEmpty() && !autoOk ? View.GONE : View.VISIBLE);
-        boolean on = !selectedLabel(text).isEmpty() || autoOn();
-        cc.setAlpha(on ? 1f : 0.55f);
+        boolean on = textWanted() || autoOn();
+        cc.setImageResource(on ? R.drawable.ic_cc_white : R.drawable.ic_cc_off_white);
+        cc.setAlpha(on ? 1f : 0.85f);
     }
 
-    private void showChoices(int type, List<Choice> list, boolean allowOff) {
+    private void showChoices(int type, List<Choice> list) {
         Sheet sheet = new Sheet();
-        if (allowOff) {
-            boolean none = selectedLabel(list).isEmpty();
-            sheet.choice(activity.getString(R.string.off), none, () -> {
-                player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
-                        .clearOverridesOfType(type).setTrackTypeDisabled(type, true).build());
-                sheet.dismiss();
-            });
-        }
         for (Choice c : list) {
             sheet.choice(c.label, c.selected, () -> {
-                if (type == C.TRACK_TYPE_TEXT) autoOff();
                 player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
                         .setTrackTypeDisabled(type, false)
                         .setOverrideForType(new TrackSelectionOverride(c.group, 0)).build());
@@ -690,6 +793,13 @@ final class PlayerControls implements Player.Listener {
             });
         }
         sheet.show();
+    }
+
+    private Sheet openSheet;
+
+    private boolean sheetOpen() {
+        if (isLandscape()) return side.isOpen();
+        return openSheet != null && openSheet.dialog.isShowing();
     }
 
     private final class Sheet {
@@ -743,6 +853,7 @@ final class PlayerControls implements Player.Listener {
                 w.setDimAmount(0.4f);
                 w.setWindowAnimations(android.R.style.Animation_InputMethod);
             }
+            openSheet = this;
             dialog.show();
         }
 

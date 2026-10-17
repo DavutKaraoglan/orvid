@@ -23,9 +23,11 @@ public final class Sites {
     public static final Site MASTODON = new Mastodon();
     public static final Site MIXKIT = new Mixkit();
     public static final Site BELLESA = new Bellesa();
+    public static final Site EUROPEANA = new Europeana();
+    public static final Site OK = new OkRu();
 
     public static final List<Site> ALL = Arrays.asList(ODYSEE, BITCHUTE, RUTUBE, APARAT, CCC, COMMONS, NASA,
-            MEDIATHEK, NINEGAG, COUB, STEAM, TED, CHZZK, SOOP, IMGUR, MASTODON, MIXKIT, BELLESA);
+            MEDIATHEK, NINEGAG, COUB, STEAM, TED, CHZZK, SOOP, IMGUR, MASTODON, MIXKIT, BELLESA, EUROPEANA, OK);
 
     private Sites() {
     }

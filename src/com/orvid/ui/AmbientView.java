@@ -70,6 +70,7 @@ public final class AmbientView extends View {
     protected void onDraw(Canvas canvas) {
         int w = getWidth();
         int h = getHeight();
+        canvas.clipRect(0, 0, w, h);
         canvas.drawColor(BASE);
         if (video.isEmpty() || video.left <= 0 && video.right >= w) return;
         if (gradient == null || gradientColor != now[0] || gradientHeight != h) {

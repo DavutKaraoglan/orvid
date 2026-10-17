@@ -28,12 +28,24 @@ public final class Query {
     public final List<String> terms = new ArrayList<>();
     public final List<String> phrases = new ArrayList<>();
     public final List<String> excluded = new ArrayList<>();
+    public final List<String> required = new ArrayList<>();
+    public final List<String> inTitle = new ArrayList<>();
+    public String plainQuery;
+    public boolean anyOf;
+    public int beforeYear;
+    public int afterYear;
     public String channel;
     public String site = SITE_ALL;
 
     private Query(String raw, String platformQuery) {
         this.raw = raw;
         this.platformQuery = platformQuery;
+    }
+
+    public boolean siteIs(String key, String name) {
+        if (site.isEmpty()) return true;
+        if (key.toLowerCase(Locale.ROOT).startsWith(site)) return true;
+        return fold(name).replaceAll("[^\\p{L}\\p{N}]+", "").startsWith(site);
     }
 
     public static final String LATIN = "latin";
@@ -77,35 +89,68 @@ public final class Query {
         String rest = PHRASE.matcher(text).replaceAll(" ");
 
         StringBuilder forPlatform = new StringBuilder();
-        for (String p : phrases) forPlatform.append('"').append(p).append("\" ");
+        StringBuilder plain = new StringBuilder();
+        for (String p : phrases) {
+            forPlatform.append('"').append(p).append("\" ");
+            plain.append(p).append(' ');
+        }
         List<String> excluded = new ArrayList<>();
+        List<String> required = new ArrayList<>();
+        List<String> inTitle = new ArrayList<>();
         String channel = null;
         String site = SITE_ALL;
+        boolean anyOf = false;
+        int before = 0;
+        int after = 0;
         for (String token : rest.split("\\s+")) {
             if (token.isEmpty()) continue;
             String lower = token.toLowerCase(Locale.ROOT);
             if (lower.startsWith("kanal:") || lower.startsWith("channel:")) {
                 channel = token.substring(token.indexOf(':') + 1);
             } else if (lower.startsWith("site:")) {
-                String s = lower.substring(5);
-                if (s.startsWith("y")) site = SITE_YOUTUBE;
-                else if (s.startsWith("d")) site = SITE_DAILYMOTION;
+                site = lower.substring(5).replaceFirst("^(https?://)?(www\\.|m\\.)?", "")
+                        .replaceFirst("\\.[a-z.]+$", "").replaceAll("[^\\p{L}\\p{N}]+", "");
+            } else if (lower.matches("(before|after):\\d{4}.*")) {
+                int year = Integer.parseInt(lower.substring(lower.indexOf(':') + 1, lower.indexOf(':') + 5));
+                if (lower.startsWith("before")) before = year;
+                else after = year;
+            } else if (lower.startsWith("intitle:") && token.length() > 8) {
+                String word = token.substring(8);
+                inTitle.add(fold(word));
+                forPlatform.append(word).append(' ');
+                plain.append(word).append(' ');
+            } else if (token.equals("OR") || token.equals("|")) {
+                anyOf = true;
+                forPlatform.append("OR ");
             } else if (token.startsWith("-") && token.length() > 1) {
                 excluded.add(fold(token.substring(1)));
                 forPlatform.append(token).append(' ');
+            } else if (token.startsWith("+") && token.length() > 1) {
+                required.add(fold(token.substring(1)));
+                forPlatform.append(token.substring(1)).append(' ');
+                plain.append(token.substring(1)).append(' ');
             } else {
                 forPlatform.append(token).append(' ');
+                plain.append(token).append(' ');
             }
         }
         String platform = forPlatform.toString().trim();
         if (platform.isEmpty() && channel != null) platform = channel;
 
         Query q = new Query(text, platform);
+        q.plainQuery = plain.toString().trim();
+        if (q.plainQuery.isEmpty()) q.plainQuery = platform;
         q.channel = channel == null ? null : fold(channel);
         q.site = site;
+        q.anyOf = anyOf;
+        q.beforeYear = before;
+        q.afterYear = after;
+        q.required.addAll(required);
+        q.inTitle.addAll(inTitle);
         q.excluded.addAll(excluded);
         for (String p : phrases) q.phrases.add(fold(p));
         for (String w : words(fold(platform))) {
+            if (anyOf && w.equals("or")) continue;
             if (!STOP.contains(w) && !q.excluded.contains(w) && !q.terms.contains(w)) q.terms.add(w);
         }
         return q;

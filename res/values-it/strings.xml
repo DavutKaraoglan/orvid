@@ -74,7 +74,6 @@
     <string name="date_week">Questa settimana</string>
     <string name="date_month">Questo mese</string>
     <string name="date_year">Quest\'anno</string>
-    <string name="auto_captions">Sottotitoli automatici</string>
     <string name="auto_captions_original">Lingua originale</string>
     <string name="auto_captions_translated">Tradotti in %s</string>
     <string name="auto_captions_downloading">Download del modello dei sottotitoli %1$d%%</string>
@@ -105,4 +104,24 @@
     <string name="orient_straight">Etero</string>
     <string name="orient_gay">Gay</string>
     <string name="orient_trans">Trans</string>
+    <string name="next_video">Video successivo</string>
+    <string name="previous_video">Video precedente</string>
+    <string name="hide_junk">Nascondi video molto brevi o molto lunghi</string>
+    <string name="nothing_here">Non c’è ancora niente qui. Aggiungi un repository di fonti per iniziare a cercare.</string>
+    <string name="add_repo">Aggiungi repository</string>
+    <string name="repo_url_hint">Link del repository</string>
+    <string name="repo_add">Aggiungi</string>
+    <string name="repo_adding">Aggiunta del repository…</string>
+    <string name="repo_failed">Impossibile aggiungere il repository: %1$s</string>
+    <string name="repositories">Repository</string>
+    <string name="repo_update">Aggiorna</string>
+    <string name="repo_remove">Rimuovi</string>
+    <string name="repo_info">%1$s\n%2$d fonti</string>
+    <string name="repo_find_hint">I link dei repository si trovano su GitHub e nelle pagine dei progetti. Il repository di Orvid ne elenca anche altri.</string>
+    <string name="repo_official">Fonti Orvid</string>
+    <string name="other_repos">Altri repository</string>
+    <string name="secret_added">Fonti nascoste aggiunte</string>
+    <string name="secret_how">Queste fonti restano nascoste finché non le sblocchi. Nella schermata principale allarga due dita, conferma la tua età e poi attiva le fonti nel pannello dei filtri.</string>
+    <string name="dev_mode">Modalità sviluppatore</string>
+    <string name="subtitle_failed">Impossibile caricare i sottotitoli</string>
 </resources>

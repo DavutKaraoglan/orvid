@@ -2,7 +2,7 @@
 set -e
 cd "$(dirname "$0")/.."
 DEV=1 ./build.sh | tail -1
-pgrep -f "dev/serve.py" >/dev/null || (setsid python3 dev/serve.py >/dev/null 2>&1 &)
+pgrep -f "[d]ev/serve.py" >/dev/null || (setsid python3 dev/serve.py >/dev/null 2>&1 &)
 : > dev/status.log
 am start -n com.orvid/.dev.DevUpdate >/dev/null
 for i in $(seq 1 60); do

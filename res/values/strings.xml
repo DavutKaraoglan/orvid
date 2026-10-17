@@ -76,7 +76,6 @@
     <string name="date_week">This week</string>
     <string name="date_month">This month</string>
     <string name="date_year">This year</string>
-    <string name="auto_captions">Auto captions</string>
     <string name="auto_captions_original">Original language</string>
     <string name="auto_captions_translated">Translated to %s</string>
     <string name="auto_captions_downloading">Downloading caption model %1$d%%</string>
@@ -107,4 +106,24 @@
     <string name="orient_straight">Straight</string>
     <string name="orient_gay">Gay</string>
     <string name="orient_trans">Trans</string>
+    <string name="next_video">Next video</string>
+    <string name="previous_video">Previous video</string>
+    <string name="hide_junk">Hide very short or very long videos</string>
+    <string name="nothing_here">Nothing to show here yet. Add a source repository to start searching.</string>
+    <string name="add_repo">Add repository</string>
+    <string name="repo_url_hint">Repository link</string>
+    <string name="repo_add">Add</string>
+    <string name="repo_adding">Adding repository…</string>
+    <string name="repo_failed">Could not add repository: %1$s</string>
+    <string name="repositories">Repositories</string>
+    <string name="repo_update">Update</string>
+    <string name="repo_remove">Remove</string>
+    <string name="repo_info">%1$s\n%2$d sources</string>
+    <string name="repo_find_hint">Repository links are shared on GitHub and in project pages. Orvid’s own repository also lists other repositories.</string>
+    <string name="repo_official">Orvid sources</string>
+    <string name="other_repos">Other repositories</string>
+    <string name="secret_added">Hidden sources added</string>
+    <string name="secret_how">These sources stay hidden until you unlock them. On the main screen, spread two fingers apart, confirm your age, then turn the sources on in the filter panel.</string>
+    <string name="dev_mode">Developer mode</string>
+    <string name="subtitle_failed">Subtitles could not be loaded</string>
 </resources>

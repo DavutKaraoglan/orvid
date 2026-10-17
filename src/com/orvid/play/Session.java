@@ -17,6 +17,7 @@ public final class Session {
     public static CharSequence description = "";
     public static String sub = "";
     public static String thumb;
+    public static String avatar;
     public static String circuit;
     public static String relatedToken;
     public static final List<StreamInfoItem> related = new ArrayList<>();

@@ -74,7 +74,6 @@
     <string name="date_week">W tym tygodniu</string>
     <string name="date_month">W tym miesiącu</string>
     <string name="date_year">W tym roku</string>
-    <string name="auto_captions">Napisy automatyczne</string>
     <string name="auto_captions_original">Język oryginalny</string>
     <string name="auto_captions_translated">Przetłumaczone na: %s</string>
     <string name="auto_captions_downloading">Pobieranie modelu napisów %1$d%%</string>
@@ -105,4 +104,24 @@
     <string name="orient_straight">Hetero</string>
     <string name="orient_gay">Gej</string>
     <string name="orient_trans">Trans</string>
+    <string name="next_video">Następny film</string>
+    <string name="previous_video">Poprzedni film</string>
+    <string name="hide_junk">Ukryj bardzo krótkie lub bardzo długie filmy</string>
+    <string name="nothing_here">Nic tu jeszcze nie ma. Dodaj repozytorium źródeł, aby zacząć szukać.</string>
+    <string name="add_repo">Dodaj repozytorium</string>
+    <string name="repo_url_hint">Link do repozytorium</string>
+    <string name="repo_add">Dodaj</string>
+    <string name="repo_adding">Dodawanie repozytorium…</string>
+    <string name="repo_failed">Nie udało się dodać repozytorium: %1$s</string>
+    <string name="repositories">Repozytoria</string>
+    <string name="repo_update">Aktualizuj</string>
+    <string name="repo_remove">Usuń</string>
+    <string name="repo_info">%1$s\nźródła %2$d</string>
+    <string name="repo_find_hint">Linki do repozytoriów udostępnia się na GitHubie i stronach projektów. Repozytorium Orvid wymienia też inne.</string>
+    <string name="repo_official">Źródła Orvid</string>
+    <string name="other_repos">Inne repozytoria</string>
+    <string name="secret_added">Dodano ukryte źródła</string>
+    <string name="secret_how">Te źródła pozostaną ukryte, dopóki ich nie odblokujesz. Na ekranie głównym rozsuń dwa palce, potwierdź wiek, a potem włącz źródła w panelu filtrów.</string>
+    <string name="dev_mode">Tryb dewelopera</string>
+    <string name="subtitle_failed">Nie udało się wczytać napisów</string>
 </resources>

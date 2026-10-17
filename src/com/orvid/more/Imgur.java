@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 final class Imgur extends Site {
 
     private static final String CLIENT = "546c25a59c58ad7";
+    private static final long DURATION_BUDGET_MS = 4000;
 
     Imgur() {
         super(149, "Imgur", "imgur\\.com/(?:gallery/|a/)?([A-Za-z0-9]{5,8})(?:[/?#.]|$)");
@@ -25,6 +26,7 @@ final class Imgur extends Site {
         int page = next == null ? 0 : Integer.parseInt(next);
         JsonArray data = api(circuit, "gallery/search/top/all/" + page + "?q=" + enc(query)).getArray("data");
         Source.Page p = new Source.Page();
+        java.util.Map<StreamInfoItem, String> mp4 = new java.util.IdentityHashMap<>();
         for (int i = 0; i < data.size(); i++) {
             JsonObject g = data.getObject(i);
             if (g.getBoolean("nsfw", false)) continue;
@@ -35,9 +37,11 @@ final class Imgur extends Site {
                     g.getString("account_url", ""), -1, g.getLong("views", -1),
                     "https://i.imgur.com/" + media.getString("id") + "m.jpg");
             com.orvid.search.Dates.set(item, g.getLong("datetime", 0));
+            mp4.put(item, media.getString("mp4"));
             p.items.add(item);
         }
         if (!data.isEmpty()) p.next = Integer.toString(page + 1);
+        durations(p.items, DURATION_BUDGET_MS, item -> mp4Seconds(circuit, mp4.get(item)));
         return p;
     }
 

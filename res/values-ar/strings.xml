@@ -74,7 +74,6 @@
     <string name="date_week">هذا الأسبوع</string>
     <string name="date_month">هذا الشهر</string>
     <string name="date_year">هذا العام</string>
-    <string name="auto_captions">ترجمة تلقائية</string>
     <string name="auto_captions_original">اللغة الأصلية</string>
     <string name="auto_captions_translated">مترجمة إلى %s</string>
     <string name="auto_captions_downloading">جارٍ تنزيل نموذج الترجمة %1$d%%</string>
@@ -105,4 +104,24 @@
     <string name="orient_straight">مغاير</string>
     <string name="orient_gay">مثلي</string>
     <string name="orient_trans">عابر</string>
+    <string name="next_video">الفيديو التالي</string>
+    <string name="previous_video">الفيديو السابق</string>
+    <string name="hide_junk">إخفاء الفيديوهات القصيرة جدًا أو الطويلة جدًا</string>
+    <string name="nothing_here">لا يوجد شيء هنا بعد. أضف مستودع مصادر لتبدأ البحث.</string>
+    <string name="add_repo">إضافة مستودع</string>
+    <string name="repo_url_hint">رابط المستودع</string>
+    <string name="repo_add">إضافة</string>
+    <string name="repo_adding">جارٍ إضافة المستودع…</string>
+    <string name="repo_failed">تعذّرت إضافة المستودع: %1$s</string>
+    <string name="repositories">المستودعات</string>
+    <string name="repo_update">تحديث</string>
+    <string name="repo_remove">إزالة</string>
+    <string name="repo_info">%1$s\n%2$d مصدرًا</string>
+    <string name="repo_find_hint">تُشارَك روابط المستودعات على GitHub وصفحات المشاريع. ويعرض مستودع Orvid مستودعات أخرى أيضًا.</string>
+    <string name="repo_official">مصادر Orvid</string>
+    <string name="other_repos">مستودعات أخرى</string>
+    <string name="secret_added">أُضيفت مصادر مخفية</string>
+    <string name="secret_how">تبقى هذه المصادر مخفية حتى تفتحها. في الشاشة الرئيسية باعد بين إصبعين، وأكّد عمرك، ثم فعّل المصادر من لوحة الفلاتر.</string>
+    <string name="dev_mode">وضع المطوّر</string>
+    <string name="subtitle_failed">تعذّر تحميل الترجمة</string>
 </resources>

@@ -365,11 +365,27 @@ public final class Visionos {
     private static final Map<String, Future<Prepared>> PREPARED = new HashMap<>();
     private static final ExecutorService PREFETCH = Executors.newFixedThreadPool(2);
 
+    private static final ExecutorService URGENT = Executors.newCachedThreadPool();
+
     public static Future<Prepared> prepare(String videoId) {
+        return prepare(videoId, false);
+    }
+
+    public static Future<Prepared> prepareNow(String videoId) {
+        return prepare(videoId, true);
+    }
+
+    private static Future<Prepared> prepare(String videoId, boolean now) {
         synchronized (PREPARED) {
             Future<Prepared> known = PREPARED.get(videoId);
             if (known != null) {
-                if (!known.isDone()) return known;
+                boolean stuck = now && known instanceof com.orvid.net.Queued && ((com.orvid.net.Queued<?>) known).waiting();
+                if (stuck) known.cancel(false);
+                else if (!known.isDone() && now && known instanceof com.orvid.net.Queued) {
+                    Future<Prepared> race = race(videoId, known);
+                    PREPARED.put(videoId, race);
+                    return race;
+                } else if (!known.isDone()) return known;
                 try {
                     Prepared p = known.get();
                     if (System.currentTimeMillis() < p.deadline) return known;
@@ -377,11 +393,31 @@ public final class Visionos {
                 }
             }
             String circuit = takePlayCircuit();
-            Future<Prepared> f = PREFETCH.submit(() ->
+            com.orvid.net.Queued<Prepared> f = new com.orvid.net.Queued<>(() ->
                     new Prepared(circuit, Fetch.retrying(circuit, c -> fetch(c, videoId))));
+            (now ? URGENT : PREFETCH).execute(f);
             PREPARED.put(videoId, f);
             return f;
         }
+    }
+
+    private static Future<Prepared> race(String videoId, Future<Prepared> running) {
+        java.util.concurrent.CompletableFuture<Prepared> first = new java.util.concurrent.CompletableFuture<>();
+        java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
+        String circuit = takePlayCircuit();
+        com.orvid.net.Queued<Prepared> fresh = new com.orvid.net.Queued<>(() ->
+                new Prepared(circuit, Fetch.retrying(circuit, c -> fetch(c, videoId))));
+        URGENT.execute(fresh);
+        for (Future<Prepared> f : java.util.Arrays.asList(running, fresh)) {
+            URGENT.execute(() -> {
+                try {
+                    first.complete(f.get());
+                } catch (Exception e) {
+                    if (failed.incrementAndGet() == 2) first.completeExceptionally(e);
+                }
+            });
+        }
+        return first;
     }
 
     public static void forget(String videoId) {

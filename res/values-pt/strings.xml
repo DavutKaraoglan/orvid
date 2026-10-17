@@ -74,7 +74,6 @@
     <string name="date_week">Esta semana</string>
     <string name="date_month">Este mês</string>
     <string name="date_year">Este ano</string>
-    <string name="auto_captions">Legendas automáticas</string>
     <string name="auto_captions_original">Idioma original</string>
     <string name="auto_captions_translated">Traduzidas para %s</string>
     <string name="auto_captions_downloading">Baixando o modelo de legendas %1$d%%</string>
@@ -105,4 +104,24 @@
     <string name="orient_straight">Hétero</string>
     <string name="orient_gay">Gay</string>
     <string name="orient_trans">Trans</string>
+    <string name="next_video">Próximo vídeo</string>
+    <string name="previous_video">Vídeo anterior</string>
+    <string name="hide_junk">Ocultar vídeos muito curtos ou muito longos</string>
+    <string name="nothing_here">Ainda não há nada aqui. Adicione um repositório de fontes para começar a pesquisar.</string>
+    <string name="add_repo">Adicionar repositório</string>
+    <string name="repo_url_hint">Link do repositório</string>
+    <string name="repo_add">Adicionar</string>
+    <string name="repo_adding">Adicionando repositório…</string>
+    <string name="repo_failed">Não foi possível adicionar o repositório: %1$s</string>
+    <string name="repositories">Repositórios</string>
+    <string name="repo_update">Atualizar</string>
+    <string name="repo_remove">Remover</string>
+    <string name="repo_info">%1$s\n%2$d fontes</string>
+    <string name="repo_find_hint">Os links de repositórios são compartilhados no GitHub e em páginas de projetos. O repositório do Orvid também lista outros.</string>
+    <string name="repo_official">Fontes do Orvid</string>
+    <string name="other_repos">Outros repositórios</string>
+    <string name="secret_added">Fontes ocultas adicionadas</string>
+    <string name="secret_how">Essas fontes ficam ocultas até você desbloqueá-las. Na tela principal, afaste dois dedos, confirme sua idade e ative as fontes no painel de filtros.</string>
+    <string name="dev_mode">Modo de desenvolvedor</string>
+    <string name="subtitle_failed">Não foi possível carregar as legendas</string>
 </resources>

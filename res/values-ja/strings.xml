@@ -74,7 +74,6 @@
     <string name="date_week">今週</string>
     <string name="date_month">今月</string>
     <string name="date_year">今年</string>
-    <string name="auto_captions">自動字幕</string>
     <string name="auto_captions_original">元の言語</string>
     <string name="auto_captions_translated">%s に翻訳</string>
     <string name="auto_captions_downloading">字幕モデルをダウンロード中 %1$d%%</string>
@@ -105,4 +104,24 @@
     <string name="orient_straight">ストレート</string>
     <string name="orient_gay">ゲイ</string>
     <string name="orient_trans">トランス</string>
+    <string name="next_video">次の動画</string>
+    <string name="previous_video">前の動画</string>
+    <string name="hide_junk">極端に短い・長い動画を隠す</string>
+    <string name="nothing_here">まだ何もありません。検索を始めるにはソースのリポジトリを追加してください。</string>
+    <string name="add_repo">リポジトリを追加</string>
+    <string name="repo_url_hint">リポジトリのリンク</string>
+    <string name="repo_add">追加</string>
+    <string name="repo_adding">リポジトリを追加しています…</string>
+    <string name="repo_failed">リポジトリを追加できませんでした: %1$s</string>
+    <string name="repositories">リポジトリ</string>
+    <string name="repo_update">更新</string>
+    <string name="repo_remove">削除</string>
+    <string name="repo_info">%1$s\n%2$d 件のソース</string>
+    <string name="repo_find_hint">リポジトリのリンクは GitHub やプロジェクトのページで共有されています。Orvid のリポジトリには他のリポジトリも載っています。</string>
+    <string name="repo_official">Orvid のソース</string>
+    <string name="other_repos">その他のリポジトリ</string>
+    <string name="secret_added">非表示のソースを追加しました</string>
+    <string name="secret_how">これらのソースはロックを解除するまで表示されません。メイン画面で2本の指を広げ、年齢を確認してから、フィルターパネルでソースをオンにしてください。</string>
+    <string name="dev_mode">開発者モード</string>
+    <string name="subtitle_failed">字幕を読み込めませんでした</string>
 </resources>

@@ -22,6 +22,12 @@ public final class OrvidApp extends Application {
     private SharedPreferences prefs;
     private AppLock lock;
 
+    public File extRoot() {
+        File root = new File(getFilesDir(), "ext");
+        root.mkdirs();
+        return root;
+    }
+
     @Override
     public void onCreate() {
         System.setProperty("http.maxConnections", "48");
@@ -35,6 +41,8 @@ public final class OrvidApp extends Application {
         registerActivityLifecycleCallbacks(lock);
         NewPipe.init(Fetch.get());
         images = new Images(new File(getCacheDir(), "thumbs"));
+        com.orvid.ext.Registry.reload(extRoot());
+        DevInfo.on = devMode();
         if (prefs.contains("mode")) prefs.edit().remove("mode").apply();
         new File(getFilesDir(), "history.json").delete();
         images.clearDisk();
@@ -60,6 +68,15 @@ public final class OrvidApp extends Application {
 
     public void setPanicExit(boolean on) {
         prefs.edit().putBoolean("panic_exit", on).apply();
+    }
+
+    public boolean devMode() {
+        return prefs.getBoolean("dev_mode", false);
+    }
+
+    public void setDevMode(boolean on) {
+        prefs.edit().putBoolean("dev_mode", on).apply();
+        DevInfo.on = on;
     }
 
     public boolean debugOverlay() {

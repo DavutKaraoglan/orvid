@@ -28,7 +28,15 @@ public final class Sources {
     private Sources() {
     }
 
-    public static final List<Source> EXTRA = Arrays.asList(
+    public static List<Source> current() {
+        List<Source> out = new java.util.ArrayList<>();
+        for (Source s : BUILTIN) if (com.orvid.ext.Registry.engineOn(s.key)) out.add(s);
+        out.addAll(com.orvid.ext.Registry.sources());
+        java.util.Collections.sort(out, (a, b) -> Boolean.compare(a.adult, b.adult));
+        return out;
+    }
+
+    private static final List<Source> BUILTIN = Arrays.asList(
             new Source("twitch", "Twitch", R.drawable.ic_src_twitch, Twitch.SERVICE_ID, 0.8, true, false) {
                 @Override
                 public Page search(String circuit, String query, Filters f, String next) throws Exception {
@@ -66,6 +74,8 @@ public final class Sources {
             site("mastodon", R.drawable.ic_src_mastodon, Sites.MASTODON, 0.4),
             site("mixkit", R.drawable.ic_src_mixkit, Sites.MIXKIT, 0.4),
             site("chzzk", R.drawable.ic_src_chzzk, Sites.CHZZK, 0.5).script(com.orvid.search.Query.HANGUL),
+            site("europeana", R.drawable.ic_src_europeana, Sites.EUROPEANA, 0.5),
+            site("ok", R.drawable.ic_src_ok, Sites.OK, 0.5).script(com.orvid.search.Query.CYRILLIC),
             site("soop", R.drawable.ic_src_soop, Sites.SOOP, 0.5).script(com.orvid.search.Query.HANGUL),
             new Source("xvideos", "XVIDEOS (18+)", R.drawable.ic_src_xvideos, Xvideos.SERVICE_ID, 0.6, false, true) {
                 @Override
@@ -208,6 +218,8 @@ public final class Sources {
 
     static Source forUrl(String url) {
         if (url == null) return null;
+        Source ext = com.orvid.ext.Registry.forUrl(url);
+        if (ext != null) return ext;
         if (com.orvid.tw.Twitch.vodId(url) != null || com.orvid.tw.Twitch.clipSlug(url) != null) return byService(Twitch.SERVICE_ID);
         if (PeerTube.handles(url)) return byService(PeerTube.SERVICE_ID);
         if (Archive.itemId(url) != null) return byService(Archive.SERVICE_ID);
@@ -226,7 +238,7 @@ public final class Sources {
     }
 
     static Source byService(int serviceId) {
-        for (Source s : EXTRA) if (s.serviceId == serviceId) return s;
+        for (Source s : current()) if (s.serviceId == serviceId) return s;
         return null;
     }
 }
