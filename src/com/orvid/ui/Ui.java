@@ -46,11 +46,11 @@ public final class Ui {
                 : String.format(Locale.getDefault(), "%.0f", v)) + units[u];
     }
 
-    public static String joinDot(String... parts) {
+    public static String joinParts(String... parts) {
         StringBuilder sb = new StringBuilder();
         for (String p : parts) {
             if (p == null || p.isEmpty()) continue;
-            if (sb.length() > 0) sb.append(" · ");
+            if (sb.length() > 0) sb.append(", ");
             sb.append(p);
         }
         return sb.toString();

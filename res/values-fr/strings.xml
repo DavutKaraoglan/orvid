@@ -124,4 +124,16 @@
     <string name="secret_how">Ces sources restent cachées jusqu’à ce que vous les déverrouilliez. Sur l’écran principal, écartez deux doigts, confirmez votre âge, puis activez les sources dans le panneau des filtres.</string>
     <string name="dev_mode">Mode développeur</string>
     <string name="subtitle_failed">Impossible de charger les sous-titres</string>
+    <string name="download">Télécharger</string>
+    <string name="download_audio">Audio seul</string>
+    <string name="download_video">Vidéo</string>
+    <string name="download_started">Téléchargement lancé</string>
+    <string name="download_running">Téléchargement…</string>
+    <string name="download_done">Téléchargé</string>
+    <string name="download_failed">Échec du téléchargement</string>
+    <string name="download_cancel">Annuler</string>
+    <string name="download_channel">Téléchargements</string>
+    <string name="download_merging">Fusion de l\'audio et de la vidéo</string>
+    <string name="dev_mode_on">Mode développeur activé</string>
+    <string name="dev_mode_off">Mode développeur désactivé</string>
 </resources>

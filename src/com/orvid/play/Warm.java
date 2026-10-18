@@ -92,10 +92,16 @@ public final class Warm {
     public static void caption(String circuit, String url) {
         if (circuit == null || url == null || get(url) != null) return;
         EXEC.execute(() -> {
-            try {
-                fetch(circuit, url, null, CAPTION_MAX, true);
-            } catch (Exception e) {
-                Diag.mark("caption warm FAIL " + e.getMessage());
+            String via = CircuitDataSource.captionCircuit(circuit);
+            for (int i = 0; i <= CircuitDataSource.CAPTION_RETRIES; i++) {
+                try {
+                    fetch(via, url, null, CAPTION_MAX, true);
+                    return;
+                } catch (Exception e) {
+                    Diag.mark("caption warm FAIL " + e.getMessage());
+                    if (!String.valueOf(e.getMessage()).contains("429")) return;
+                    Fetch.rotate(via);
+                }
             }
         });
     }
@@ -184,6 +190,7 @@ public final class Warm {
     }
 
     private static int direct(String circuit, Direct d, boolean firstFrame) throws Exception {
+        if (d.cookie != null) return 0;
         if (!d.hls) return fetch(circuit, d.url, d.referer, firstFrame ? FILE_FIRST : FILE_HEAD, false).length;
         String playlist = text(fetch(circuit, d.url, d.referer, PLAYLIST_MAX, true));
         String media = d.url;

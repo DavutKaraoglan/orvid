@@ -264,6 +264,7 @@ public final class PlayerActivity extends Activity {
 
             @Override
             public void onRenderedFirstFrame() {
+                frameSinceRestore = true;
                 if (!firstFrame) {
                     Diag.mark("player first frame");
                 }
@@ -416,34 +417,18 @@ public final class PlayerActivity extends Activity {
         }
         String twClip = com.orvid.tw.Twitch.clipSlug(pageUrl);
         final com.orvid.ext.ExtSource ext = com.orvid.ext.Registry.forUrl(pageUrl);
+        slowSource = ext != null && ext.hedged();
         if (videoId != null) loadFast();
-        else if (ext != null) loadDirect(c -> ext.resolve(c, pageUrl));
+        else if (ext != null) loadDirect(c -> ext.resolve(c, pageUrl), !ext.hedged());
         else if (dmId != null) loadDailymotion(dmId);
         else if (vkId != null) loadVk(vkId);
         else if (twVod != null || twClip != null) loadTwitch(twVod, twClip);
         else if (com.orvid.pt.PeerTube.handles(pageUrl)) loadPeerTube(pageUrl);
         else if (com.orvid.ia.Archive.itemId(pageUrl) != null) loadArchive(com.orvid.ia.Archive.itemId(pageUrl));
-        else if (com.orvid.xv.Xvideos.handles(pageUrl)) loadXvideos(pageUrl);
-        else if (com.orvid.ay.Aylo.handles(pageUrl)) loadAylo(pageUrl);
-        else if (com.orvid.ep.Eporner.handles(pageUrl)) loadEporner(pageUrl);
-        else if (com.orvid.xh.XHamster.handles(pageUrl)) loadXHamster(pageUrl);
-        else if (com.orvid.tn.Tnaflix.handles(pageUrl)) loadTnaflix(pageUrl);
-        else if (com.orvid.adult.Txxx.handles(pageUrl)) loadDirect(c -> {
-            com.orvid.adult.Txxx.Media m = com.orvid.adult.Txxx.resolve(c, pageUrl);
-            return new com.orvid.play.Direct(m.title, m.author, m.mp4, false, m.referer);
-        });
-        else if (com.orvid.adult.RedGifs.handles(pageUrl)) loadDirect(c -> {
-            com.orvid.adult.RedGifs.Media m = com.orvid.adult.RedGifs.resolve(c, pageUrl);
-            return new com.orvid.play.Direct(m.title, m.author, m.mp4, false, null);
-        });
         else if (com.orvid.more.Sites.forUrl(pageUrl) != null) loadDirect(c -> com.orvid.more.Sites.forUrl(pageUrl).resolve(c, pageUrl));
         else if (com.orvid.adult.Tubes.forUrl(pageUrl) != null) loadDirect(c -> {
             com.orvid.adult.HtmlTube.Media m = com.orvid.adult.Tubes.forUrl(pageUrl).resolve(c, pageUrl);
             return new com.orvid.play.Direct(m.title, "", m.mp4, false, m.referer);
-        });
-        else if (com.orvid.adult.PornOne.handles(pageUrl)) loadDirect(c -> {
-            com.orvid.adult.PornOne.Media m = com.orvid.adult.PornOne.resolve(c, pageUrl);
-            return new com.orvid.play.Direct(m.title, "", m.mp4, false, null);
         });
         else if (newPipeHandles(pageUrl)) loadNewPipe(true);
         else loadGeneric();
@@ -481,6 +466,9 @@ public final class PlayerActivity extends Activity {
         }.start();
     }
 
+    private boolean frameSinceRestore;
+    private static final long RESTORE_FRAME_WAIT_MS = 700;
+
     private void restoreFromSession() {
         showAvatar(Session.avatar);
         ((TextView) header.findViewById(R.id.name)).setText(Session.title);
@@ -489,6 +477,16 @@ public final class PlayerActivity extends Activity {
         description.setText(Session.description);
         controls.setTitle(Session.title);
         circuit = Session.circuit;
+        ytVideo = Session.video;
+        directMedia = Session.direct;
+        sources.clear();
+        sources.addAll(Session.sources);
+        sourceIndex = Session.sourceIndex;
+        streamStarted = true;
+        if (Session.storyboard != null) {
+            coverSpriteTried = true;
+            showFrames(Session.storyboard);
+        }
         videoId = Visionos.videoId(pageUrl);
         relatedRequested = true;
         relatedToken = Session.relatedToken;
@@ -502,6 +500,12 @@ public final class PlayerActivity extends Activity {
         }
         firstFrame = true;
         poster.setVisibility(View.GONE);
+        frameSinceRestore = false;
+        stage.postDelayed(() -> {
+            if (frameSinceRestore || isFinishing() || player.getVideoSize().width == 0) return;
+            Diag.mark("no frame after restore, redrawing");
+            player.seekTo(Math.max(0, player.getCurrentPosition()));
+        }, RESTORE_FRAME_WAIT_MS);
         VideoSize size = player.getVideoSize();
         videoWidth = size.width;
         videoHeight = size.height;
@@ -521,6 +525,12 @@ public final class PlayerActivity extends Activity {
         Session.description = description.getText();
         Session.circuit = circuit;
         Session.relatedToken = relatedToken;
+        Session.video = ytVideo;
+        Session.direct = directMedia;
+        Session.storyboard = board;
+        Session.sourceIndex = sourceIndex;
+        Session.sources.clear();
+        Session.sources.addAll(sources);
     }
 
     void minimize() {
@@ -545,7 +555,10 @@ public final class PlayerActivity extends Activity {
 
     private static final int FRAME_COUNT = 8;
 
+    private com.orvid.play.Storyboard board;
+
     private void showFrames(com.orvid.play.Storyboard sb) {
+        board = sb;
         controls.setStoryboard(sb);
         LinearLayout row = header.findViewById(R.id.frames_row);
         row.removeAllViews();
@@ -700,6 +713,7 @@ public final class PlayerActivity extends Activity {
     }
 
     private void bindFast(Visionos.Video v) {
+        ytVideo = v;
         ((TextView) header.findViewById(R.id.name)).setText(v.title);
         controls.setTitle(v.title);
         ((TextView) header.findViewById(R.id.sub)).setText(
@@ -806,6 +820,9 @@ public final class PlayerActivity extends Activity {
     private static final long STALL_PROGRESS_MS = 3000;
     private static final long STALL_PROGRESS_BYTES = 128 * 1024;
     private int stallSwitches;
+    private boolean slowSource;
+    private static final int SLOW_SOURCE_FACTOR = 4;
+    private static final int SLOW_MEDIA_TIMEOUT_MS = 45000;
     private long stallBuffered;
     private final Runnable stallWatch = this::onStall;
 
@@ -836,7 +853,7 @@ public final class PlayerActivity extends Activity {
     private void watchStall() {
         stallBuffered = player.getBufferedPosition();
         stallBytes = com.orvid.play.CircuitDataSource.received();
-        stage.postDelayed(stallWatch, firstFrame ? STALL_PLAYING_MS : STALL_START_MS);
+        stage.postDelayed(stallWatch, (firstFrame ? STALL_PLAYING_MS : STALL_START_MS) * (slowSource ? SLOW_SOURCE_FACTOR : 1));
     }
 
     private void onStall() {
@@ -851,7 +868,7 @@ public final class PlayerActivity extends Activity {
         stallSwitches++;
         resumeAt = Math.max(0, player.getCurrentPosition());
         Diag.mark("stalled, switching circuit (" + stallSwitches + ")");
-        if (circuit != null) Fetch.rotate(circuit);
+        if (circuit != null && !slowSource) Fetch.rotate(circuit);
         if (videoId != null) {
             Visionos.forget(videoId);
             loadFast();
@@ -1067,9 +1084,9 @@ public final class PlayerActivity extends Activity {
                 List<StreamInfoItem> other = new ArrayList<>();
                 String c = Visionos.takeCircuit();
                 String sameKeys = keys;
-                if (service == com.orvid.ay.Aylo.SERVICE_ID) {
+                if (own instanceof com.orvid.ext.ExtSource) {
                     try {
-                        List<String> tags = Fetch.retrying(c, cc -> com.orvid.ay.Aylo.tags(cc, pageUrl));
+                        List<String> tags = Fetch.retrying(c, cc -> ((com.orvid.ext.ExtSource) own).tags(cc, pageUrl));
                         if (!tags.isEmpty()) sameKeys = String.join(" ", tags.subList(0, Math.min(3, tags.size())));
                     } catch (Exception e) {
                         Diag.mark("related tags FAIL " + e);
@@ -1077,7 +1094,7 @@ public final class PlayerActivity extends Activity {
                 }
                 final String query = sameKeys;
                 try {
-                    if (own != null) {
+                    if (own != null && !own.slow()) {
                         same.addAll(Fetch.retrying(c, cc -> own.search(cc, query, filters, null)).items);
                     } else if (service == com.orvid.dm.Dailymotion.SERVICE_ID) {
                         same.addAll(Fetch.retrying(c, cc -> com.orvid.dm.Dailymotion.search(cc, query, 1,
@@ -1117,7 +1134,7 @@ public final class PlayerActivity extends Activity {
         }
         List<com.orvid.search.Source> pool = new ArrayList<>();
         for (com.orvid.search.Source s : Sources.current()) {
-            if (s == own || s.adult != adult || s.usesWebView() || !s.wanted(filters, q)) continue;
+            if (s == own || s.adult != adult || s.usesWebView() || s.slow() || !s.wanted(filters, q)) continue;
             pool.add(s);
         }
         pool.sort((x, y) -> Double.compare(y.weight, x.weight));
@@ -1326,154 +1343,111 @@ public final class PlayerActivity extends Activity {
         }.start();
     }
 
-    private void loadXvideos(final String url) {
-        new Job<Hedge.Result<com.orvid.xv.Xvideos.Media>>(this) {
-            @Override
-            protected Hedge.Result<com.orvid.xv.Xvideos.Media> load() throws Exception {
-                return Hedge.call(Visionos.takePlayCircuit(), Visionos::takeCircuit, Fetch.torMode() ? 2500 : 0,
-                        c -> com.orvid.xv.Xvideos.resolve(c, url));
-            }
+    static final class Download {
+        final String label;
+        final com.orvid.app.DownloadService.Request request;
 
-            @Override
-            protected void show(Hedge.Result<com.orvid.xv.Xvideos.Media> r) {
-                com.orvid.xv.Xvideos.Media m = r.value;
-                circuit = r.circuit;
-                ((TextView) header.findViewById(R.id.name)).setText(m.title);
-                controls.setTitle(m.title);
-                ((TextView) header.findViewById(R.id.uploader)).setText(m.author);
-                ((TextView) header.findViewById(R.id.sub)).setText("");
-                CircuitDataSource.Factory data = new CircuitDataSource.Factory(circuit, Fetch.USER_AGENT);
-                sources.clear();
-                if (m.hls != null) sources.add(new HlsMediaSource.Factory(data).createMediaSource(MediaItem.fromUri(m.hls)));
-                if (m.mp4 != null) sources.add(new ProgressiveMediaSource.Factory(data).createMediaSource(MediaItem.fromUri(m.mp4)));
-                pendingSprite = m.sprite;
-                startPlayback();
-            }
-
-            @Override
-            protected void fail(Exception error) {
-                buffering.setVisibility(View.GONE);
-                showError(Ui.error(PlayerActivity.this, error));
-            }
-        }.start();
+        Download(String label, com.orvid.app.DownloadService.Request request) {
+            this.label = label;
+            this.request = request;
+        }
     }
 
-    private void loadAylo(final String url) {
-        new Job<Hedge.Result<com.orvid.ay.Aylo.Media>>(this) {
-            @Override
-            protected Hedge.Result<com.orvid.ay.Aylo.Media> load() throws Exception {
-                return Hedge.call(Visionos.takePlayCircuit(), Visionos::takeCircuit, Fetch.torMode() ? 2500 : 0,
-                        c -> com.orvid.ay.Aylo.resolve(c, url));
-            }
+    private Visionos.Video ytVideo;
+    private com.orvid.play.Direct directMedia;
+    private com.orvid.app.DownloadService.Request waitingStorage;
+    private static final int STORAGE_REQUEST = 7;
 
-            @Override
-            protected void show(Hedge.Result<com.orvid.ay.Aylo.Media> r) {
-                circuit = r.circuit;
-                ((TextView) header.findViewById(R.id.name)).setText(r.value.title);
-                controls.setTitle(r.value.title);
-                ((TextView) header.findViewById(R.id.sub)).setText("");
-                CircuitDataSource.Factory data = new CircuitDataSource.Factory(circuit, Fetch.USER_AGENT, com.orvid.ay.Aylo.REFERER);
-                sources.clear();
-                sources.add(new HlsMediaSource.Factory(data).createMediaSource(MediaItem.fromUri(r.value.hls)));
-                startPlayback();
-            }
-
-            @Override
-            protected void fail(Exception error) {
-                buffering.setVisibility(View.GONE);
-                showError(Ui.error(PlayerActivity.this, error));
-            }
-        }.start();
+    boolean downloadable() {
+        return ytVideo != null && !ytVideo.live && !downloads().isEmpty() || directMedia != null && !directMedia.hls;
     }
 
-    private void loadEporner(final String url) {
-        new Job<Hedge.Result<com.orvid.ep.Eporner.Media>>(this) {
-            @Override
-            protected Hedge.Result<com.orvid.ep.Eporner.Media> load() throws Exception {
-                return Hedge.call(Visionos.takePlayCircuit(), Visionos::takeCircuit, Fetch.torMode() ? 2500 : 0,
-                        c -> com.orvid.ep.Eporner.resolve(c, url));
+    List<Download> downloads() {
+        List<Download> out = new ArrayList<>();
+        String title = ((TextView) header.findViewById(R.id.name)).getText().toString();
+        String base = fileName(title);
+        if (ytVideo != null) {
+            Visionos.Format audio = null;
+            for (Visionos.Format f : ytVideo.formats) {
+                if (f.isVideo() || !f.mime.startsWith("audio/mp4") || !f.isOriginalAudio()) continue;
+                if (audio == null || f.bitrate > audio.bitrate) audio = f;
             }
-
-            @Override
-            protected void show(Hedge.Result<com.orvid.ep.Eporner.Media> r) {
-                circuit = r.circuit;
-                ((TextView) header.findViewById(R.id.name)).setText(r.value.title);
-                controls.setTitle(r.value.title);
-                ((TextView) header.findViewById(R.id.sub)).setText("");
-                CircuitDataSource.Factory data = new CircuitDataSource.Factory(circuit, Fetch.USER_AGENT);
-                sources.clear();
-                sources.add(new ProgressiveMediaSource.Factory(data).createMediaSource(MediaItem.fromUri(r.value.mp4)));
-                startPlayback();
+            if (audio == null) return out;
+            java.util.Map<Integer, Visionos.Format> best = new java.util.TreeMap<>(java.util.Collections.reverseOrder());
+            for (Visionos.Format f : ytVideo.formats) {
+                if (!f.isVideo() || !f.codec().startsWith("avc1") || f.height <= 0) continue;
+                Visionos.Format had = best.get(f.height);
+                if (had == null || f.bitrate > had.bitrate) best.put(f.height, f);
             }
-
-            @Override
-            protected void fail(Exception error) {
-                buffering.setVisibility(View.GONE);
-                showError(Ui.error(PlayerActivity.this, error));
+            for (Visionos.Format f : best.values()) {
+                String quality = f.height + "p" + (f.fps > 30 ? f.fps : "");
+                com.orvid.app.DownloadService.Request r = new com.orvid.app.DownloadService.Request(title,
+                        base + " (" + quality + ").mp4", "video/mp4").add(f.url, f.contentLength).add(audio.url, audio.contentLength);
+                r.userAgent = Visionos.USER_AGENT;
+                out.add(new Download(quality + size(f.contentLength, audio.contentLength), r));
             }
-        }.start();
+            com.orvid.app.DownloadService.Request a = new com.orvid.app.DownloadService.Request(title, base + ".m4a", "audio/mp4")
+                    .add(audio.url, audio.contentLength);
+            a.userAgent = Visionos.USER_AGENT;
+            a.remux = true;
+            out.add(new Download(getString(R.string.download_audio) + size(audio.contentLength, 0), a));
+        } else if (directMedia != null && !directMedia.hls) {
+            boolean webm = directMedia.url.contains(".webm");
+            com.orvid.app.DownloadService.Request r = new com.orvid.app.DownloadService.Request(title,
+                    base + (webm ? ".webm" : ".mp4"), webm ? "video/webm" : "video/mp4").add(directMedia.url, -1);
+            r.referer = directMedia.referer;
+            if (directMedia.cookie != null) {
+                r.cookie = directMedia.cookie;
+                r.circuit = circuit;
+            }
+            out.add(new Download(getString(R.string.download_video), r));
+        }
+        return out;
     }
 
-    private void loadXHamster(final String url) {
-        new Job<Hedge.Result<com.orvid.xh.XHamster.Media>>(this) {
-            @Override
-            protected Hedge.Result<com.orvid.xh.XHamster.Media> load() throws Exception {
-                return Hedge.call(Visionos.takePlayCircuit(), Visionos::takeCircuit, Fetch.torMode() ? 2500 : 0,
-                        c -> com.orvid.xh.XHamster.resolve(c, url));
-            }
-
-            @Override
-            protected void show(Hedge.Result<com.orvid.xh.XHamster.Media> r) {
-                circuit = r.circuit;
-                ((TextView) header.findViewById(R.id.name)).setText(r.value.title);
-                controls.setTitle(r.value.title);
-                ((TextView) header.findViewById(R.id.uploader)).setText(r.value.author);
-                ((TextView) header.findViewById(R.id.sub)).setText("");
-                CircuitDataSource.Factory data = new CircuitDataSource.Factory(circuit, Fetch.USER_AGENT, r.value.referer);
-                sources.clear();
-                sources.add(new HlsMediaSource.Factory(data).createMediaSource(MediaItem.fromUri(r.value.hls)));
-                pendingSprite = r.value.sprite;
-                startPlayback();
-            }
-
-            @Override
-            protected void fail(Exception error) {
-                buffering.setVisibility(View.GONE);
-                showError(Ui.error(PlayerActivity.this, error));
-            }
-        }.start();
+    private static String size(long a, long b) {
+        if (a <= 0) return "";
+        return String.format(java.util.Locale.getDefault(), " (%.0f MB)", (a + Math.max(0, b)) / 1048576.0);
     }
 
-    private void loadTnaflix(final String url) {
-        new Job<Hedge.Result<com.orvid.tn.Tnaflix.Media>>(this) {
-            @Override
-            protected Hedge.Result<com.orvid.tn.Tnaflix.Media> load() throws Exception {
-                return Hedge.call(Visionos.takePlayCircuit(), Visionos::takeCircuit, Fetch.torMode() ? 2500 : 0,
-                        c -> com.orvid.tn.Tnaflix.resolve(c, url));
-            }
+    private static String fileName(String title) {
+        String s = title.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_").trim();
+        if (s.length() > 80) s = s.substring(0, 80).trim();
+        return s.isEmpty() ? "video" : s;
+    }
 
-            @Override
-            protected void show(Hedge.Result<com.orvid.tn.Tnaflix.Media> r) {
-                circuit = r.circuit;
-                ((TextView) header.findViewById(R.id.name)).setText(r.value.title);
-                controls.setTitle(r.value.title);
-                ((TextView) header.findViewById(R.id.sub)).setText("");
-                CircuitDataSource.Factory data = new CircuitDataSource.Factory(circuit, Fetch.USER_AGENT);
-                sources.clear();
-                sources.add(new ProgressiveMediaSource.Factory(data).createMediaSource(MediaItem.fromUri(r.value.mp4)));
-                startPlayback();
-            }
+    void download(Download d) {
+        if (android.os.Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] {android.Manifest.permission.POST_NOTIFICATIONS}, 0);
+        }
+        if (android.os.Build.VERSION.SDK_INT < 29
+                && checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            waitingStorage = d.request;
+            requestPermissions(new String[] {android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, STORAGE_REQUEST);
+            return;
+        }
+        startDownload(d.request);
+    }
 
-            @Override
-            protected void fail(Exception error) {
-                buffering.setVisibility(View.GONE);
-                showError(Ui.error(PlayerActivity.this, error));
-            }
-        }.start();
+    private void startDownload(com.orvid.app.DownloadService.Request r) {
+        com.orvid.app.DownloadService.enqueue(this, r);
+        android.widget.Toast.makeText(this, R.string.download_started, android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int code, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(code, permissions, results);
+        if (code != STORAGE_REQUEST || waitingStorage == null) return;
+        com.orvid.app.DownloadService.Request r = waitingStorage;
+        waitingStorage = null;
+        if (results.length > 0 && results[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) startDownload(r);
+        else android.widget.Toast.makeText(this, R.string.download_failed, android.widget.Toast.LENGTH_SHORT).show();
     }
 
     private void playDirect(com.orvid.play.Direct d, String on) {
         circuit = on;
+        directMedia = d;
         TextView name = header.findViewById(R.id.name);
         if (!d.title.isEmpty() || name.getText().length() == 0) {
             name.setText(d.title);
@@ -1481,11 +1455,17 @@ public final class PlayerActivity extends Activity {
         }
         ((TextView) header.findViewById(R.id.uploader)).setText(d.author);
         ((TextView) header.findViewById(R.id.sub)).setText("");
-        CircuitDataSource.Factory data = new CircuitDataSource.Factory(circuit, Fetch.USER_AGENT, d.referer);
+        CircuitDataSource.Factory data = new CircuitDataSource.Factory(circuit, Fetch.USER_AGENT, d.referer).cookie(d.cookie)
+                .timeout(slowSource ? SLOW_MEDIA_TIMEOUT_MS : 0);
         sources.clear();
         MediaItem item = MediaItem.fromUri(d.url);
         sources.add(d.hls ? new HlsMediaSource.Factory(data).createMediaSource(item)
                 : new ProgressiveMediaSource.Factory(data).createMediaSource(item));
+        if (d.fallback != null) {
+            MediaItem backup = MediaItem.fromUri(d.fallback);
+            sources.add(d.fallbackHls ? new HlsMediaSource.Factory(data).createMediaSource(backup)
+                    : new ProgressiveMediaSource.Factory(data).createMediaSource(backup));
+        }
         pendingSprite = d.sprite;
         if (pendingSprite != null && pendingSprite.referer == null) pendingSprite.referer = d.referer;
         startPlayback();
@@ -1517,10 +1497,14 @@ public final class PlayerActivity extends Activity {
     }
 
     private void loadDirect(final Hedge.Task<com.orvid.play.Direct> resolver) {
+        loadDirect(resolver, true);
+    }
+
+    private void loadDirect(final Hedge.Task<com.orvid.play.Direct> resolver, boolean spare) {
         new Job<Hedge.Result<com.orvid.play.Direct>>(this) {
             @Override
             protected Hedge.Result<com.orvid.play.Direct> load() throws Exception {
-                return Hedge.call(Visionos.takePlayCircuit(), Visionos::takeCircuit, Fetch.torMode() ? 2500 : 0, resolver);
+                return Hedge.call(Visionos.takePlayCircuit(), Visionos::takeCircuit, spare && Fetch.torMode() ? 2500 : 0, resolver);
             }
 
             @Override
@@ -1722,7 +1706,7 @@ public final class PlayerActivity extends Activity {
     private void bindNewPipe(StreamInfo info, boolean forPlayback) {
         String views = info.getViewCount() >= 0
                 ? getString(R.string.views, Ui.count(info.getViewCount())) : "";
-        ((TextView) header.findViewById(R.id.sub)).setText(Ui.joinDot(views, info.getTextualUploadDate()));
+        ((TextView) header.findViewById(R.id.sub)).setText(Ui.joinParts(views, info.getTextualUploadDate()));
         String text = info.getDescription() == null ? "" : info.getDescription().getContent();
         if (!text.isEmpty()) description.setText(Html.fromHtml(text, Html.FROM_HTML_MODE_COMPACT));
         List<StreamInfoItem> more = new ArrayList<>();
@@ -1827,6 +1811,7 @@ public final class PlayerActivity extends Activity {
             return;
         }
         android.graphics.Bitmap cover = ((android.graphics.drawable.BitmapDrawable) d).getBitmap();
+        if (cover.getHeight() > cover.getWidth()) poster.setScaleType(ImageView.ScaleType.FIT_CENTER);
         android.graphics.Bitmap small = android.graphics.Bitmap.createScaledBitmap(cover, 32, 18, true);
         int[] px = new int[32 * 18];
         small.getPixels(px, 0, 32, 0, 0, 32, 18);

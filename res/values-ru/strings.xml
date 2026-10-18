@@ -124,4 +124,16 @@
     <string name="secret_how">Эти источники скрыты, пока вы их не откроете. На главном экране разведите два пальца, подтвердите возраст и включите источники в панели фильтров.</string>
     <string name="dev_mode">Режим разработчика</string>
     <string name="subtitle_failed">Не удалось загрузить субтитры</string>
+    <string name="download">Скачать</string>
+    <string name="download_audio">Только аудио</string>
+    <string name="download_video">Видео</string>
+    <string name="download_started">Загрузка началась</string>
+    <string name="download_running">Загрузка</string>
+    <string name="download_done">Загружено</string>
+    <string name="download_failed">Ошибка загрузки</string>
+    <string name="download_cancel">Отмена</string>
+    <string name="download_channel">Загрузки</string>
+    <string name="download_merging">Объединение аудио и видео</string>
+    <string name="dev_mode_on">Режим разработчика включён</string>
+    <string name="dev_mode_off">Режим разработчика выключен</string>
 </resources>

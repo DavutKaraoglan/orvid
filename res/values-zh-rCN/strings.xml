@@ -124,4 +124,16 @@
     <string name="secret_how">这些来源在解锁前保持隐藏。在主屏幕上将两根手指张开，确认年龄，然后在筛选面板中开启这些来源。</string>
     <string name="dev_mode">开发者模式</string>
     <string name="subtitle_failed">无法加载字幕</string>
+    <string name="download">下载</string>
+    <string name="download_audio">仅音频</string>
+    <string name="download_video">视频</string>
+    <string name="download_started">已开始下载</string>
+    <string name="download_running">正在下载</string>
+    <string name="download_done">已下载</string>
+    <string name="download_failed">下载失败</string>
+    <string name="download_cancel">取消</string>
+    <string name="download_channel">下载</string>
+    <string name="download_merging">正在合并音频和视频</string>
+    <string name="dev_mode_on">开发者模式已开启</string>
+    <string name="dev_mode_off">开发者模式已关闭</string>
 </resources>

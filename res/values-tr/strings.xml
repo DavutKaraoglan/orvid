@@ -124,4 +124,16 @@
     <string name="secret_how">Bu kaynaklar sen açana kadar gizli kalır. Ana ekranda iki parmağını birbirinden uzaklaştır, yaşını onayla, sonra filtre panelinden kaynakları aç.</string>
     <string name="dev_mode">Geliştirici modu</string>
     <string name="subtitle_failed">Altyazı yüklenemedi</string>
+    <string name="download">İndir</string>
+    <string name="download_audio">Sadece ses</string>
+    <string name="download_video">Video</string>
+    <string name="download_started">İndirme başladı</string>
+    <string name="download_running">İndiriliyor</string>
+    <string name="download_done">İndirildi</string>
+    <string name="download_failed">İndirme başarısız</string>
+    <string name="download_cancel">İptal</string>
+    <string name="download_channel">İndirmeler</string>
+    <string name="download_merging">Ses ve görüntü birleştiriliyor</string>
+    <string name="dev_mode_on">Geliştirici modu açık</string>
+    <string name="dev_mode_off">Geliştirici modu kapalı</string>
 </resources>

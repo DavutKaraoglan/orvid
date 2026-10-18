@@ -15,15 +15,15 @@ public final class Web {
     }
 
     static String getUntil(String circuit, String url, String label, Map<String, String> headers,
-                           java.util.regex.Pattern marker, int tail) throws IOException {
+                           java.util.regex.Pattern marker, int tail, int timeoutMs) throws IOException {
         long began = System.currentTimeMillis();
         try {
             String text = Fetch.on(circuit, () -> {
                 HttpURLConnection c = Fetch.open(url);
                 c.setRequestProperty("User-Agent", Fetch.USER_AGENT);
                 if (headers != null) for (Map.Entry<String, String> h : headers.entrySet()) c.setRequestProperty(h.getKey(), h.getValue());
-                c.setConnectTimeout(15000);
-                c.setReadTimeout(15000);
+                c.setConnectTimeout(timeoutMs);
+                c.setReadTimeout(timeoutMs);
                 int code = c.getResponseCode();
                 if (code == 403 || code == 429) throw new IOException("Captcha needed (HTTP " + code + ")");
                 if (code >= 400) throw new IOException("HTTP " + code);
@@ -58,14 +58,18 @@ public final class Web {
     }
 
     public static String get(String circuit, String url, String label, Map<String, String> headers) throws IOException {
+        return get(circuit, url, label, headers, 15000);
+    }
+
+    public static String get(String circuit, String url, String label, Map<String, String> headers, int timeoutMs) throws IOException {
         long began = System.currentTimeMillis();
         try {
             String text = Fetch.on(circuit, () -> {
                 HttpURLConnection c = Fetch.open(url);
                 c.setRequestProperty("User-Agent", Fetch.USER_AGENT);
                 if (headers != null) for (Map.Entry<String, String> h : headers.entrySet()) c.setRequestProperty(h.getKey(), h.getValue());
-                c.setConnectTimeout(15000);
-                c.setReadTimeout(15000);
+                c.setConnectTimeout(timeoutMs);
+                c.setReadTimeout(timeoutMs);
                 int code = c.getResponseCode();
                 if (code == 403 || code == 429) throw new IOException("Captcha needed (HTTP " + code + ")");
                 if (code >= 400) throw new IOException("HTTP " + code);

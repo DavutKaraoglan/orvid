@@ -103,6 +103,7 @@ final class PlayerControls implements Player.Listener {
     private final TextView hintRight;
     private final TextView title;
     private final ImageButton cc;
+    private final ImageButton download;
     private boolean visible;
     private boolean dragging;
 
@@ -142,6 +143,8 @@ final class PlayerControls implements Player.Listener {
             toggleSubtitles();
             scheduleHide();
         });
+        download = stage.findViewById(R.id.ctl_download);
+        download.setOnClickListener(v -> showDownloads());
 
         play.setOnClickListener(v -> {
             if (player.getPlaybackState() == Player.STATE_ENDED) player.seekTo(0);
@@ -754,7 +757,22 @@ final class PlayerControls implements Player.Listener {
         sheet.show();
     }
 
+    private void showDownloads() {
+        if (!(activity instanceof PlayerActivity)) return;
+        PlayerActivity owner = (PlayerActivity) activity;
+        Sheet sheet = new Sheet();
+        for (PlayerActivity.Download d : owner.downloads()) {
+            sheet.choice(d.label, false, () -> {
+                sheet.dismiss();
+                owner.download(d);
+            });
+        }
+        sheet.show();
+    }
+
     private void refreshCc() {
+        download.setVisibility(activity instanceof PlayerActivity && ((PlayerActivity) activity).downloadable()
+                ? View.VISIBLE : View.GONE);
         List<Choice> text = choices(C.TRACK_TYPE_TEXT);
         AutoCaptions auto = autoCaptions();
         boolean autoOk = auto != null && auto.available();

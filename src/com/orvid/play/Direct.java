@@ -7,6 +7,9 @@ public final class Direct {
     public final boolean hls;
     public final String referer;
     public String circuit;
+    public String cookie;
+    public String fallback;
+    public boolean fallbackHls;
     public Storyboard.Spec sprite;
 
     public Direct(String title, String author, String url, boolean hls, String referer) {

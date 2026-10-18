@@ -39,7 +39,7 @@
             android:layout_height="48dp"
             android:layout_gravity="top"
             android:layout_marginStart="48dp"
-            android:layout_marginEnd="96dp"
+            android:layout_marginEnd="144dp"
             android:ellipsize="end"
             android:gravity="center_vertical"
             android:shadowColor="#99000000"
@@ -50,14 +50,27 @@
             android:textStyle="bold"
             android:visibility="gone" />
 
-        <ImageButton
-            android:id="@+id/ctl_cc"
-            style="@style/PlayerIcon"
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_gravity="top|end"
             android:layout_marginEnd="48dp"
-            android:contentDescription="@string/subtitles"
-            android:src="@drawable/ic_cc_white"
-            android:visibility="gone" />
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/ctl_download"
+                style="@style/PlayerIcon"
+                android:contentDescription="@string/download"
+                android:src="@drawable/ic_download_white"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/ctl_cc"
+                style="@style/PlayerIcon"
+                android:contentDescription="@string/subtitles"
+                android:src="@drawable/ic_cc_white"
+                android:visibility="gone" />
+        </LinearLayout>
 
         <ImageButton
             android:id="@+id/ctl_settings"
@@ -148,6 +161,7 @@
             android:layout_gravity="bottom"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
+            android:progressDrawable="@drawable/seek_track"
             android:progressBackgroundTint="#66FFFFFF"
             android:progressTint="#FFFFFFFF"
             android:secondaryProgressTint="#99FFFFFF"
@@ -158,7 +172,7 @@
         android:id="@+id/ctl_mini"
         style="@android:style/Widget.Material.ProgressBar.Horizontal"
         android:layout_width="match_parent"
-        android:layout_height="3dp"
+        android:layout_height="1.5dp"
         android:layout_gravity="bottom"
         android:max="1000"
         android:progressBackgroundTint="#40FFFFFF"

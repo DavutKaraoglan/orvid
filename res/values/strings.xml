@@ -126,4 +126,16 @@
     <string name="secret_how">These sources stay hidden until you unlock them. On the main screen, spread two fingers apart, confirm your age, then turn the sources on in the filter panel.</string>
     <string name="dev_mode">Developer mode</string>
     <string name="subtitle_failed">Subtitles could not be loaded</string>
+    <string name="download">Download</string>
+    <string name="download_audio">Audio only</string>
+    <string name="download_video">Video</string>
+    <string name="download_started">Download started</string>
+    <string name="download_running">Downloading</string>
+    <string name="download_done">Downloaded</string>
+    <string name="download_failed">Download failed</string>
+    <string name="download_cancel">Cancel</string>
+    <string name="download_channel">Downloads</string>
+    <string name="download_merging">Merging audio and video</string>
+    <string name="dev_mode_on">Developer mode on</string>
+    <string name="dev_mode_off">Developer mode off</string>
 </resources>

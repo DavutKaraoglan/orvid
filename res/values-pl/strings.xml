@@ -124,4 +124,16 @@
     <string name="secret_how">Te źródła pozostaną ukryte, dopóki ich nie odblokujesz. Na ekranie głównym rozsuń dwa palce, potwierdź wiek, a potem włącz źródła w panelu filtrów.</string>
     <string name="dev_mode">Tryb dewelopera</string>
     <string name="subtitle_failed">Nie udało się wczytać napisów</string>
+    <string name="download">Pobierz</string>
+    <string name="download_audio">Tylko dźwięk</string>
+    <string name="download_video">Wideo</string>
+    <string name="download_started">Rozpoczęto pobieranie</string>
+    <string name="download_running">Pobieranie</string>
+    <string name="download_done">Pobrano</string>
+    <string name="download_failed">Pobieranie nie powiodło się</string>
+    <string name="download_cancel">Anuluj</string>
+    <string name="download_channel">Pobrane</string>
+    <string name="download_merging">Łączenie dźwięku i obrazu</string>
+    <string name="dev_mode_on">Tryb programisty włączony</string>
+    <string name="dev_mode_off">Tryb programisty wyłączony</string>
 </resources>

@@ -105,8 +105,7 @@ public final class Filters {
         f.duration = p.getInt("f_duration", DURATION_ANY);
         f.sort = p.getInt("f_sort", SORT_RELEVANCE);
         f.youtube = p.getBoolean("f_youtube", true);
-        f.hideAdult = p.getBoolean("f_hide_adult", false);
-        f.hideJunk = p.getBoolean("f_hide_junk", true);
+        f.hideAdult = !Source.adultUnlocked;
         f.dailymotion = p.getBoolean("f_dailymotion", true);
         f.vk = p.getBoolean("f_vk", true);
         for (java.util.Map.Entry<String, ?> e : p.getAll().entrySet()) {
@@ -122,7 +121,7 @@ public final class Filters {
 
     public void save(SharedPreferences p) {
         p.edit().putInt("f_date", date).putInt("f_type", type).putInt("f_duration", duration).putInt("f_sort", sort)
-                .putBoolean("f_youtube", youtube).putBoolean("f_hide_adult", hideAdult).putBoolean("f_hide_junk", hideJunk).putBoolean("f_dailymotion", dailymotion).putBoolean("f_vk", vk).apply();
+                .putBoolean("f_youtube", youtube).putBoolean("f_dailymotion", dailymotion).putBoolean("f_vk", vk).apply();
         SharedPreferences.Editor e = p.edit().remove("f_twitch").remove("f_peertube");
         for (java.util.Map.Entry<String, Boolean> s : sources.entrySet()) {
             if (Source.ADULT_KEYS.contains(s.getKey())) e.remove("f_src_" + s.getKey());

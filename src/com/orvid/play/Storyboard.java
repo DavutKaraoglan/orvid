@@ -17,14 +17,27 @@ public final class Storyboard {
         void frame(Bitmap bitmap);
     }
 
-    private static final ExecutorService POOL = Executors.newFixedThreadPool(2);
+    private static final ExecutorService POOL = new java.util.concurrent.ThreadPoolExecutor(3, 3, 30,
+            java.util.concurrent.TimeUnit.SECONDS, new java.util.concurrent.LinkedBlockingDeque<Runnable>() {
+                @Override
+                public boolean offer(Runnable r) {
+                    return offerFirst(r);
+                }
+            });
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
-    private static final LruCache<String, Bitmap> SHEETS = new LruCache<String, Bitmap>(24 * 1024 * 1024) {
+    private static final LruCache<String, byte[]> FILES = new LruCache<String, byte[]>(16 * 1024 * 1024) {
+        @Override
+        protected int sizeOf(String key, byte[] value) {
+            return value.length;
+        }
+    };
+    private static final LruCache<String, Bitmap> SHEETS = new LruCache<String, Bitmap>(12 * 1024 * 1024) {
         @Override
         protected int sizeOf(String key, Bitmap value) {
             return value.getByteCount();
         }
     };
+    private static final java.util.Map<String, java.util.List<Runnable>> LOADING = new java.util.HashMap<>();
 
     private final String url;
     private final int width;
@@ -171,22 +184,64 @@ public final class Storyboard {
         int perSheet = cols * rows;
         int sheet = k / perSheet;
         int index = k % perSheet;
-        String sheetUrl = url.replace("$M", Integer.toString(sheet + start));
-        Bitmap cached = SHEETS.get(sheetUrl);
+        int sheets = (count + perSheet - 1) / perSheet;
+        if (sheet + 1 < sheets) load(sheetUrl(sheet + 1), null);
+        if (sheet > 0) load(sheetUrl(sheet - 1), null);
+        String sheetUrl = sheetUrl(sheet);
+        Bitmap cached = sheet(sheetUrl);
         if (cached != null) {
             callback.frame(crop(cached, index));
+        } else {
+            load(sheetUrl, () -> {
+                Bitmap bmp = sheet(sheetUrl);
+                if (bmp != null) callback.frame(crop(bmp, index));
+            });
+        }
+    }
+
+    private String sheetUrl(int sheet) {
+        return url.replace("$M", Integer.toString(sheet + start));
+    }
+
+    private static Bitmap sheet(String sheetUrl) {
+        Bitmap bmp = SHEETS.get(sheetUrl);
+        if (bmp != null) return bmp;
+        byte[] data = FILES.get(sheetUrl);
+        if (data == null) return null;
+        bmp = BitmapFactory.decodeByteArray(data, 0, data.length);
+        if (bmp != null) SHEETS.put(sheetUrl, bmp);
+        return bmp;
+    }
+
+    private void load(String sheetUrl, Runnable done) {
+        if (FILES.get(sheetUrl) != null) {
+            if (done != null) done.run();
             return;
+        }
+        synchronized (LOADING) {
+            java.util.List<Runnable> waiting = LOADING.get(sheetUrl);
+            if (waiting != null) {
+                if (done != null) waiting.add(done);
+                return;
+            }
+            waiting = new java.util.ArrayList<>();
+            if (done != null) waiting.add(done);
+            LOADING.put(sheetUrl, waiting);
         }
         POOL.execute(() -> {
             try {
                 byte[] data = Fetch.on(circuit, () -> referer == null ? Fetch.bytes(sheetUrl) : Fetch.bytes(sheetUrl, referer));
-                Bitmap bmp = BitmapFactory.decodeByteArray(data, 0, data.length);
-                if (bmp == null) return;
-                SHEETS.put(sheetUrl, bmp);
-                Bitmap frame = crop(bmp, index);
-                MAIN.post(() -> callback.frame(frame));
+                FILES.put(sheetUrl, data);
             } catch (Exception ignored) {
             }
+            java.util.List<Runnable> waiting;
+            synchronized (LOADING) {
+                waiting = LOADING.remove(sheetUrl);
+            }
+            if (waiting == null || waiting.isEmpty() || FILES.get(sheetUrl) == null) return;
+            MAIN.post(() -> {
+                for (Runnable r : waiting) r.run();
+            });
         });
     }
 

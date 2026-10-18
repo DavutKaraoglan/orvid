@@ -48,14 +48,10 @@ public final class Resolve {
     public static boolean preparable(String url) {
         if (url == null || com.orvid.adult.Tubes.webOnly(url)) return false;
         com.orvid.ext.ExtSource ext = com.orvid.ext.Registry.forUrl(url);
-        if (ext != null) return !ext.webPlayback;
+        if (ext != null) return !ext.webPlayback && !ext.hedged();
         if (com.orvid.dm.Dailymotion.videoId(url) != null || com.orvid.vk.Vk.videoId(url) != null) return true;
         return com.orvid.tw.Twitch.vodId(url) != null || com.orvid.tw.Twitch.clipSlug(url) != null
                 || com.orvid.pt.PeerTube.handles(url) || com.orvid.ia.Archive.itemId(url) != null
-                || com.orvid.xv.Xvideos.handles(url) || com.orvid.ay.Aylo.handles(url)
-                || com.orvid.ep.Eporner.handles(url) || com.orvid.xh.XHamster.handles(url)
-                || com.orvid.tn.Tnaflix.handles(url) || com.orvid.adult.Txxx.handles(url)
-                || com.orvid.adult.RedGifs.handles(url) || com.orvid.adult.PornOne.handles(url)
                 || com.orvid.more.Sites.forUrl(url) != null || com.orvid.adult.Tubes.forUrl(url) != null;
     }
 
@@ -127,38 +123,6 @@ public final class Resolve {
         if (com.orvid.ia.Archive.itemId(url) != null) {
             com.orvid.ia.Archive.Media m = com.orvid.ia.Archive.resolve(c, com.orvid.ia.Archive.itemId(url));
             return new Direct(m.title, m.author, m.mp4, false, null);
-        }
-        if (com.orvid.xv.Xvideos.handles(url)) {
-            com.orvid.xv.Xvideos.Media m = com.orvid.xv.Xvideos.resolve(c, url);
-            return (m.mp4 != null ? new Direct(m.title, m.author, m.mp4, false, null) : new Direct(m.title, m.author, m.hls, true, null)).sprite(m.sprite);
-        }
-        if (com.orvid.ay.Aylo.handles(url)) {
-            com.orvid.ay.Aylo.Media m = com.orvid.ay.Aylo.resolve(c, url);
-            return new Direct(m.title, "", m.hls, true, com.orvid.ay.Aylo.REFERER);
-        }
-        if (com.orvid.ep.Eporner.handles(url)) {
-            com.orvid.ep.Eporner.Media m = com.orvid.ep.Eporner.resolve(c, url);
-            return new Direct(m.title, "", m.mp4, false, null);
-        }
-        if (com.orvid.xh.XHamster.handles(url)) {
-            com.orvid.xh.XHamster.Media m = com.orvid.xh.XHamster.resolve(c, url);
-            return new Direct(m.title, m.author, m.hls, true, m.referer).sprite(m.sprite);
-        }
-        if (com.orvid.tn.Tnaflix.handles(url)) {
-            com.orvid.tn.Tnaflix.Media m = com.orvid.tn.Tnaflix.resolve(c, url);
-            return new Direct(m.title, "", m.mp4, false, null);
-        }
-        if (com.orvid.adult.Txxx.handles(url)) {
-            com.orvid.adult.Txxx.Media m = com.orvid.adult.Txxx.resolve(c, url);
-            return new Direct(m.title, m.author, m.mp4, false, m.referer);
-        }
-        if (com.orvid.adult.RedGifs.handles(url)) {
-            com.orvid.adult.RedGifs.Media m = com.orvid.adult.RedGifs.resolve(c, url);
-            return new Direct(m.title, m.author, m.mp4, false, null);
-        }
-        if (com.orvid.adult.PornOne.handles(url)) {
-            com.orvid.adult.PornOne.Media m = com.orvid.adult.PornOne.resolve(c, url);
-            return new Direct(m.title, "", m.mp4, false, null);
         }
         com.orvid.more.Site site = com.orvid.more.Sites.forUrl(url);
         if (site != null) return site.resolve(c, url);

@@ -92,6 +92,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
             }
         });
         title = findViewById(R.id.title);
+        title.setOnClickListener(v -> logoTapped());
         field = findViewById(R.id.search_field);
         searchBox = findViewById(R.id.search_box);
         clearButton = findViewById(R.id.search_clear);
@@ -358,6 +359,24 @@ public final class MainActivity extends Activity implements Tor.Listener {
         attached.clearVideoTextureView(miniVideo);
         attached.removeListener(miniListener);
         attached = null;
+    }
+
+    private int logoTaps;
+    private long logoTapAt;
+
+    private void logoTapped() {
+        long now = System.currentTimeMillis();
+        logoTaps = now - logoTapAt < 600 ? logoTaps + 1 : 1;
+        logoTapAt = now;
+        if (logoTaps < 5) return;
+        logoTaps = 0;
+        boolean on = !com.orvid.app.DevInfo.on;
+        OrvidApp.get().setDevMode(on);
+        android.widget.Toast.makeText(this, on ? R.string.dev_mode_on : R.string.dev_mode_off, android.widget.Toast.LENGTH_SHORT).show();
+        list.removeCallbacks(devRefresh);
+        if (on) list.postDelayed(devRefresh, DEV_REFRESH_MS);
+        else findViewById(R.id.dev_status).setVisibility(View.GONE);
+        adapter.notifyDataSetChanged();
     }
 
     private final Runnable devRefresh = new Runnable() {
@@ -1219,6 +1238,8 @@ public final class MainActivity extends Activity implements Tor.Listener {
 
     private void setAdult(boolean on) {
         com.orvid.search.Source.adultUnlocked = on;
+        filters.hideAdult = !on;
+        com.orvid.yt.Related.safeSearch = !on;
         getWindow().getDecorView().performHapticFeedback(android.os.Build.VERSION.SDK_INT >= 30
                 ? android.view.HapticFeedbackConstants.CONFIRM : android.view.HapticFeedbackConstants.LONG_PRESS);
         if (searched && lastInput != null) runSearch(lastInput);

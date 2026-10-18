@@ -23,6 +23,7 @@ public final class CircuitDataSource extends BaseDataSource {
     private static final long CHUNK = 10L * 1024 * 1024;
     private static final long HEAD_PART = 512L * 1024;
     private static final int PARTS = 3;
+    static final int CAPTION_RETRIES = 4;
     private static final java.util.concurrent.ExecutorService PARALLEL =
             java.util.concurrent.Executors.newCachedThreadPool();
 
@@ -42,6 +43,8 @@ public final class CircuitDataSource extends BaseDataSource {
         private final String circuit;
         private final String userAgent;
         private final String referer;
+        private String cookie;
+        private int timeoutMs;
 
         public Factory(String circuit, String userAgent) {
             this(circuit, userAgent, null);
@@ -57,13 +60,27 @@ public final class CircuitDataSource extends BaseDataSource {
         public DataSource createDataSource() {
             CircuitDataSource d = new CircuitDataSource(circuit, userAgent);
             d.referer = referer;
+            d.cookie = cookie;
+            d.timeoutMs = timeoutMs;
             return d;
+        }
+
+        public Factory cookie(String value) {
+            cookie = value;
+            return this;
+        }
+
+        public Factory timeout(int ms) {
+            timeoutMs = ms;
+            return this;
         }
     }
 
     private final String circuit;
     private final String userAgent;
     private String referer;
+    private String cookie;
+    private int timeoutMs;
     private DataSpec spec;
     private HttpURLConnection connection;
     private InputStream stream;
@@ -113,7 +130,16 @@ public final class CircuitDataSource extends BaseDataSource {
         boolean parallel = dataSpec.position == 0 && dataSpec.length == C.LENGTH_UNSET
                 && parallelHost(dataSpec.uri.toString());
         chunkSize = parallel ? HEAD_PART : CHUNK;
-        long total = connect();
+        long total;
+        long began = System.currentTimeMillis();
+        try {
+            total = connect();
+        } catch (IOException e) {
+            if (!(e instanceof HttpDataSource.InvalidResponseCodeException)) {
+                Diag.mark("media FAIL " + kind(dataSpec.uri.toString()) + " after " + (System.currentTimeMillis() - began) + "ms: " + e.getMessage());
+            }
+            throw e;
+        }
         if (parallel && total > HEAD_PART * 2 && chunkEnd == HEAD_PART) startParts(total);
         opened = true;
         transferStarted(dataSpec);
@@ -128,13 +154,26 @@ public final class CircuitDataSource extends BaseDataSource {
     private String effective;
     private Uri effectiveFor;
 
+    static boolean caption(String url) {
+        return url.contains("youtube.com/api/timedtext");
+    }
+
+    static String captionCircuit(String circuit) {
+        return circuit + "/cc";
+    }
+
     private int request(String url, long chunkLast) throws IOException {
+        String via = caption(url) ? captionCircuit(circuit) : circuit;
         try {
-            connection = Fetch.on(circuit, () -> Fetch.open(url));
+            connection = Fetch.on(via, () -> Fetch.open(url));
         } catch (IOException e) {
             throw e;
         } catch (Exception e) {
             throw new IOException(e);
+        }
+        if (timeoutMs > 0) {
+            connection.setConnectTimeout(timeoutMs);
+            connection.setReadTimeout(timeoutMs);
         }
         connection.setRequestProperty("User-Agent", userAgent);
         connection.setRequestProperty("Range", "bytes=" + position + "-" + chunkLast);
@@ -143,6 +182,7 @@ public final class CircuitDataSource extends BaseDataSource {
             connection.setRequestProperty("Referer", referer);
             connection.setRequestProperty("Origin", referer.replaceAll("/$", ""));
         }
+        if (cookie != null) connection.setRequestProperty("Cookie", cookie);
         for (Map.Entry<String, String> h : spec.httpRequestHeaders.entrySet()) {
             connection.setRequestProperty(h.getKey(), h.getValue());
         }
@@ -179,6 +219,12 @@ public final class CircuitDataSource extends BaseDataSource {
             reused = false;
             effective = null;
             url = spec.uri.toString();
+        }
+        for (int retry = 0; code == 429 && caption(url) && retry < CAPTION_RETRIES; retry++) {
+            closeConnection();
+            Fetch.rotate(captionCircuit(circuit));
+            Diag.mark("caption 429, new circuit");
+            code = request(url, chunkLast);
         }
         if (code == 200 || code == 206) {
             effective = url;

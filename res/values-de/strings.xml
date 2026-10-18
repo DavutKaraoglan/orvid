@@ -124,4 +124,16 @@
     <string name="secret_how">Diese Quellen bleiben verborgen, bis du sie freischaltest. Spreize auf dem Hauptbildschirm zwei Finger, bestätige dein Alter und schalte die Quellen dann im Filterbereich ein.</string>
     <string name="dev_mode">Entwicklermodus</string>
     <string name="subtitle_failed">Untertitel konnten nicht geladen werden</string>
+    <string name="download">Herunterladen</string>
+    <string name="download_audio">Nur Audio</string>
+    <string name="download_video">Video</string>
+    <string name="download_started">Download gestartet</string>
+    <string name="download_running">Wird heruntergeladen</string>
+    <string name="download_done">Heruntergeladen</string>
+    <string name="download_failed">Download fehlgeschlagen</string>
+    <string name="download_cancel">Abbrechen</string>
+    <string name="download_channel">Downloads</string>
+    <string name="download_merging">Audio und Video werden zusammengeführt</string>
+    <string name="dev_mode_on">Entwicklermodus an</string>
+    <string name="dev_mode_off">Entwicklermodus aus</string>
 </resources>

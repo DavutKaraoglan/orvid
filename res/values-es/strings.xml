@@ -124,4 +124,16 @@
     <string name="secret_how">Estas fuentes permanecen ocultas hasta que las desbloquees. En la pantalla principal, separa dos dedos, confirma tu edad y activa las fuentes en el panel de filtros.</string>
     <string name="dev_mode">Modo desarrollador</string>
     <string name="subtitle_failed">No se pudieron cargar los subtítulos</string>
+    <string name="download">Descargar</string>
+    <string name="download_audio">Solo audio</string>
+    <string name="download_video">Vídeo</string>
+    <string name="download_started">Descarga iniciada</string>
+    <string name="download_running">Descargando</string>
+    <string name="download_done">Descargado</string>
+    <string name="download_failed">Error en la descarga</string>
+    <string name="download_cancel">Cancelar</string>
+    <string name="download_channel">Descargas</string>
+    <string name="download_merging">Uniendo audio y vídeo</string>
+    <string name="dev_mode_on">Modo desarrollador activado</string>
+    <string name="dev_mode_off">Modo desarrollador desactivado</string>
 </resources>

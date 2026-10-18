@@ -124,4 +124,16 @@
     <string name="secret_how">これらのソースはロックを解除するまで表示されません。メイン画面で2本の指を広げ、年齢を確認してから、フィルターパネルでソースをオンにしてください。</string>
     <string name="dev_mode">開発者モード</string>
     <string name="subtitle_failed">字幕を読み込めませんでした</string>
+    <string name="download">ダウンロード</string>
+    <string name="download_audio">音声のみ</string>
+    <string name="download_video">動画</string>
+    <string name="download_started">ダウンロードを開始しました</string>
+    <string name="download_running">ダウンロード中</string>
+    <string name="download_done">ダウンロード完了</string>
+    <string name="download_failed">ダウンロードに失敗しました</string>
+    <string name="download_cancel">キャンセル</string>
+    <string name="download_channel">ダウンロード</string>
+    <string name="download_merging">音声と映像を結合中</string>
+    <string name="dev_mode_on">開発者モード オン</string>
+    <string name="dev_mode_off">開発者モード オフ</string>
 </resources>

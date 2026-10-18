@@ -20,6 +20,12 @@ public final class Registry {
     private static volatile List<ExtSource> sources = Collections.emptyList();
     private static volatile java.util.Set<String> engines = Collections.emptySet();
     private static volatile boolean loaded;
+    private static volatile java.util.Map<String, Integer> ranks = Collections.emptyMap();
+
+    public static int rank(String key) {
+        Integer r = ranks.get(key);
+        return r == null ? 1000 : r;
+    }
 
     public static boolean engineOn(String key) {
         return engines.contains(key);
@@ -48,27 +54,29 @@ public final class Registry {
     public static synchronized void reload(File root) {
         List<ExtSource> out = new ArrayList<>();
         java.util.Set<String> on = new java.util.HashSet<>();
+        java.util.Map<String, Integer> rank = new java.util.HashMap<>();
         File[] repos = root.listFiles(f -> f.isDirectory() && !f.getName().startsWith("."));
         if (repos != null) {
             for (File repo : repos) {
                 try {
-                    out.addAll(load(repo, on));
+                    out.addAll(load(repo, on, rank));
                 } catch (Exception e) {
                     com.orvid.net.Diag.mark("repo " + repo.getName() + " skipped: " + e.getMessage());
                 }
             }
         }
-        out.sort((a, b) -> a.adult != b.adult ? (a.adult ? 1 : -1) : Double.compare(b.weight, a.weight));
+        ranks = Collections.unmodifiableMap(rank);
+        out.sort((a, b) -> a.adult != b.adult ? (a.adult ? 1 : -1) : Integer.compare(rank(a.key), rank(b.key)));
         sources = Collections.unmodifiableList(out);
         engines = Collections.unmodifiableSet(on);
         loaded = true;
     }
 
     static List<ExtSource> load(File repo) throws Exception {
-        return load(repo, new java.util.HashSet<>());
+        return load(repo, new java.util.HashSet<>(), new java.util.HashMap<>());
     }
 
-    static List<ExtSource> load(File repo, java.util.Set<String> on) throws Exception {
+    static List<ExtSource> load(File repo, java.util.Set<String> on, java.util.Map<String, Integer> rank) throws Exception {
         JsonObject index = JsonParser.object().from(read(new File(repo, "index.json")));
         JsonArray list = index.getArray("sources");
         List<ExtSource> out = new ArrayList<>();
@@ -77,7 +85,8 @@ public final class Registry {
             try {
                 JsonObject d = JsonParser.object().from(read(new File(repo, Repos.safeName(file))));
                 String engine = d.getString("engine", null);
-                if (engine != null) on.add(engine);
+                if (d.has("rank")) rank.put(engine != null && !d.has("script") && !d.has("html") ? engine : d.getString("id", ""), d.getInt("rank"));
+                if (engine != null && !d.has("script") && !d.has("html")) on.add(engine);
                 else out.add(source(repo, d));
             } catch (Exception e) {
                 com.orvid.net.Diag.mark("source " + file + " skipped: " + e.getMessage());
@@ -107,13 +116,16 @@ public final class Registry {
             if (h.getString("referer", null) != null) html.referer(h.getString("referer"));
             if (h.getString("linkPrefix", null) != null) html.linkPrefix(h.getString("linkPrefix"));
             if (h.getBoolean("paged", false)) html.paged();
+            if (h.has("timeout")) html.timeout(Math.max(5, Math.min(60, h.getInt("timeout"))) * 1000);
+            if (h.has("maxHeight")) html.maxHeight(Math.max(144, h.getInt("maxHeight")));
+            if (h.getBoolean("followRedirect", false)) html.followRedirect();
         } else {
             String file = d.getString("script", null);
             if (file == null) throw new IOException("no html or script");
             script = new Script(id, read(new File(repo, Repos.safeName(file))));
         }
         ExtSource s = new ExtSource(repo.getName(), id, name, serviceId, weight, adult, d.getInt("version", 1),
-                match, d.getBoolean("web", false), html, script);
+                match, d.getBoolean("web", false), html, script, Math.max(1, Math.min(6, d.getInt("hedge", 1))));
         String icon = d.getString("icon", null);
         if (icon != null) {
             File f = new File(repo, Repos.safeName(icon));

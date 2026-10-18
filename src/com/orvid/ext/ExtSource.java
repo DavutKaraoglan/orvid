@@ -3,6 +3,8 @@ package com.orvid.ext;
 import com.grack.nanojson.JsonArray;
 import com.grack.nanojson.JsonObject;
 import com.orvid.adult.HtmlTube;
+import com.orvid.net.Fetch;
+import com.orvid.net.Hedge;
 import com.orvid.play.Direct;
 import com.orvid.search.Filters;
 import com.orvid.search.Source;
@@ -24,9 +26,13 @@ public final class ExtSource extends Source {
     private final Pattern match;
     private final HtmlTube html;
     private final Script script;
+    private final int hedge;
+    private volatile String lucky;
+
+    private static final long LUCKY_HEAD_START_MS = 4000;
 
     ExtSource(String repo, String key, String name, int serviceId, double weight, boolean adult, int version,
-              Pattern match, boolean webPlayback, HtmlTube html, Script script) {
+              Pattern match, boolean webPlayback, HtmlTube html, Script script, int hedge) {
         super(key, name, 0, serviceId, weight, !adult, adult);
         this.repo = repo;
         this.version = version;
@@ -34,6 +40,34 @@ public final class ExtSource extends Source {
         this.webPlayback = webPlayback;
         this.html = html;
         this.script = script;
+        this.hedge = hedge;
+    }
+
+    private <T> T spread(String circuit, Hedge.Task<T> task, String[] won) throws Exception {
+        won[0] = circuit;
+        if (hedge < 2 || !Fetch.torMode()) return task.run(circuit);
+        String known = lucky;
+        List<String> lanes = new ArrayList<>();
+        lanes.add(known != null ? known : circuit);
+        while (lanes.size() < hedge) lanes.add(Fetch.newCircuit(key));
+        try {
+            Hedge.Result<T> r = Hedge.race(lanes, known != null ? LUCKY_HEAD_START_MS : 0, false, task);
+            lucky = r.circuit;
+            won[0] = r.circuit;
+            return r.value;
+        } catch (Exception e) {
+            lucky = null;
+            throw e;
+        }
+    }
+
+    public boolean hedged() {
+        return hedge > 1;
+    }
+
+    @Override
+    public boolean slow() {
+        return hedged();
     }
 
     public boolean handles(String url) {
@@ -48,10 +82,11 @@ public final class ExtSource extends Source {
     @Override
     public Page search(String circuit, String query, Filters f, String next) throws Exception {
         if (html != null) {
-            HtmlTube.Page p = html.search(circuit, query, next);
+            HtmlTube.Page p = spread(circuit, c -> html.search(c, query, next), new String[1]);
             return new Page(p.items, p.next);
         }
-        JsonObject out = script.call(circuit, "search", query, next);
+        JsonObject out = spread(circuit, c -> script.call(c, "search", query, next), new String[1]);
+        if (out == null) throw new IOException(key + ": no search");
         Page p = new Page();
         JsonArray items = Script.array(out, "items");
         for (int i = 0; i < items.size(); i++) {
@@ -85,13 +120,56 @@ public final class ExtSource extends Source {
 
     public Direct resolve(String circuit, String url) throws IOException {
         if (html != null) {
-            HtmlTube.Media m = html.resolve(circuit, url);
-            return new Direct(m.title, "", m.mp4, m.mp4.contains(".m3u8"), m.referer);
+            String[] won = new String[1];
+            HtmlTube.Media m;
+            try {
+                m = spread(circuit, c -> html.resolve(c, url), won);
+            } catch (IOException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new IOException(e);
+            }
+            Direct d = new Direct(m.title, "", m.mp4, m.mp4.contains(".m3u8"), m.referer);
+            return won[0].equals(circuit) ? d : d.via(won[0]);
         }
-        JsonObject out = script.call(circuit, "resolve", url, null);
+        String[] won = new String[1];
+        JsonObject out;
+        try {
+            out = spread(circuit, c -> script.call(c, "resolve", url, null), won);
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
+        if (out == null) throw new IOException(key + ": no resolve");
         String media = out.getString("url", null);
         if (media == null) throw new IOException("video unavailable");
-        return new Direct(out.getString("title", ""), out.getString("author", ""), media,
+        Direct d = new Direct(out.getString("title", ""), out.getString("author", ""), media,
                 out.getBoolean("hls", media.contains(".m3u8")), out.getString("referer", null));
+        d.cookie = out.getString("cookie", null);
+        JsonObject fb = out.getObject("fallback");
+        if (fb != null && fb.getString("url", null) != null) {
+            d.fallback = fb.getString("url");
+            d.fallbackHls = fb.getBoolean("hls", d.fallback.contains(".m3u8"));
+        }
+        JsonObject sp = out.getObject("sprite");
+        if (sp != null && sp.getString("url", null) != null) {
+            d.sprite(new com.orvid.play.Storyboard.Spec(sp.getString("url"), sp.getInt("width", 160), sp.getInt("height", 90),
+                    sp.getInt("cols", 10), sp.getInt("rows", 10), sp.getInt("count", 100)));
+        }
+        return won[0].equals(circuit) ? d : d.via(won[0]);
+    }
+
+    public List<String> tags(String circuit, String url) throws IOException {
+        List<String> out = new ArrayList<>();
+        if (script == null) return out;
+        JsonObject o = script.call(circuit, "tags", url, null);
+        if (o == null) return out;
+        JsonArray tags = Script.array(o, "tags");
+        for (int i = 0; i < tags.size(); i++) {
+            String t = tags.getString(i, "");
+            if (!t.isEmpty() && !out.contains(t)) out.add(t);
+        }
+        return out;
     }
 }

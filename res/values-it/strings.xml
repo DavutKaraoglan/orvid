@@ -124,4 +124,16 @@
     <string name="secret_how">Queste fonti restano nascoste finché non le sblocchi. Nella schermata principale allarga due dita, conferma la tua età e poi attiva le fonti nel pannello dei filtri.</string>
     <string name="dev_mode">Modalità sviluppatore</string>
     <string name="subtitle_failed">Impossibile caricare i sottotitoli</string>
+    <string name="download">Scarica</string>
+    <string name="download_audio">Solo audio</string>
+    <string name="download_video">Video</string>
+    <string name="download_started">Download avviato</string>
+    <string name="download_running">Download in corso</string>
+    <string name="download_done">Scaricato</string>
+    <string name="download_failed">Download non riuscito</string>
+    <string name="download_cancel">Annulla</string>
+    <string name="download_channel">Download</string>
+    <string name="download_merging">Unione di audio e video</string>
+    <string name="dev_mode_on">Modalità sviluppatore attiva</string>
+    <string name="dev_mode_off">Modalità sviluppatore disattivata</string>
 </resources>

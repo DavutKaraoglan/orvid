@@ -13,6 +13,10 @@ public final class Reaper extends Service {
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
+        if (DownloadService.active()) {
+            DownloadService.exitWhenDone();
+            return;
+        }
         OrvidApp.get().wipeAndExit();
     }
 

@@ -124,4 +124,16 @@
     <string name="secret_how">تبقى هذه المصادر مخفية حتى تفتحها. في الشاشة الرئيسية باعد بين إصبعين، وأكّد عمرك، ثم فعّل المصادر من لوحة الفلاتر.</string>
     <string name="dev_mode">وضع المطوّر</string>
     <string name="subtitle_failed">تعذّر تحميل الترجمة</string>
+    <string name="download">تنزيل</string>
+    <string name="download_audio">الصوت فقط</string>
+    <string name="download_video">فيديو</string>
+    <string name="download_started">بدأ التنزيل</string>
+    <string name="download_running">جارٍ التنزيل</string>
+    <string name="download_done">تم التنزيل</string>
+    <string name="download_failed">فشل التنزيل</string>
+    <string name="download_cancel">إلغاء</string>
+    <string name="download_channel">التنزيلات</string>
+    <string name="download_merging">دمج الصوت والفيديو</string>
+    <string name="dev_mode_on">وضع المطوّر مفعّل</string>
+    <string name="dev_mode_off">وضع المطوّر متوقف</string>
 </resources>

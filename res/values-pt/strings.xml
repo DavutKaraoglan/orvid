@@ -124,4 +124,16 @@
     <string name="secret_how">Essas fontes ficam ocultas até você desbloqueá-las. Na tela principal, afaste dois dedos, confirme sua idade e ative as fontes no painel de filtros.</string>
     <string name="dev_mode">Modo de desenvolvedor</string>
     <string name="subtitle_failed">Não foi possível carregar as legendas</string>
+    <string name="download">Baixar</string>
+    <string name="download_audio">Somente áudio</string>
+    <string name="download_video">Vídeo</string>
+    <string name="download_started">Download iniciado</string>
+    <string name="download_running">Baixando</string>
+    <string name="download_done">Baixado</string>
+    <string name="download_failed">Falha no download</string>
+    <string name="download_cancel">Cancelar</string>
+    <string name="download_channel">Downloads</string>
+    <string name="download_merging">Juntando áudio e vídeo</string>
+    <string name="dev_mode_on">Modo desenvolvedor ativado</string>
+    <string name="dev_mode_off">Modo desenvolvedor desativado</string>
 </resources>

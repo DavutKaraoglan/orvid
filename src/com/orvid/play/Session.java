@@ -20,6 +20,11 @@ public final class Session {
     public static String avatar;
     public static String circuit;
     public static String relatedToken;
+    public static com.orvid.yt.Visionos.Video video;
+    public static Direct direct;
+    public static Storyboard storyboard;
+    public static int sourceIndex;
+    public static final List<androidx.media3.exoplayer.source.MediaSource> sources = new ArrayList<>();
     public static final List<StreamInfoItem> related = new ArrayList<>();
     public static volatile List<StreamInfoItem> lastSearch = new ArrayList<>();
 
@@ -54,6 +59,15 @@ public final class Session {
         circuit = null;
         relatedToken = null;
         related.clear();
+        clearMedia();
+    }
+
+    private static void clearMedia() {
+        video = null;
+        direct = null;
+        storyboard = null;
+        sourceIndex = 0;
+        sources.clear();
     }
 
     public static void release() {
@@ -61,5 +75,6 @@ public final class Session {
         player = null;
         url = null;
         related.clear();
+        clearMedia();
     }
 }

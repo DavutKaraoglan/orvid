@@ -137,6 +137,8 @@ public final class Repos {
 
     private static Repo install(File root, String base, String pinnedKey, String circuit) throws Exception {
         byte[] indexBytes = download(circuit, base + "index.json");
+        Repo same = unchanged(root, base, pinnedKey, indexBytes);
+        if (same != null) return same;
         byte[] sig = Base64.getDecoder().decode(new String(download(circuit, base + "index.sig"), StandardCharsets.US_ASCII).trim());
         JsonObject index = JsonParser.object().from(new String(indexBytes, StandardCharsets.UTF_8));
         String key = index.getString("key", "");
@@ -148,6 +150,7 @@ public final class Repos {
         if (!verify.verify(sig)) throw new IOException("bad repository signature");
         String id = hex(sha256(key.getBytes(StandardCharsets.US_ASCII))).substring(0, 16);
 
+        File target = new File(root, id);
         File staging = new File(root, "." + id + ".new");
         delete(staging);
         if (!staging.mkdirs()) throw new IOException("cannot write");
@@ -158,6 +161,14 @@ public final class Repos {
             for (String name : files.keySet()) {
                 String safe = safeName(name);
                 String expected = files.getString(name);
+                File old = new File(target, safe);
+                if (old.isFile() && old.length() <= MAX_FILE) {
+                    byte[] body = java.nio.file.Files.readAllBytes(old.toPath());
+                    if (hex(sha256(body)).equalsIgnoreCase(expected)) {
+                        write(new File(staging, safe), body);
+                        continue;
+                    }
+                }
                 jobs.add(pool.submit(() -> {
                     byte[] body = download(circuit, base + safe);
                     if (!hex(sha256(body)).equalsIgnoreCase(expected)) throw new IOException("checksum mismatch " + safe);
@@ -199,11 +210,30 @@ public final class Repos {
         meta.put("count", r.count);
         write(new File(staging, "meta.json"), JsonWriter.string(meta).getBytes(StandardCharsets.UTF_8));
         Registry.load(staging);
-        File target = new File(root, id);
         delete(target);
         if (!staging.renameTo(target)) throw new IOException("cannot install");
         Registry.reload(root);
         return r;
+    }
+
+    private static Repo unchanged(File root, String base, String pinnedKey, byte[] indexBytes) {
+        if (pinnedKey == null) return null;
+        for (Repo r : list(root)) {
+            if (!r.url.equals(base) || !r.key.equals(pinnedKey)) continue;
+            File dir = new File(root, r.id);
+            try {
+                byte[] local = java.nio.file.Files.readAllBytes(new File(dir, "index.json").toPath());
+                if (!java.util.Arrays.equals(local, indexBytes)) return null;
+                JsonObject meta = JsonParser.object().from(Registry.read(new File(dir, "meta.json")));
+                r.updated = System.currentTimeMillis();
+                meta.put("updated", r.updated);
+                write(new File(dir, "meta.json"), JsonWriter.string(meta).getBytes(StandardCharsets.UTF_8));
+                return r;
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private static byte[] download(String circuit, String url) throws Exception {

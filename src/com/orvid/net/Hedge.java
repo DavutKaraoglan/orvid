@@ -61,9 +61,13 @@ public final class Hedge {
     }
 
     public static <T> Result<T> race(java.util.List<String> circuits, long staggerMs, Task<T> task) throws Exception {
+        return race(circuits, staggerMs, true, task);
+    }
+
+    public static <T> Result<T> race(java.util.List<String> circuits, long staggerMs, boolean retry, Task<T> task) throws Exception {
         CompletionService<Result<T>> done = new ExecutorCompletionService<>(POOL);
         java.util.List<Future<Result<T>>> started = new java.util.ArrayList<>();
-        started.add(done.submit(wrap(circuits.get(0), task)));
+        started.add(done.submit(wrap(circuits.get(0), task, retry)));
         int next = 1;
         int running = 1;
         Exception last = null;
@@ -73,7 +77,7 @@ public final class Hedge {
                         ? done.poll(staggerMs, TimeUnit.MILLISECONDS) : done.take();
                 if (f == null) {
                     Diag.mark("race: circuit " + (next + 1) + " joins");
-                    started.add(done.submit(wrap(circuits.get(next++), task)));
+                    started.add(done.submit(wrap(circuits.get(next++), task, retry)));
                     running++;
                     continue;
                 }
@@ -83,7 +87,7 @@ public final class Hedge {
                 } catch (ExecutionException e) {
                     last = e.getCause() instanceof Exception ? (Exception) e.getCause() : e;
                     if (next < circuits.size()) {
-                        started.add(done.submit(wrap(circuits.get(next++), task)));
+                        started.add(done.submit(wrap(circuits.get(next++), task, retry)));
                         running++;
                     }
                 }
@@ -95,7 +99,12 @@ public final class Hedge {
     }
 
     private static <T> Callable<Result<T>> wrap(String circuit, Task<T> task) {
+        return wrap(circuit, task, true);
+    }
+
+    private static <T> Callable<Result<T>> wrap(String circuit, Task<T> task, boolean retry) {
         Fetch.Scope scope = Fetch.scope();
+        if (!retry) return () -> Fetch.within(scope, () -> new Result<>(Fetch.on(circuit, () -> task.run(circuit)), circuit));
         return () -> Fetch.within(scope, () -> new Result<>(Fetch.retrying(circuit, task::run), circuit));
     }
 }

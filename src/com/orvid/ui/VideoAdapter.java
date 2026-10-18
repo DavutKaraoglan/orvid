@@ -420,10 +420,10 @@ final class VideoAdapter extends BaseAdapter {
         if (sub != null) {
             String text;
             if (mode == GRID) {
-                text = Ui.joinDot(item.getUploaderName(), source);
+                text = Ui.joinParts(item.getUploaderName(), source);
             } else if (mode == COMPACT) {
-                String first = Ui.joinDot(item.getUploaderName(), source);
-                String second = Ui.joinDot(views, date);
+                String first = Ui.joinParts(item.getUploaderName(), source);
+                String second = Ui.joinParts(views, date);
                 String more = first.isEmpty() ? "" : second;
                 text = first.isEmpty() ? second : first;
                 TextView sub2 = view.findViewById(R.id.sub2);
@@ -434,7 +434,7 @@ final class VideoAdapter extends BaseAdapter {
                     text = text + "\n" + more;
                 }
             } else {
-                text = Ui.joinDot(item.getUploaderName(), source, views, date);
+                text = Ui.joinParts(item.getUploaderName(), source, views, date);
             }
             sub.setText(text);
             sub.setVisibility(text.isEmpty() ? View.GONE : View.VISIBLE);

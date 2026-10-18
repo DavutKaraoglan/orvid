@@ -63,7 +63,7 @@ final class Previewer {
                 if (mine != token) return;
                 Resolve.Stream s = Resolve.preview(url);
                 if (s == null || s.direct.url == null || mine != token) return;
-                CircuitDataSource.Factory data = new CircuitDataSource.Factory(s.circuit, Fetch.USER_AGENT, s.direct.referer);
+                CircuitDataSource.Factory data = new CircuitDataSource.Factory(s.circuit, Fetch.USER_AGENT, s.direct.referer).cookie(s.direct.cookie);
                 MediaItem media = MediaItem.fromUri(s.direct.url);
                 MediaSource source = s.direct.hls ? new HlsMediaSource.Factory(data).createMediaSource(media)
                         : new ProgressiveMediaSource.Factory(data).createMediaSource(media);

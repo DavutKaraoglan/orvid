@@ -79,6 +79,26 @@ public final class HtmlTube {
         return this;
     }
 
+    private int timeoutMs = 15000;
+    private int maxHeight = Integer.MAX_VALUE;
+
+    public HtmlTube timeout(int ms) {
+        timeoutMs = ms;
+        return this;
+    }
+
+    public HtmlTube maxHeight(int value) {
+        maxHeight = value;
+        return this;
+    }
+
+    private boolean followRedirect;
+
+    public HtmlTube followRedirect() {
+        followRedirect = true;
+        return this;
+    }
+
     public HtmlTube referer(String value) {
         referer = value;
         return this;
@@ -121,7 +141,7 @@ public final class HtmlTube {
         String qPath = q.replace("+", "-");
         String url = (page > 1 ? laterPage : firstPage).replace("{q}", q).replace("{qp}", qPath)
                 .replace("{p}", Integer.toString(page));
-        String html = Web.get(circuit, url, "tube search " + URI.create(site).getHost(), null);
+        String html = Web.get(circuit, url, "tube search " + URI.create(site).getHost(), null, timeoutMs);
         Page p = new Page();
         Set<String> seen = new HashSet<>();
         String[] cards = html.split("(?=" + Pattern.quote(cardMarker) + ")");
@@ -167,7 +187,7 @@ public final class HtmlTube {
     public Media resolve(String circuit, String url) throws IOException {
         if (!handles(url)) throw new IOException("not a video link");
         String html = Web.getUntil(circuit, url, "tube video " + URI.create(site).getHost(), null,
-                iframe != null ? iframe : STREAM_MARKER, iframe != null ? 2048 : 24 * 1024);
+                iframe != null ? iframe : STREAM_MARKER, iframe != null ? 2048 : 24 * 1024, timeoutMs);
         Media m = new Media();
         m.referer = referer != null ? referer : url;
         Matcher t = OG_TITLE.matcher(html);
@@ -181,10 +201,10 @@ public final class HtmlTube {
             if (!f.find()) throw new IOException("no player");
             java.util.Map<String, String> headers = new java.util.HashMap<>();
             headers.put("Referer", url);
-            html = Web.get(circuit, absolute(f.group(1)), "tube player " + URI.create(site).getHost(), headers)
+            html = Web.get(circuit, absolute(f.group(1)), "tube player " + URI.create(site).getHost(), headers, timeoutMs)
                     .replace("\\\"", "\"").replace("\\/", "/");
         }
-        int cap = Fetch.torMode() ? 720 : 1080;
+        int cap = Math.min(maxHeight, Fetch.torMode() ? 720 : 1080);
         int best = -1;
         String lowest = null;
         int lowestQ = Integer.MAX_VALUE;
@@ -247,7 +267,40 @@ public final class HtmlTube {
         }
         if (m.mp4 == null) m.mp4 = lowest;
         if (m.mp4 == null) throw new IOException("no stream");
+        if (followRedirect) m.mp4 = unwrap(circuit, m.mp4, m.referer);
         return m;
+    }
+
+    private String unwrap(String circuit, String url, String referer) throws IOException {
+        String current = url;
+        try {
+            for (int hop = 0; hop < 4; hop++) {
+                final String at = current;
+                String next = Fetch.on(circuit, () -> {
+                    java.net.HttpURLConnection c = Fetch.open(at);
+                    c.setInstanceFollowRedirects(false);
+                    c.setConnectTimeout(timeoutMs);
+                    c.setReadTimeout(timeoutMs);
+                    c.setRequestProperty("User-Agent", Fetch.USER_AGENT);
+                    c.setRequestProperty("Range", "bytes=0-0");
+                    if (referer != null) c.setRequestProperty("Referer", referer);
+                    int code = c.getResponseCode();
+                    String to = c.getHeaderField("Location");
+                    c.disconnect();
+                    if (code >= 300 && code < 400 && to != null) return URI.create(at).resolve(to.replace(" ", "%20")).toString();
+                    if (code >= 400) throw new IOException("HTTP " + code);
+                    return null;
+                });
+                if (next == null) break;
+                current = next;
+            }
+        } catch (Exception e) {
+            if (e instanceof Fetch.Cancelled) throw (Fetch.Cancelled) e;
+            com.orvid.net.Diag.mark("tube redirect FAIL " + e.getMessage());
+            return url;
+        }
+        com.orvid.net.Diag.mark("tube media " + URI.create(current).getHost());
+        return current;
     }
 
     private String trimSiteName(String title) {

@@ -124,4 +124,16 @@
     <string name="secret_how">Sumber ini tetap tersembunyi sampai kamu membukanya. Di layar utama, renggangkan dua jari, konfirmasi usiamu, lalu aktifkan sumber di panel filter.</string>
     <string name="dev_mode">Mode pengembang</string>
     <string name="subtitle_failed">Subtitel tidak dapat dimuat</string>
+    <string name="download">Unduh</string>
+    <string name="download_audio">Audio saja</string>
+    <string name="download_video">Video</string>
+    <string name="download_started">Unduhan dimulai</string>
+    <string name="download_running">Mengunduh</string>
+    <string name="download_done">Terunduh</string>
+    <string name="download_failed">Unduhan gagal</string>
+    <string name="download_cancel">Batal</string>
+    <string name="download_channel">Unduhan</string>
+    <string name="download_merging">Menggabungkan audio dan video</string>
+    <string name="dev_mode_on">Mode pengembang aktif</string>
+    <string name="dev_mode_off">Mode pengembang nonaktif</string>
 </resources>

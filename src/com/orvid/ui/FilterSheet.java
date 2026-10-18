@@ -99,7 +99,7 @@ final class FilterSheet {
             dialog.dismiss();
         };
         for (com.orvid.ext.Repos.Repo r : com.orvid.ext.Repos.list(com.orvid.app.OrvidApp.get().extRoot())) {
-            row(activity, column, r.name + " · " + r.count, R.drawable.ic_filter, () -> RepoDialog.manage(activity, r, reload));
+            row(activity, column, r.name + " (" + r.count + ")", R.drawable.ic_filter, () -> RepoDialog.manage(activity, r, reload));
         }
         for (com.orvid.ext.Repos.Link l : com.orvid.ext.Repos.suggested(com.orvid.app.OrvidApp.get().extRoot())) {
             if (l.adult && !com.orvid.search.Source.adultUnlocked) continue;
@@ -114,28 +114,35 @@ final class FilterSheet {
         source(activity, column, activity.getString(R.string.all_sources), R.drawable.ic_filter, everyOn, on -> {
             for (Switch child : normalSwitches) child.setChecked(on);
         });
+        java.util.List<Object[]> core = new java.util.ArrayList<>();
         if (com.orvid.ext.Registry.engineOn("youtube")) {
-            normalSwitches.add(source(activity, column, "YouTube", R.drawable.ic_src_youtube, filters.youtube, on -> {
-                filters.youtube = on;
-                changed[0] = true;
-            }));
+            core.add(new Object[] {com.orvid.ext.Registry.rank("youtube"), (Runnable) () ->
+                    normalSwitches.add(source(activity, column, "YouTube", R.drawable.ic_src_youtube, filters.youtube, on -> {
+                        filters.youtube = on;
+                        changed[0] = true;
+                    }))});
         }
         if (com.orvid.ext.Registry.engineOn("dailymotion")) {
-            normalSwitches.add(source(activity, column, activity.getString(R.string.source_dailymotion), R.drawable.ic_src_dailymotion,
-                    filters.dailymotion, on -> {
-                filters.dailymotion = on;
-                changed[0] = true;
-            }));
+            core.add(new Object[] {com.orvid.ext.Registry.rank("dailymotion"), (Runnable) () ->
+                    normalSwitches.add(source(activity, column, activity.getString(R.string.source_dailymotion),
+                            R.drawable.ic_src_dailymotion, filters.dailymotion, on -> {
+                        filters.dailymotion = on;
+                        changed[0] = true;
+                    }))});
         }
         if (com.orvid.ext.Registry.engineOn("vk")) {
-            normalSwitches.add(source(activity, column, "VK Video", R.drawable.ic_src_vk, filters.vk, on -> {
-                filters.vk = on;
-                changed[0] = true;
-            }));
+            core.add(new Object[] {com.orvid.ext.Registry.rank("vk"), (Runnable) () ->
+                    normalSwitches.add(source(activity, column, "VK Video", R.drawable.ic_src_vk, filters.vk, on -> {
+                        filters.vk = on;
+                        changed[0] = true;
+                    }))});
         }
+        core.sort((x, y) -> Integer.compare((Integer) x[0], (Integer) y[0]));
         java.util.List<Switch> adultSwitches = new java.util.ArrayList<>();
         boolean masterAdded = false;
         for (com.orvid.search.Source s : Sources.current()) {
+            int sRank = s.adult ? Integer.MAX_VALUE : com.orvid.ext.Registry.rank(s.key);
+            while (!core.isEmpty() && (Integer) core.get(0)[0] <= sRank) ((Runnable) core.remove(0)[1]).run();
             if (s.adult && !com.orvid.search.Source.adultUnlocked) continue;
             if (s.adult && !masterAdded) {
                 masterAdded = true;
@@ -204,6 +211,7 @@ final class FilterSheet {
                 });
             }
         }
+        for (Object[] c : core) ((Runnable) c[1]).run();
 
 
         if (com.orvid.search.Source.adultUnlocked) {
@@ -214,18 +222,6 @@ final class FilterSheet {
                         changed[0] = true;
                     });
         }
-
-        section(activity, column, R.string.filter_content);
-        source(activity, column, activity.getString(R.string.hide_adult), R.drawable.ic_eighteen,
-                filters.hideAdult, on -> {
-                    filters.hideAdult = on;
-                    changed[0] = true;
-                });
-        source(activity, column, activity.getString(R.string.hide_junk), R.drawable.ic_filter,
-                filters.hideJunk, on -> {
-                    filters.hideJunk = on;
-                    changed[0] = true;
-                });
 
         section(activity, column, R.string.privacy);
         com.orvid.app.AppLock lock = com.orvid.app.OrvidApp.get().lock();
@@ -243,11 +239,6 @@ final class FilterSheet {
                 com.orvid.app.OrvidApp.get().bridges(), on -> com.orvid.app.OrvidApp.get().setBridges(on));
         source(activity, column, activity.getString(R.string.panic_exit), R.drawable.ic_panic,
                 com.orvid.app.OrvidApp.get().panicExit(), on -> com.orvid.app.OrvidApp.get().setPanicExit(on));
-        source(activity, column, activity.getString(R.string.dev_mode), R.drawable.ic_bug,
-                com.orvid.app.OrvidApp.get().devMode(), on -> {
-                    com.orvid.app.OrvidApp.get().setDevMode(on);
-                    changed[0] = true;
-                });
 
         dialog.setOnDismissListener(d -> {
             boolean any = filters.youtube && com.orvid.ext.Registry.engineOn("youtube")

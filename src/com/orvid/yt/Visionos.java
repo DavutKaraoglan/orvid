@@ -304,7 +304,18 @@ public final class Visionos {
             c.url = base.replaceAll("&fmt=[^&]*", "") + "&fmt=vtt";
             v.captions.add(c);
         }
+        String spoken = null;
+        for (Caption c : v.captions) if (c.auto) spoken = c.language;
+        if (spoken != null) {
+            final String lang = spoken;
+            v.captions.sort((x, y) -> rank(x, lang) - rank(y, lang));
+        }
         return v;
+    }
+
+    private static int rank(Caption c, String spoken) {
+        if (!c.language.equals(spoken)) return 2;
+        return c.auto ? 1 : 0;
     }
 
     private static void addFormats(Video v, JsonArray list) {

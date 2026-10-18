@@ -2,23 +2,15 @@ package com.orvid.ui;
 
 import com.orvid.R;
 import com.orvid.adult.HtmlTube;
-import com.orvid.adult.PornOne;
 import com.orvid.adult.Tubes;
-import com.orvid.adult.RedGifs;
-import com.orvid.adult.Txxx;
-import com.orvid.ay.Aylo;
-import com.orvid.ep.Eporner;
 import com.orvid.ia.Archive;
 import com.orvid.more.Site;
 import com.orvid.more.Sites;
 import com.orvid.pt.PeerTube;
 import com.orvid.search.Filters;
 import com.orvid.search.Source;
-import com.orvid.tn.Tnaflix;
 import com.orvid.tw.Twitch;
-import com.orvid.xh.XHamster;
 import com.orvid.web.WebSites;
-import com.orvid.xv.Xvideos;
 
 import java.util.Arrays;
 import java.util.List;
@@ -32,7 +24,8 @@ public final class Sources {
         List<Source> out = new java.util.ArrayList<>();
         for (Source s : BUILTIN) if (com.orvid.ext.Registry.engineOn(s.key)) out.add(s);
         out.addAll(com.orvid.ext.Registry.sources());
-        java.util.Collections.sort(out, (a, b) -> Boolean.compare(a.adult, b.adult));
+        java.util.Collections.sort(out, (a, b) -> a.adult != b.adult ? Boolean.compare(a.adult, b.adult)
+                : Integer.compare(com.orvid.ext.Registry.rank(a.key), com.orvid.ext.Registry.rank(b.key)));
         return out;
     }
 
@@ -77,62 +70,6 @@ public final class Sources {
             site("europeana", R.drawable.ic_src_europeana, Sites.EUROPEANA, 0.5),
             site("ok", R.drawable.ic_src_ok, Sites.OK, 0.5).script(com.orvid.search.Query.CYRILLIC),
             site("soop", R.drawable.ic_src_soop, Sites.SOOP, 0.5).script(com.orvid.search.Query.HANGUL),
-            new Source("xvideos", "XVIDEOS (18+)", R.drawable.ic_src_xvideos, Xvideos.SERVICE_ID, 0.6, false, true) {
-                @Override
-                public Page search(String circuit, String query, Filters f, String next) throws Exception {
-                    Xvideos.Page p = Xvideos.search(circuit, query, next);
-                    return new Page(p.items, p.next);
-                }
-            },
-            new Source("aylo", "Pornhub (18+)", R.drawable.ic_src_pornhub, Aylo.SERVICE_ID, 0.6, false, true) {
-                @Override
-                public Page search(String circuit, String query, Filters f, String next) throws Exception {
-                    Aylo.Page p = Aylo.search(circuit, query, next);
-                    return new Page(p.items, p.next);
-                }
-            },
-            new Source("eporner", "Eporner (18+)", R.drawable.ic_src_eporner, Eporner.SERVICE_ID, 0.6, false, true) {
-                @Override
-                public Page search(String circuit, String query, Filters f, String next) throws Exception {
-                    Eporner.Page p = Eporner.search(circuit, query, next);
-                    return new Page(p.items, p.next);
-                }
-            },
-            new Source("xhamster", "xHamster (18+)", R.drawable.ic_src_xhamster, XHamster.SERVICE_ID, 0.6, false, true) {
-                @Override
-                public Page search(String circuit, String query, Filters f, String next) throws Exception {
-                    XHamster.Page p = XHamster.search(circuit, query, next);
-                    return new Page(p.items, p.next);
-                }
-            },
-            new Source("tnaflix", "TNAFlix (18+)", R.drawable.ic_src_tnaflix, Tnaflix.SERVICE_ID, 0.6, false, true) {
-                @Override
-                public Page search(String circuit, String query, Filters f, String next) throws Exception {
-                    Tnaflix.Page p = Tnaflix.search(circuit, query, next);
-                    return new Page(p.items, p.next);
-                }
-            },
-            new Source("txxx", "Txxx (18+)", R.drawable.ic_src_txxx, Txxx.SERVICE_ID, 0.6, false, true) {
-                @Override
-                public Page search(String circuit, String query, Filters f, String next) throws Exception {
-                    Txxx.Page p = Txxx.search(circuit, query, next);
-                    return new Page(p.items, p.next);
-                }
-            },
-            new Source("redgifs", "RedGIFs (18+)", R.drawable.ic_src_redgifs, RedGifs.SERVICE_ID, 0.5, false, true) {
-                @Override
-                public Page search(String circuit, String query, Filters f, String next) throws Exception {
-                    RedGifs.Page p = RedGifs.search(circuit, query, next);
-                    return new Page(p.items, p.next);
-                }
-            },
-            new Source("pornone", "PornOne (18+)", R.drawable.ic_src_pornone, PornOne.SERVICE_ID, 0.6, false, true) {
-                @Override
-                public Page search(String circuit, String query, Filters f, String next) throws Exception {
-                    PornOne.Page p = PornOne.search(circuit, query, next);
-                    return new Page(p.items, p.next);
-                }
-            },
             tube("hellporno", "HellPorno (18+)", R.drawable.ic_src_hellporno, Tubes.HELLPORNO),
             tube("pornhat", "Pornhat (18+)", R.drawable.ic_src_pornhat, Tubes.PORNHAT),
             tube("bravotube", "BravoTube (18+)", R.drawable.ic_src_bravotube, Tubes.BRAVOTUBE),
@@ -163,7 +100,6 @@ public final class Sources {
             tube("maturekinkys", "MatureKinkys (18+)", R.drawable.ic_src_maturekinkys, Tubes.MATUREKINKYS),
             tube("xozilla", "Xozilla (18+)", R.drawable.ic_src_xozilla, Tubes.XOZILLA),
             tube("femdomvc", "FemdomVC (18+)", R.drawable.ic_src_femdomvc, Tubes.FEMDOMVC),
-            adultSite("bellesa", "Bellesa (18+)", R.drawable.ic_src_bellesa, Sites.BELLESA),
             web("spankbang", "SpankBang (18+)", R.drawable.ic_src_spankbang, WebSites.SPANKBANG),
             web("fourkporn", "4kporn (18+)", R.drawable.ic_src_fourkporn, WebSites.FOURKPORN),
             web("jable", "Jable (18+)", R.drawable.ic_src_jable, WebSites.JABLE),
@@ -173,20 +109,6 @@ public final class Sources {
 
     private static Source site(String key, int icon, Site site, double weight) {
         return new Source(key, site.name, icon, site.serviceId, weight, true, false) {
-            @Override
-            public Page search(String circuit, String query, Filters f, String next) throws Exception {
-                return site.search(circuit, query, next);
-            }
-        };
-    }
-
-    private static Source adultSite(String key, String name, int icon, Site site) {
-        return new Source(key, name, icon, site.serviceId, 0.6, false, true) {
-            @Override
-            public boolean usesWebView() {
-                return true;
-            }
-
             @Override
             public Page search(String circuit, String query, Filters f, String next) throws Exception {
                 return site.search(circuit, query, next);
@@ -223,14 +145,6 @@ public final class Sources {
         if (com.orvid.tw.Twitch.vodId(url) != null || com.orvid.tw.Twitch.clipSlug(url) != null) return byService(Twitch.SERVICE_ID);
         if (PeerTube.handles(url)) return byService(PeerTube.SERVICE_ID);
         if (Archive.itemId(url) != null) return byService(Archive.SERVICE_ID);
-        if (Xvideos.handles(url)) return byService(Xvideos.SERVICE_ID);
-        if (Aylo.handles(url)) return byService(Aylo.SERVICE_ID);
-        if (Eporner.handles(url)) return byService(Eporner.SERVICE_ID);
-        if (XHamster.handles(url)) return byService(XHamster.SERVICE_ID);
-        if (Tnaflix.handles(url)) return byService(Tnaflix.SERVICE_ID);
-        if (Txxx.handles(url)) return byService(Txxx.SERVICE_ID);
-        if (RedGifs.handles(url)) return byService(RedGifs.SERVICE_ID);
-        if (PornOne.handles(url)) return byService(PornOne.SERVICE_ID);
         Site site = Sites.forUrl(url);
         if (site != null) return byService(site.serviceId);
         HtmlTube tube = Tubes.forUrl(url);

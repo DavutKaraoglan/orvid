@@ -42,7 +42,7 @@ public final class OrvidApp extends Application {
         NewPipe.init(Fetch.get());
         images = new Images(new File(getCacheDir(), "thumbs"));
         com.orvid.ext.Registry.reload(extRoot());
-        DevInfo.on = devMode();
+        if (prefs.contains("dev_mode")) prefs.edit().remove("dev_mode").apply();
         if (prefs.contains("mode")) prefs.edit().remove("mode").apply();
         new File(getFilesDir(), "history.json").delete();
         images.clearDisk();
@@ -70,12 +70,7 @@ public final class OrvidApp extends Application {
         prefs.edit().putBoolean("panic_exit", on).apply();
     }
 
-    public boolean devMode() {
-        return prefs.getBoolean("dev_mode", false);
-    }
-
     public void setDevMode(boolean on) {
-        prefs.edit().putBoolean("dev_mode", on).apply();
         DevInfo.on = on;
     }
 
