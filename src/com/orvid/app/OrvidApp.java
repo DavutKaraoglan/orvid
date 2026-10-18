@@ -33,6 +33,8 @@ public final class OrvidApp extends Application {
         System.setProperty("http.maxConnections", "48");
         System.setProperty("http.keepAliveDuration", "300000");
         super.onCreate();
+        com.orvid.net.Diag.reset();
+        com.orvid.net.Diag.mark("app start");
         instance = this;
         CrashLog.install(this);
         new Thread(() -> TempLogs.sweep(this), "orvid-sweep").start();
@@ -42,6 +44,11 @@ public final class OrvidApp extends Application {
         NewPipe.init(Fetch.get());
         images = new Images(new File(getCacheDir(), "thumbs"));
         com.orvid.ext.Registry.reload(extRoot());
+        Thread scripts = new Thread(() -> {
+            for (com.orvid.ext.ExtSource s : com.orvid.ext.Registry.sources()) s.warm();
+        }, "orvid-scripts");
+        scripts.setPriority(Thread.MIN_PRIORITY);
+        scripts.start();
         if (prefs.contains("dev_mode")) prefs.edit().remove("dev_mode").apply();
         if (prefs.contains("mode")) prefs.edit().remove("mode").apply();
         new File(getFilesDir(), "history.json").delete();
@@ -193,6 +200,13 @@ public final class OrvidApp extends Application {
             } catch (InterruptedException e) {
                 return;
             }
+            com.orvid.net.Diag.mark("tor ready");
+            new Thread(() -> {
+                try {
+                    com.orvid.yt.Suggest.warm();
+                } catch (Exception ignored) {
+                }
+            }).start();
             for (int port : Tor.get().ports()) {
                 new Thread(() -> {
                     try {

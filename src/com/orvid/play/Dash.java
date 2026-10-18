@@ -19,16 +19,27 @@ public final class Dash {
         for (Visionos.Format f : formats) {
             if (!f.isVideo() || f.initRange == null || f.indexRange == null) continue;
             String codec = f.codec();
+            int size = shortSide(f);
             if (f.mime.startsWith("video/webm") && (codec.equals("vp9") || codec.startsWith("vp09.00"))) {
-                if (f.height <= Math.min(maxHeight, vp9Max)) vp9.add(f);
-            } else if (f.mime.startsWith("video/mp4") && codec.startsWith("avc1") && f.height <= Math.min(maxHeight, 1080)) {
+                if (size <= Math.min(maxHeight, vp9Max)) vp9.add(f);
+            } else if (f.mime.startsWith("video/mp4") && codec.startsWith("avc1") && size <= Math.min(maxHeight, 1080)) {
                 avc.add(f);
             }
         }
-        List<Visionos.Format> out = vp9Max >= 1080 && !vp9.isEmpty() ? vp9 : avc;
+        List<Visionos.Format> out = vp9Max >= 1080 && !vp9.isEmpty() && best(vp9) >= best(avc) ? vp9 : avc;
         List<Visionos.Format> sharp = new ArrayList<>();
-        for (Visionos.Format f : out) if (f.height >= MIN_HEIGHT) sharp.add(f);
+        for (Visionos.Format f : out) if (shortSide(f) >= MIN_HEIGHT) sharp.add(f);
         return sharp.isEmpty() ? out : sharp;
+    }
+
+    private static int best(List<Visionos.Format> formats) {
+        int top = 0;
+        for (Visionos.Format f : formats) top = Math.max(top, shortSide(f));
+        return top;
+    }
+
+    public static int shortSide(Visionos.Format f) {
+        return f.width > 0 ? Math.min(f.width, f.height) : f.height;
     }
 
     public static Visionos.Format audioTrack(List<Visionos.Format> formats) {

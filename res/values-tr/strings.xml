@@ -146,7 +146,7 @@
     <string name="trace_running">%1$d kaynakta aranıyor</string>
     <string name="health_skipped">yanıt vermiyor, atlandı</string>
     <string name="health_down">Yanıt vermiyor. Yeniden denemek için kapatıp açın.</string>
-    <string name="health_flaky">Son zamanlarda güvenilmez</string>
+    <string name="health_flaky">Son aramalarda sorun çıkardı</string>
     <string name="play_next">Sırada oynat</string>
     <string name="add_queue">Sıraya ekle</string>
     <string name="queued">Sırada: %1$d</string>

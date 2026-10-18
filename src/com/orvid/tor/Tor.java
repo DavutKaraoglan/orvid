@@ -319,9 +319,11 @@ public final class Tor {
 
     private static void drain(InputStream in) {
         Thread t = new Thread(() -> {
-            byte[] buf = new byte[4096];
             try {
-                while (in.read(buf) > 0) {
+                BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+                for (String l = r.readLine(); l != null; l = r.readLine()) {
+                    int at = l.indexOf("] ");
+                    com.orvid.net.Diag.mark("tor: " + (at > 0 && l.indexOf('[') < at ? l.substring(l.indexOf('[')) : l));
                 }
             } catch (IOException ignored) {
             }

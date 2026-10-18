@@ -25,6 +25,9 @@ import java.util.Map;
 final class Script {
 
     private static final long CPU_LIMIT_MS = 5000;
+    private static final java.util.regex.Pattern GONE = java.util.regex.Pattern.compile(
+            "unavailable|^(?:Error: )?not an? |no video in this post|members only");
+
     private static final int MAX_BODY = 4 * 1024 * 1024;
     private static final String PRELUDE =
             "var http = { json: function (u, h) { return JSON.parse(http.get(u, h)); }, get: __get, post: __post, check: function (u, h) { return JSON.parse(__check(u, h)); },"
@@ -63,6 +66,41 @@ final class Script {
         this.code = code;
     }
 
+    private static final Object PRELUDE_LOCK = new Object();
+    private static volatile org.mozilla.javascript.Script preludeCompiled;
+    private volatile org.mozilla.javascript.Script compiled;
+
+    private static org.mozilla.javascript.Script prelude(Context cx) {
+        org.mozilla.javascript.Script s = preludeCompiled;
+        if (s != null) return s;
+        synchronized (PRELUDE_LOCK) {
+            if (preludeCompiled == null) preludeCompiled = cx.compileString(PRELUDE, "prelude", 1, null);
+            return preludeCompiled;
+        }
+    }
+
+    private org.mozilla.javascript.Script compiled(Context cx) {
+        org.mozilla.javascript.Script s = compiled;
+        if (s != null) return s;
+        synchronized (this) {
+            if (compiled == null) compiled = cx.compileString(code, name, 1, null);
+            return compiled;
+        }
+    }
+
+    void warm() {
+        Context cx = FACTORY.enterContext();
+        try {
+            cx.setInterpretedMode(true);
+            cx.setInstructionObserverThreshold(10000);
+            prelude(cx);
+            compiled(cx);
+        } catch (RuntimeException ignored) {
+        } finally {
+            Context.exit();
+        }
+    }
+
     JsonObject call(String circuit, String function, String a, String b) throws IOException {
         Context cx = FACTORY.enterContext();
         try {
@@ -76,8 +114,8 @@ final class Script {
             ScriptableObject scope = cx.initSafeStandardObjects();
             host(scope, circuit);
             cache(scope, circuit);
-            cx.evaluateString(scope, PRELUDE, "prelude", 1, null);
-            cx.evaluateString(scope, code, name, 1, null);
+            prelude(cx).exec(cx, scope);
+            compiled(cx).exec(cx, scope);
             Object fn = scope.get("__call", scope);
             if (!(fn instanceof Function)) throw new IOException(name + ": no entry");
             Object out = ((Function) fn).call(cx, scope, scope, new Object[] {function, a, b});
@@ -94,6 +132,10 @@ final class Script {
             Throwable cause = e;
             while (cause.getCause() != null) cause = cause.getCause();
             if (cause instanceof IOException) throw (IOException) cause;
+            if (e instanceof org.mozilla.javascript.JavaScriptException
+                    && GONE.matcher(String.valueOf(((RhinoException) e).details())).find()) {
+                throw new ExtSource.Gone(name + ": " + ((RhinoException) e).details());
+            }
             throw new IOException(name + ": " + e.getMessage(), e);
         } finally {
             Context.exit();

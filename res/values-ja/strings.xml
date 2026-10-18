@@ -146,7 +146,7 @@
     <string name="trace_running">%1$d 個のソースを検索中</string>
     <string name="health_skipped">応答なし、スキップ</string>
     <string name="health_down">応答がありません。オフにしてからオンにすると再試行します。</string>
-    <string name="health_flaky">最近不安定</string>
+    <string name="health_flaky">最近の検索で問題がありました</string>
     <string name="play_next">次に再生</string>
     <string name="add_queue">キューに追加</string>
     <string name="queued">キュー: %1$d 件</string>

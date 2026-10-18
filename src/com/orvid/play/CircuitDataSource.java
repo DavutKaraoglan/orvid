@@ -119,6 +119,7 @@ public final class CircuitDataSource extends BaseDataSource {
             chunkEnd = 0;
             opened = true;
             transferStarted(dataSpec);
+            knownTotal = warm.total;
             Diag.mark("media warm @" + position / 1024 + "KB of " + memory.length / 1024 + "KB");
             if (dataSpec.length != C.LENGTH_UNSET) return dataSpec.length;
             if (warm.total > 0) {
@@ -140,6 +141,7 @@ public final class CircuitDataSource extends BaseDataSource {
             }
             throw e;
         }
+        if (total > 0) knownTotal = total;
         if (parallel && total > HEAD_PART * 2 && chunkEnd == HEAD_PART) startParts(total);
         opened = true;
         transferStarted(dataSpec);
@@ -338,8 +340,56 @@ public final class CircuitDataSource extends BaseDataSource {
         return n;
     }
 
+    private static final int KEEP_MAX = 2 * 1024 * 1024;
+    private java.io.ByteArrayOutputStream kept;
+    private byte[] keptBase;
+    private long keptFrom = -1;
+    private long knownTotal = -1;
+
+    private void keep(byte[] buffer, int offset, int n, long at) {
+        if (keptFrom == -2) return;
+        String url = spec.uri.toString();
+        if (kept == null) {
+            Warm.Entry have = Warm.get(url);
+            long known = have == null ? 0 : have.head.length;
+            if (at != known || known >= KEEP_MAX || caption(url) || url.contains(".m3u8")) {
+                keptFrom = -2;
+                return;
+            }
+            kept = new java.io.ByteArrayOutputStream();
+            keptBase = have == null ? null : have.head;
+            keptFrom = at;
+        }
+        long next = keptFrom + kept.size();
+        if (at != next) {
+            keptFrom = -2;
+            return;
+        }
+        int take = (int) Math.min(n, KEEP_MAX - next);
+        if (take > 0) kept.write(buffer, offset, take);
+    }
+
+    private void storeKept() {
+        if (kept == null || kept.size() == 0 || spec == null) return;
+        byte[] add = kept.toByteArray();
+        byte[] head = add;
+        if (keptBase != null) {
+            head = java.util.Arrays.copyOf(keptBase, keptBase.length + add.length);
+            System.arraycopy(add, 0, head, keptBase.length, add.length);
+        }
+        Warm.keep(spec.uri.toString(), head, knownTotal);
+    }
+
     @Override
     public int read(byte[] buffer, int offset, int length) throws IOException {
+        long at = position;
+        boolean cached = memory != null && position < memoryEnd;
+        int n = readInner(buffer, offset, length);
+        if (n > 0 && !cached) keep(buffer, offset, n, at);
+        return n;
+    }
+
+    private int readInner(byte[] buffer, int offset, int length) throws IOException {
         if (length == 0) return 0;
         if (end > 0 && position >= end) return C.RESULT_END_OF_INPUT;
         if (memory != null) {
@@ -394,6 +444,10 @@ public final class CircuitDataSource extends BaseDataSource {
 
     @Override
     public void close() {
+        storeKept();
+        kept = null;
+        keptBase = null;
+        keptFrom = -1;
         memory = null;
         closeConnection();
         if (parts != null) {

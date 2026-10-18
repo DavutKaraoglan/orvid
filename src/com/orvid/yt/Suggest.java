@@ -15,8 +15,24 @@ public final class Suggest {
     private Suggest() {
     }
 
+    private static final String HOST = "https://suggestqueries-clients6.youtube.com/";
+
+    public static void warm() throws Exception {
+        Fetch.on("suggest", () -> {
+            HttpURLConnection c = Fetch.open(HOST);
+            c.setRequestMethod("HEAD");
+            c.setRequestProperty("User-Agent", Fetch.USER_AGENT);
+            c.setConnectTimeout(15000);
+            c.setReadTimeout(15000);
+            int code = c.getResponseCode();
+            java.io.InputStream in = code < 400 ? c.getInputStream() : c.getErrorStream();
+            if (in != null) in.close();
+            return code;
+        });
+    }
+
     public static List<String> fetch(String query) throws Exception {
-        String url = "https://suggestqueries-clients6.youtube.com/complete/search?client=youtube&ds=yt&hl=en&gl=us&q="
+        String url = HOST + "complete/search?client=youtube&ds=yt&hl=en&gl=us&q="
                 + URLEncoder.encode(query, "UTF-8");
         String text = Fetch.on("suggest", () -> {
             HttpURLConnection c = Fetch.open(url);

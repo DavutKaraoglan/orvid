@@ -146,7 +146,7 @@
     <string name="trace_running">Buscando em %1$d fontes</string>
     <string name="health_skipped">não responde, ignorado</string>
     <string name="health_down">Não responde. Desligue e ligue para tentar de novo.</string>
-    <string name="health_flaky">Pouco confiável ultimamente</string>
+    <string name="health_flaky">Teve problemas nas últimas pesquisas</string>
     <string name="play_next">Tocar a seguir</string>
     <string name="add_queue">Adicionar à fila</string>
     <string name="queued">Na fila: %1$d</string>

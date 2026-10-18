@@ -356,6 +356,8 @@ public final class PlayerActivity extends Activity {
             if (r - l != or - ol || b - t != ob - ot) stage.post(this::fitSurface);
         });
         controls = new PlayerControls(this, player, stage, this::minimize, side);
+        sourceAccent = Ui.accent(Ui.iconForUrl(this, pageUrl));
+        if (sourceAccent != 0) controls.setAccent(sourceAccent);
         controls.setSkip(this::openPrevious, this::openNext);
         related.registerDataSetObserver(new android.database.DataSetObserver() {
             @Override
@@ -390,8 +392,29 @@ public final class PlayerActivity extends Activity {
         if (title != null && !title.isEmpty()) {
             ((TextView) header.findViewById(R.id.name)).setText(title);
             controls.setTitle(title);
+            seedRelated(title);
         }
         route();
+    }
+
+    private static final int RELATED_SEED = 6;
+
+    private void seedRelated(String title) {
+        List<StreamInfoItem> pool = new ArrayList<>(Session.lastSearch);
+        if (pool.isEmpty()) return;
+        List<StreamInfoItem> similar = com.orvid.search.Ranker.similar(title, null, pageUrl,
+                java.util.Collections.<StreamInfoItem>emptyList(), pool);
+        if (similar.isEmpty()) return;
+        java.util.Map<String, Integer> at = new java.util.HashMap<>();
+        for (int i = 0; i < pool.size(); i++) at.putIfAbsent(pool.get(i).getUrl(), i);
+        Integer self = at.get(pageUrl);
+        if (self != null) {
+            int n = pool.size();
+            java.util.Collections.sort(similar, (x, y) -> Integer.compare(
+                    Math.floorMod(at.get(x.getUrl()) - self, n), Math.floorMod(at.get(y.getUrl()) - self, n)));
+        }
+        Diag.mark("related seeded from search " + Math.min(RELATED_SEED, similar.size()));
+        appendRelated(similar.subList(0, Math.min(RELATED_SEED, similar.size())));
     }
 
     private void route() {
@@ -420,13 +443,13 @@ public final class PlayerActivity extends Activity {
         final com.orvid.ext.ExtSource ext = com.orvid.ext.Registry.forUrl(pageUrl);
         slowSource = ext != null && ext.hedged();
         if (videoId != null) loadFast();
-        else if (ext != null) loadDirect(c -> ext.resolve(c, pageUrl), !ext.hedged());
+        else if (ext != null) loadDirect(c -> ext.resolve(c, pageUrl), false);
         else if (dmId != null) loadDailymotion(dmId);
         else if (vkId != null) loadVk(vkId);
         else if (twVod != null || twClip != null) loadTwitch(twVod, twClip);
         else if (com.orvid.pt.PeerTube.handles(pageUrl)) loadPeerTube(pageUrl);
         else if (com.orvid.ia.Archive.itemId(pageUrl) != null) loadArchive(com.orvid.ia.Archive.itemId(pageUrl));
-        else if (com.orvid.more.Sites.forUrl(pageUrl) != null) loadDirect(c -> com.orvid.more.Sites.forUrl(pageUrl).resolve(c, pageUrl));
+        else if (com.orvid.more.Sites.forUrl(pageUrl) != null) loadDirect(c -> com.orvid.more.Sites.forUrl(pageUrl).resolve(c, pageUrl), false);
         else if (newPipeHandles(pageUrl)) loadNewPipe(true);
         else loadGeneric();
     }
@@ -810,7 +833,7 @@ public final class PlayerActivity extends Activity {
             int cap = Fetch.torMode() ? 720 : 1080;
             Visionos.Format top = null;
             for (Visionos.Format f : videos) {
-                if (f.height <= cap && (top == null || f.height > top.height)) top = f;
+                if (Dash.shortSide(f) <= cap && (top == null || Dash.shortSide(f) > Dash.shortSide(top))) top = f;
             }
             if (top == null) top = videos.get(videos.size() - 1);
             ProgressiveMediaSource.Factory progressive = new ProgressiveMediaSource.Factory(data);
@@ -897,6 +920,13 @@ public final class PlayerActivity extends Activity {
     private static final long NEXT_WARM_CHECK_MS = 3000;
     private static final int NEXT_FIRST_FRAME = 2;
     private boolean nextWarmed;
+    private static final int LINK_AHEAD = 4;
+    private int linked;
+
+    private void linkAhead(List<StreamInfoItem> items) {
+        for (int i = linked; i < Math.min(items.size(), LINK_AHEAD); i++) com.orvid.play.Warm.link(items.get(i).getUrl());
+        linked = Math.max(linked, Math.min(items.size(), LINK_AHEAD));
+    }
     private final Runnable warmNext = new Runnable() {
         @Override
         public void run() {
@@ -908,7 +938,7 @@ public final class PlayerActivity extends Activity {
                 for (int i = 1; i < Math.min(next.size(), 1 + NEXT_FIRST_FRAME); i++) {
                     com.orvid.play.Warm.prepare(next.get(i).getUrl(), true);
                 }
-                for (StreamInfoItem item : next) com.orvid.play.Warm.link(item.getUrl());
+                linkAhead(next);
                 return;
             }
             stage.postDelayed(this, NEXT_WARM_CHECK_MS);
@@ -928,7 +958,7 @@ public final class PlayerActivity extends Activity {
                 || !player.getPlayWhenReady() || stallSwitches >= 2 || pageUrl == null) return;
         long buffered = player.getBufferedPosition();
         long bytes = com.orvid.play.CircuitDataSource.received();
-        if (buffered - stallBuffered >= STALL_PROGRESS_MS || bytes - stallBytes >= STALL_PROGRESS_BYTES) {
+        if (buffered - stallBuffered >= STALL_PROGRESS_MS || !firstFrame && bytes - stallBytes >= STALL_PROGRESS_BYTES) {
             watchStall();
             return;
         }
@@ -1267,7 +1297,7 @@ public final class PlayerActivity extends Activity {
         List<StreamInfoItem> now = new ArrayList<>(hiddenRelated.subList(0, Math.min(room, hiddenRelated.size())));
         hiddenRelated.subList(0, now.size()).clear();
         related.add(now);
-        if (nextWarmed) for (StreamInfoItem item : now) com.orvid.play.Warm.link(item.getUrl());
+        if (nextWarmed) linkAhead(related.items());
     }
 
     private void appendRelated(List<StreamInfoItem> items) {
@@ -1458,11 +1488,11 @@ public final class PlayerActivity extends Activity {
             java.util.Map<Integer, Visionos.Format> best = new java.util.TreeMap<>(java.util.Collections.reverseOrder());
             for (Visionos.Format f : ytVideo.formats) {
                 if (!f.isVideo() || !f.codec().startsWith("avc1") || f.height <= 0) continue;
-                Visionos.Format had = best.get(f.height);
-                if (had == null || f.bitrate > had.bitrate) best.put(f.height, f);
+                Visionos.Format had = best.get(Dash.shortSide(f));
+                if (had == null || f.bitrate > had.bitrate) best.put(Dash.shortSide(f), f);
             }
             for (Visionos.Format f : best.values()) {
-                String quality = f.height + "p" + (f.fps > 30 ? f.fps : "");
+                String quality = Dash.shortSide(f) + "p" + (f.fps > 30 ? f.fps : "");
                 com.orvid.app.DownloadService.Request r = new com.orvid.app.DownloadService.Request(title,
                         base + " (" + quality + ").mp4", "video/mp4").add(f.url, f.contentLength).add(audio.url, audio.contentLength);
                 r.userAgent = Visionos.USER_AGENT;
@@ -1572,6 +1602,14 @@ public final class PlayerActivity extends Activity {
 
             @Override
             protected void fail(Exception error) {
+                Throwable cause = error instanceof java.util.concurrent.ExecutionException && error.getCause() != null
+                        ? error.getCause() : error;
+                if (cause instanceof com.orvid.net.Hedge.Final) {
+                    Diag.mark("prepared stream FAIL " + cause + ", final");
+                    buffering.setVisibility(View.GONE);
+                    showError(Ui.error(PlayerActivity.this, cause));
+                    return;
+                }
                 Diag.mark("prepared stream FAIL " + error + ", resolving normally");
                 route();
             }
@@ -1795,8 +1833,7 @@ public final class PlayerActivity extends Activity {
         for (InfoItem i : info.getRelatedItems()) if (i instanceof StreamInfoItem) more.add((StreamInfoItem) i);
         more = com.orvid.search.Ranker.similar(info.getName(), info.getUploaderName(), pageUrl, more,
                 java.util.Collections.<StreamInfoItem>emptyList(), true);
-        related.set(more);
-        header.findViewById(R.id.related_label).setVisibility(more.isEmpty() ? View.GONE : View.VISIBLE);
+        appendRelated(more);
         if (!forPlayback) return;
 
         ((TextView) header.findViewById(R.id.name)).setText(info.getName());
@@ -1887,6 +1924,7 @@ public final class PlayerActivity extends Activity {
     }
 
     private int coverTries;
+    private int sourceAccent;
 
     private void accentFromCover() {
         android.graphics.drawable.Drawable d = poster.getDrawable();
@@ -1896,6 +1934,7 @@ public final class PlayerActivity extends Activity {
         }
         android.graphics.Bitmap cover = ((android.graphics.drawable.BitmapDrawable) d).getBitmap();
         if (cover.getHeight() > cover.getWidth()) poster.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        if (sourceAccent != 0) return;
         android.graphics.Bitmap small = android.graphics.Bitmap.createScaledBitmap(cover, 32, 18, true);
         int[] px = new int[32 * 18];
         small.getPixels(px, 0, 32, 0, 0, 32, 18);

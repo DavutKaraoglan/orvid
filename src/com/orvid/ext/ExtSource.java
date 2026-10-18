@@ -20,6 +20,16 @@ import java.util.regex.Pattern;
 
 public final class ExtSource extends Source {
 
+    public void warm() {
+        if (script != null) script.warm();
+    }
+
+    public static final class Gone extends com.orvid.net.Hedge.Final {
+        public Gone(String message) {
+            super(message);
+        }
+    }
+
     public final String repo;
     public final int version;
     public final boolean webPlayback;

@@ -146,7 +146,7 @@
     <string name="trace_running">Поиск в источниках: %1$d</string>
     <string name="health_skipped">не отвечает, пропущено</string>
     <string name="health_down">Не отвечает. Выключите и включите, чтобы попробовать снова.</string>
-    <string name="health_flaky">В последнее время ненадёжен</string>
+    <string name="health_flaky">Были проблемы при последних поисках</string>
     <string name="play_next">Воспроизвести следующим</string>
     <string name="add_queue">Добавить в очередь</string>
     <string name="queued">В очереди: %1$d</string>

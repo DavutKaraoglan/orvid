@@ -146,7 +146,7 @@
     <string name="trace_running">소스 %1$d개 검색 중</string>
     <string name="health_skipped">응답 없음, 건너뜀</string>
     <string name="health_down">응답이 없습니다. 껐다가 켜면 다시 시도합니다.</string>
-    <string name="health_flaky">최근 불안정함</string>
+    <string name="health_flaky">최근 검색에서 문제가 있었습니다</string>
     <string name="play_next">다음에 재생</string>
     <string name="add_queue">대기열에 추가</string>
     <string name="queued">대기열: %1$d개</string>

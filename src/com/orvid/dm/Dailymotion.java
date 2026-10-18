@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 public final class Dailymotion {
 
     public static final int SERVICE_ID = 100;
-    private static final String FIELDS = "id,title,owner.screenname,duration,views_total,thumbnail_480_url,created_time,aspect_ratio";
+    private static final String FIELDS = "id,title,owner.screenname,duration,views_total,thumbnail_240_url,thumbnail_480_url,created_time,aspect_ratio";
     private static final long MIN_VIEWS = 300;
     private static final Pattern VIDEO_ID = Pattern.compile("dailymotion\\.com/(?:video|embed/video)/([a-zA-Z0-9]+)|dai\\.ly/([a-zA-Z0-9]+)");
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -83,6 +83,8 @@ public final class Dailymotion {
             String thumb = v.getString("thumbnail_480_url", null);
             List<Image> thumbs = new ArrayList<>();
             if (thumb != null) thumbs.add(new Image(thumb, 270, 480, Image.ResolutionLevel.MEDIUM));
+            String small = v.getString("thumbnail_240_url", null);
+            if (thumb != null && small != null) com.orvid.image.Images.previewOf(thumb, small);
             item.setThumbnails(thumbs);
             p.items.add(item);
         }

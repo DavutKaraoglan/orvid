@@ -75,6 +75,12 @@ public final class Warm {
         }
     }
 
+    static void keep(String url, byte[] head, long total) {
+        Entry have = get(url);
+        if (have != null && have.head.length >= head.length) return;
+        put(url, head, total);
+    }
+
     public static void clear() {
         synchronized (CACHE) {
             CACHE.clear();

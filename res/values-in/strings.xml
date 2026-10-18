@@ -146,7 +146,7 @@
     <string name="trace_running">Mencari di %1$d sumber</string>
     <string name="health_skipped">tidak merespons, dilewati</string>
     <string name="health_down">Tidak merespons. Matikan lalu nyalakan untuk mencoba lagi.</string>
-    <string name="health_flaky">Kurang andal belakangan ini</string>
+    <string name="health_flaky">Bermasalah dalam pencarian terakhir</string>
     <string name="play_next">Putar berikutnya</string>
     <string name="add_queue">Tambah ke antrean</string>
     <string name="queued">Dalam antrean: %1$d</string>

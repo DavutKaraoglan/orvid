@@ -146,7 +146,7 @@
     <string name="trace_running">Recherche dans %1$d sources</string>
     <string name="health_skipped">ne répond pas, ignoré</string>
     <string name="health_down">Ne répond pas. Désactivez puis réactivez pour réessayer.</string>
-    <string name="health_flaky">Peu fiable ces derniers temps</string>
+    <string name="health_flaky">A eu des problèmes lors des dernières recherches</string>
     <string name="play_next">Lire ensuite</string>
     <string name="add_queue">Ajouter à la file</string>
     <string name="queued">Dans la file : %1$d</string>

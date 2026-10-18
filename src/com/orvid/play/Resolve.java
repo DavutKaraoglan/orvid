@@ -64,8 +64,9 @@ public final class Resolve {
                 return (java.util.concurrent.Future<Stream>) known[0];
             }
             com.orvid.net.Queued<Stream> f = new com.orvid.net.Queued<>(() -> {
+                long hedge = Fetch.torMode() && com.orvid.ext.Registry.forUrl(url) == null ? 2500 : 0;
                 com.orvid.net.Hedge.Result<Direct> r = com.orvid.net.Hedge.call(Fetch.newCircuit("prep"),
-                        () -> Fetch.newCircuit("prep"), Fetch.torMode() ? 2500 : 0, c -> direct(c, url));
+                        () -> Fetch.newCircuit("prep"), hedge, c -> direct(c, url));
                 if (r.value == null) return null;
                 return new Stream(r.value, r.value.circuit != null ? r.value.circuit : r.circuit);
             });

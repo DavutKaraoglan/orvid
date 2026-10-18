@@ -179,7 +179,7 @@ final class FilterSheet {
             });
             if (s instanceof com.orvid.ext.ExtSource) {
                 int health = com.orvid.search.Health.state(s.key);
-                if (health != com.orvid.search.Health.OK) sw.setText(withHealth(activity, s.name, health));
+                if (health != com.orvid.search.Health.OK) markHealth(activity, column, sw, health);
             }
             if (!s.adult) normalSwitches.add(sw);
             if (s.adult) {
@@ -335,18 +335,38 @@ final class FilterSheet {
         column.addView(flow);
     }
 
-    private static CharSequence withHealth(Activity a, String name, int health) {
+    private static void markHealth(Activity a, LinearLayout column, Switch sw, int health) {
         boolean down = health == com.orvid.search.Health.DOWN;
         String note = a.getString(down ? R.string.health_down : R.string.health_flaky);
-        android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(name).append("\n");
-        int dot = b.length();
-        b.append("\u25CF ");
-        b.setSpan(new android.text.style.ForegroundColorSpan(down ? 0xFFE5484D : 0xFFE5A000), dot, dot + 1, 0);
-        int start = dot + 2;
-        b.append(note);
-        b.setSpan(new android.text.style.ForegroundColorSpan(a.getColor(R.color.text_secondary)), start, b.length(), 0);
-        b.setSpan(new android.text.style.RelativeSizeSpan(0.8f), dot, b.length(), 0);
-        return b;
+        LinearLayout row = new LinearLayout(a);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        int at = column.indexOfChild(sw);
+        column.removeView(sw);
+        TextView name = new TextView(a);
+        name.setText(sw.getText());
+        name.setTextColor(sw.getCurrentTextColor());
+        name.setTextSize(15);
+        name.setCompoundDrawablesRelative(sw.getCompoundDrawablesRelative()[0], null, null, null);
+        name.setCompoundDrawablePadding(sw.getCompoundDrawablePadding());
+        name.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        name.setOnClickListener(v -> sw.toggle());
+        sw.setText(null);
+        sw.setCompoundDrawablesRelative(null, null, null, null);
+        android.widget.ImageButton alert = new android.widget.ImageButton(a);
+        alert.setImageResource(R.drawable.ic_alert);
+        alert.setImageTintList(android.content.res.ColorStateList.valueOf(down ? 0xFFE5484D : 0xFFE5A000));
+        alert.setBackground(null);
+        alert.setContentDescription(note);
+        int pad = Ui.dp(a, 10);
+        alert.setPadding(pad, pad, pad, pad);
+        alert.setOnClickListener(v -> android.widget.Toast.makeText(a, note, android.widget.Toast.LENGTH_LONG).show());
+        int size = Ui.dp(a, 40);
+        row.addView(name, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        row.addView(alert, new LinearLayout.LayoutParams(size, size));
+        row.addView(sw, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        column.addView(row, at, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
     private static Switch source(Activity a, LinearLayout column, String name, int icon, boolean on, BoolPick pick) {

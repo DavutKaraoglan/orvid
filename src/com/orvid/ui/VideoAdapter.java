@@ -133,19 +133,37 @@ final class VideoAdapter extends BaseAdapter {
         items.clear();
         items.addAll(next);
         notifyDataSetChanged();
+        prefetchFrom = 0;
         prefetch();
     }
 
-    private static final int PREFETCH = 80;
+    private static final int PREFETCH = 30;
+    private static final int PREFETCH_STEP = 5;
+    private int prefetchFrom;
 
     private void prefetch() {
+        prefetch(items, prefetchFrom, PREFETCH, false);
+    }
+
+    void prefetchAfter(int item) {
+        int from = Math.max(0, item);
+        if (Math.abs(from - prefetchFrom) < PREFETCH_STEP) return;
+        prefetchFrom = from;
+        prefetch();
+    }
+
+    void prefetch(List<StreamInfoItem> list, int count, boolean full) {
+        prefetch(list, 0, count, full);
+    }
+
+    private void prefetch(List<StreamInfoItem> list, int from, int count, boolean full) {
         if (mode == TEXT) return;
         int cols = columns(mode);
         int width = cols > 1 ? screenWidth / cols : mode == COMPACT ? Math.min(360, screenWidth / 2) : Math.min(640, screenWidth);
         com.orvid.image.Images images = OrvidApp.get().images();
-        for (int i = 0; i < Math.min(items.size(), PREFETCH); i++) {
-            StreamInfoItem item = items.get(i);
-            images.prefetch(Ui.thumbnail(item.getThumbnails(), width), width, item.getUrl());
+        for (int i = from; i < Math.min(list.size(), from + count); i++) {
+            StreamInfoItem item = list.get(i);
+            images.prefetch(Ui.thumbnail(item.getThumbnails(), width), width, item.getUrl(), full);
         }
     }
 

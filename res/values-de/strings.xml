@@ -146,7 +146,7 @@
     <string name="trace_running">Durchsucht %1$d Quellen</string>
     <string name="health_skipped">antwortet nicht, übersprungen</string>
     <string name="health_down">Antwortet nicht. Zum erneuten Versuch aus- und einschalten.</string>
-    <string name="health_flaky">Zuletzt unzuverlässig</string>
+    <string name="health_flaky">Hatte bei den letzten Suchen Probleme</string>
     <string name="play_next">Als Nächstes abspielen</string>
     <string name="add_queue">Zur Warteschlange</string>
     <string name="queued">In der Warteschlange: %1$d</string>

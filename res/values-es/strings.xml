@@ -146,7 +146,7 @@
     <string name="trace_running">Buscando en %1$d fuentes</string>
     <string name="health_skipped">no responde, omitido</string>
     <string name="health_down">No responde. Apágalo y enciéndelo para volver a intentarlo.</string>
-    <string name="health_flaky">Poco fiable últimamente</string>
+    <string name="health_flaky">Ha dado problemas en las últimas búsquedas</string>
     <string name="play_next">Reproducir a continuación</string>
     <string name="add_queue">Añadir a la cola</string>
     <string name="queued">En cola: %1$d</string>

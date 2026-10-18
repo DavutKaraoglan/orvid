@@ -21,7 +21,7 @@ public final class Hedge {
         T run(String circuit) throws Exception;
     }
 
-    public static final class Final extends java.io.IOException {
+    public static class Final extends java.io.IOException {
         public Final(String message) {
             super(message);
         }
@@ -62,6 +62,11 @@ public final class Hedge {
                 return r;
             } catch (ExecutionException e) {
                 last = e.getCause() instanceof Exception ? (Exception) e.getCause() : e;
+                if (last instanceof Final) {
+                    a.cancel(true);
+                    if (b != null) b.cancel(true);
+                    throw last;
+                }
                 if (b == null && spare != null && !(last instanceof Fetch.Cancelled)) {
                     Diag.mark("hedge: first circuit failed early, second circuit now");
                     Trace.note(Trace.Step.LANE, 2);

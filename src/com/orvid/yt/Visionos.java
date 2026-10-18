@@ -147,6 +147,7 @@ public final class Visionos {
 
     public static void refill() {
         WARMER.execute(() -> {
+            if (!fillReady(1)) return;
             while (true) {
                 synchronized (PLAY) {
                     if (PLAY.size() >= PLAY_POOL) break;
@@ -161,27 +162,35 @@ public final class Visionos {
                     PLAY.add(c);
                 }
             }
-            while (true) {
-                synchronized (READY) {
-                    if (READY.size() >= POOL) return;
-                }
-                String c = Fetch.newCircuit("v");
-                try {
-                    visitor(c);
-                } catch (Exception e) {
-                    return;
-                }
+            fillReady(POOL);
+        });
+    }
+
+    private static final ExecutorService SIDE_WARMER = Executors.newSingleThreadExecutor();
+
+    private static boolean fillReady(int size) {
+        while (true) {
+            synchronized (READY) {
+                if (READY.size() >= size) return true;
+            }
+            String c = Fetch.newCircuit("v");
+            try {
+                visitor(c);
+            } catch (Exception e) {
+                return false;
+            }
+            synchronized (READY) {
+                READY.add(c);
+            }
+            SIDE_WARMER.execute(() -> {
                 for (Warmer w : WARMERS) {
                     try {
                         w.warm(c);
                     } catch (Exception ignored) {
                     }
                 }
-                synchronized (READY) {
-                    READY.add(c);
-                }
-            }
-        });
+            });
+        }
     }
 
     public static void dropPool() {

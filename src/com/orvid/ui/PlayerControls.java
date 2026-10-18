@@ -624,13 +624,17 @@ final class PlayerControls implements Player.Listener {
         Quality(TrackGroup group, int index, Format f) {
             this.group = group;
             this.index = index;
-            this.height = f.height;
+            this.height = shortSide(f);
             this.fps = Math.round(f.frameRate);
         }
 
         String label() {
             return height + "p" + (fps > 30 ? fps : "");
         }
+    }
+
+    private static int shortSide(Format f) {
+        return f.width > 0 ? Math.min(f.width, f.height) : f.height;
     }
 
     private List<Quality> qualities() {
@@ -656,7 +660,7 @@ final class PlayerControls implements Player.Listener {
 
     private String qualityLabel() {
         Format now = player.getVideoFormat();
-        String current = now == null || now.height <= 0 ? "" : now.height + "p";
+        String current = now == null || now.height <= 0 ? "" : shortSide(now) + "p";
         if (auto()) {
             return current.isEmpty() ? activity.getString(R.string.quality_auto)
                     : activity.getString(R.string.quality_auto_now, current);
@@ -674,7 +678,7 @@ final class PlayerControls implements Player.Listener {
             sheet.dismiss();
         });
         for (Quality q : qualities()) {
-            boolean selected = !auto && now != null && now.height == q.height;
+            boolean selected = !auto && now != null && shortSide(now) == q.height;
             sheet.choice(q.label(), selected, () -> {
                 player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
                         .setOverrideForType(new TrackSelectionOverride(q.group, q.index)).build());

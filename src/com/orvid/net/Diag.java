@@ -6,6 +6,8 @@ import java.util.Locale;
 
 public final class Diag {
     private static final List<String> lines = new ArrayList<>();
+    private static final int MAX_LINES = 4000;
+    private static final int TRIM_LINES = 1000;
     private static long start = System.currentTimeMillis();
     private static Runnable listener;
 
@@ -21,6 +23,7 @@ public final class Diag {
         Runnable l;
         synchronized (Diag.class) {
             lines.add(String.format(Locale.ROOT, "%6d %s", System.currentTimeMillis() - start, event));
+            if (lines.size() > MAX_LINES) lines.subList(0, TRIM_LINES).clear();
             l = listener;
         }
         if (l != null) l.run();

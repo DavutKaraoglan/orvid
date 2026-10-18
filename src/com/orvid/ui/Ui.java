@@ -73,6 +73,48 @@ public final class Ui {
         return s.icon != 0 ? context.getDrawable(s.icon) : null;
     }
 
+    public static android.graphics.drawable.Drawable iconForUrl(Context context, String url) {
+        if (url == null) return null;
+        com.orvid.search.Source s = Sources.forUrl(url);
+        if (s != null) return sourceIcon(context, s);
+        if (com.orvid.yt.Visionos.videoId(url) != null) return context.getDrawable(R.drawable.ic_src_youtube);
+        if (com.orvid.dm.Dailymotion.videoId(url) != null) return context.getDrawable(R.drawable.ic_src_dailymotion);
+        if (com.orvid.vk.Vk.videoId(url) != null) return context.getDrawable(R.drawable.ic_src_vk);
+        return null;
+    }
+
+    private static final int HUES = 24;
+    private static final int ACCENT_SIDE = 32;
+    private static final int ACCENT_MIN_PIXELS = 20;
+
+    public static int accent(android.graphics.drawable.Drawable icon) {
+        if (icon == null) return 0;
+        android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(ACCENT_SIDE, ACCENT_SIDE, android.graphics.Bitmap.Config.ARGB_8888);
+        icon.setBounds(0, 0, ACCENT_SIDE, ACCENT_SIDE);
+        icon.draw(new android.graphics.Canvas(b));
+        int[] pixels = new int[ACCENT_SIDE * ACCENT_SIDE];
+        b.getPixels(pixels, 0, ACCENT_SIDE, 0, 0, ACCENT_SIDE, ACCENT_SIDE);
+        b.recycle();
+        int[] count = new int[HUES];
+        long[][] sum = new long[HUES][3];
+        float[] hsv = new float[3];
+        for (int px : pixels) {
+            if (android.graphics.Color.alpha(px) < 128) continue;
+            android.graphics.Color.colorToHSV(px, hsv);
+            if (hsv[1] < 0.35f || hsv[2] < 0.35f) continue;
+            int k = (int) (hsv[0] / (360f / HUES)) % HUES;
+            count[k]++;
+            sum[k][0] += android.graphics.Color.red(px);
+            sum[k][1] += android.graphics.Color.green(px);
+            sum[k][2] += android.graphics.Color.blue(px);
+        }
+        int best = 0;
+        for (int k = 1; k < HUES; k++) if (count[k] > count[best]) best = k;
+        int n = count[best];
+        if (n < ACCENT_MIN_PIXELS) return 0;
+        return android.graphics.Color.rgb((int) (sum[best][0] / n), (int) (sum[best][1] / n), (int) (sum[best][2] / n));
+    }
+
     public static String thumbnail(List<Image> images, int targetWidth) {
         String picked = pickThumbnail(images, targetWidth);
         if (picked == null) return null;
@@ -106,7 +148,9 @@ public final class Ui {
             return context.getString(R.string.error_captcha);
         }
         if (e instanceof AgeRestrictedContentException) return context.getString(R.string.error_age);
-        if (e instanceof ContentNotAvailableException) return context.getString(R.string.error_unavailable);
+        if (e instanceof ContentNotAvailableException || e instanceof com.orvid.ext.ExtSource.Gone) {
+            return context.getString(R.string.error_unavailable);
+        }
         if (e instanceof IOException) return context.getString(R.string.error_network);
         return e.getMessage() == null ? e.toString() : e.getMessage();
     }

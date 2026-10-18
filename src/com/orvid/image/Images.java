@@ -20,6 +20,10 @@ public final class Images {
     private final File dir;
     private final LruCache<String, Bitmap> memory;
     private final ThreadPoolExecutor pool;
+    private final ThreadPoolExecutor aheadPool;
+    private final ThreadPoolExecutor decodePool = new ThreadPoolExecutor(2, 2, 30, TimeUnit.SECONDS,
+            new java.util.concurrent.PriorityBlockingQueue<Runnable>());
+    private static final int AHEAD_THREADS = 3;
     private final Handler main = new Handler(Looper.getMainLooper());
     public void clearDisk() {
         File[] files = dir.listFiles();
@@ -28,7 +32,7 @@ public final class Images {
 
     public Images(File dir) {
         this.dir = dir;
-        int kilobytes = (int) (Runtime.getRuntime().maxMemory() / 1024 / 8);
+        int kilobytes = (int) (Runtime.getRuntime().maxMemory() / 1024 / 4);
         memory = new LruCache<String, Bitmap>(kilobytes) {
             @Override
             protected int sizeOf(String key, Bitmap value) {
@@ -36,6 +40,9 @@ public final class Images {
             }
         };
         pool = new ThreadPoolExecutor(12, 12, 30, TimeUnit.SECONDS, new java.util.concurrent.PriorityBlockingQueue<Runnable>());
+        aheadPool = new ThreadPoolExecutor(AHEAD_THREADS, AHEAD_THREADS, 30, TimeUnit.SECONDS,
+                new java.util.concurrent.PriorityBlockingQueue<Runnable>());
+        aheadPool.allowCoreThreadTimeOut(true);
     }
 
     private static final String WARM_URL = "https://i.ytimg.com/vi/jNQXAC9IVRw/default.jpg";
@@ -50,6 +57,12 @@ public final class Images {
 
     public boolean busy() {
         return pool.getActiveCount() > 0 || !pool.getQueue().isEmpty();
+    }
+
+    private final java.util.concurrent.atomic.AtomicInteger visibleLoads = new java.util.concurrent.atomic.AtomicInteger();
+
+    public boolean loadingVisible() {
+        return visibleLoads.get() > 0;
     }
 
     public void warm() {
@@ -132,18 +145,29 @@ public final class Images {
         }
         fresh.add(view);
         String wanted = smaller(url, targetWidth);
-        pool.execute(new Job(priority, () -> {
+        boolean visible = priority == VISIBLE;
+        if (visible) visibleLoads.incrementAndGet();
+        (raw.get(wanted) != null ? decodePool : pool).execute(new Job(priority, () -> {
             try {
                 if (!wanted(key)) return;
                 long began = android.os.SystemClock.uptimeMillis();
-                byte[] bytes = obtain(wanted, page);
+                String preview = preview(wanted);
+                if (preview != null && raw.get(wanted) == null) {
+                    byte[] small = obtain(preview, null, 0);
+                    Bitmap first = small == null ? null : decode(small, targetWidth);
+                    if (first != null && wanted(key)) deliver(key, first);
+                }
+                byte[] bytes = obtain(wanted, page, targetWidth);
                 if (bytes != null) com.orvid.app.DevInfo.thumb(page, bytes.length, android.os.SystemClock.uptimeMillis() - began);
                 Bitmap bitmap = bytes == null ? null : decode(bytes, targetWidth);
                 if (bitmap == null) return;
                 memory.put(key, bitmap);
                 deliver(key, bitmap);
+                if (visible) com.orvid.net.Diag.mark("thumb " + (bytes.length / 1024) + "KB "
+                        + (android.os.SystemClock.uptimeMillis() - began) + "ms");
             } finally {
                 waiting.remove(key);
+                if (visible) visibleLoads.decrementAndGet();
             }
         }));
     }
@@ -169,17 +193,46 @@ public final class Images {
     }
 
     public void prefetch(String url, int targetWidth, String page) {
+        prefetch(url, targetWidth, page, false);
+    }
+
+    public void prefetch(String url, int targetWidth, String page, boolean full) {
         if (url == null || url.isEmpty() || memory.get(url + "@" + targetWidth) != null) return;
-        String wanted = smaller(url, targetWidth);
+        String sized = smaller(url, targetWidth);
+        if (raw.get(sized) != null) return;
+        String preview = full ? null : preview(sized);
+        String wanted = preview != null ? preview : sized;
+        String owner = preview != null ? null : page;
         if (raw.get(wanted) != null) return;
         if (!ahead.add(wanted)) return;
-        pool.execute(new Job(AHEAD, () -> {
+        aheadPool.execute(new Job(AHEAD, () -> {
             try {
-                obtain(wanted, page);
+                obtain(wanted, owner, targetWidth);
             } finally {
                 ahead.remove(wanted);
             }
         }));
+    }
+
+    private static final java.util.regex.Pattern YT_LARGE =
+            java.util.regex.Pattern.compile("^(https://i\\.ytimg\\.com/vi(?:_webp)?/[A-Za-z0-9_-]{11}/)(?:hq720|hqdefault|sddefault|maxresdefault)\\.(jpg|webp).*");
+
+    private static final java.util.Map<String, String> PREVIEWS = java.util.Collections.synchronizedMap(
+            new java.util.LinkedHashMap<String, String>(256, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(java.util.Map.Entry<String, String> eldest) {
+                    return size() > 2000;
+                }
+            });
+
+    public static void previewOf(String full, String small) {
+        PREVIEWS.put(full, small);
+    }
+
+    private static String preview(String url) {
+        java.util.regex.Matcher m = YT_LARGE.matcher(url);
+        if (m.matches()) return m.group(1) + "mqdefault." + m.group(2);
+        return PREVIEWS.get(url);
     }
 
     private final LruCache<String, byte[]> raw = new LruCache<String, byte[]>(48 * 1024) {
@@ -192,9 +245,14 @@ public final class Images {
 
     private final CircuitHealth health = new CircuitHealth();
 
-    private byte[] obtain(String wanted, String page) {
+    private final LruCache<String, String> byPage = new LruCache<>(1000);
+
+    private byte[] obtain(String wanted, String page, int targetWidth) {
         byte[] known = raw.get(wanted);
         if (known != null) return known;
+        String other = page == null ? null : byPage.get(page);
+        known = other == null ? null : raw.get(other);
+        if (known != null && width(known) * 4 >= targetWidth * 3) return known;
         Object lock = locks.computeIfAbsent(wanted, k -> new Object());
         try {
             synchronized (lock) {
@@ -210,6 +268,7 @@ public final class Images {
                             long now = android.os.SystemClock.uptimeMillis();
                             if (health.record(circuit, now - began, true, now)) Fetch.rotate(circuit);
                             raw.put(wanted, body);
+                            if (page != null) byPage.put(page, wanted);
                             return body;
                         }
                     } catch (Throwable ignored) {
@@ -221,6 +280,13 @@ public final class Images {
         } finally {
             locks.remove(wanted, lock);
         }
+    }
+
+    private static int width(byte[] bytes) {
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.length, bounds);
+        return bounds.outWidth;
     }
 
     private static boolean decodable(byte[] bytes) {
@@ -300,6 +366,12 @@ public final class Images {
         int sample = 1;
         while (targetWidth > 0 && bounds.outWidth / (sample * 2) >= targetWidth) sample *= 2;
         options.inSampleSize = sample;
-        return BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+        if (!"image/png".equals(bounds.outMimeType)) options.inPreferredConfig = Bitmap.Config.RGB_565;
+        Bitmap decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+        if (decoded == null || targetWidth <= 0 || decoded.getWidth() <= targetWidth * 1.15) return decoded;
+        int height = Math.max(1, Math.round(decoded.getHeight() * (targetWidth / (float) decoded.getWidth())));
+        Bitmap scaled = Bitmap.createScaledBitmap(decoded, targetWidth, height, true);
+        if (scaled != decoded) decoded.recycle();
+        return scaled;
     }
 }

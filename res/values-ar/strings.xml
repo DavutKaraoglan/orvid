@@ -146,7 +146,7 @@
     <string name="trace_running">جارٍ البحث في %1$d مصدر</string>
     <string name="health_skipped">لا يستجيب، تم التخطي</string>
     <string name="health_down">لا يستجيب. أوقفه وشغّله لإعادة المحاولة.</string>
-    <string name="health_flaky">غير موثوق مؤخرًا</string>
+    <string name="health_flaky">واجه مشاكل في عمليات البحث الأخيرة</string>
     <string name="play_next">تشغيل التالي</string>
     <string name="add_queue">إضافة إلى قائمة الانتظار</string>
     <string name="queued">في القائمة: %1$d</string>

@@ -119,6 +119,16 @@ public final class Filters {
         return f;
     }
 
+    public String key() {
+        StringBuilder b = new StringBuilder().append(date).append(',').append(type).append(',').append(duration)
+                .append(',').append(sort).append(',').append(orientation).append(',').append(youtube).append(dailymotion)
+                .append(vk).append(hideAdult).append(hideJunk);
+        for (java.util.Map.Entry<String, Boolean> e : new java.util.TreeMap<>(sources).entrySet()) {
+            b.append(',').append(e.getKey()).append('=').append(e.getValue());
+        }
+        return b.toString();
+    }
+
     public void save(SharedPreferences p) {
         p.edit().putInt("f_date", date).putInt("f_type", type).putInt("f_duration", duration).putInt("f_sort", sort)
                 .putBoolean("f_youtube", youtube).putBoolean("f_dailymotion", dailymotion).putBoolean("f_vk", vk).apply();
