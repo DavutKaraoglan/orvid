@@ -74,6 +74,14 @@ public final class OrvidApp extends Application {
         DevInfo.on = on;
     }
 
+    public boolean autoplay() {
+        return prefs.getBoolean("autoplay", true);
+    }
+
+    public void setAutoplay(boolean on) {
+        prefs.edit().putBoolean("autoplay", on).apply();
+    }
+
     public boolean debugOverlay() {
         return prefs.getBoolean("debug", false);
     }

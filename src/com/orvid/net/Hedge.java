@@ -62,7 +62,7 @@ public final class Hedge {
                 return r;
             } catch (ExecutionException e) {
                 last = e.getCause() instanceof Exception ? (Exception) e.getCause() : e;
-                if (b == null && delayMs > 0 && !(last instanceof Fetch.Cancelled)) {
+                if (b == null && spare != null && !(last instanceof Fetch.Cancelled)) {
                     Diag.mark("hedge: first circuit failed early, second circuit now");
                     Trace.note(Trace.Step.LANE, 2);
                     b = done.submit(wrap(spare.get(), task));

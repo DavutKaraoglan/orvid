@@ -18,6 +18,18 @@ Orvid's goal is one private search box for videos from across the web. Any site 
 
 [Performance by version](docs/PERFORMANCE.md) compares search quality and start times across releases.
 
+## Staying fast over Tor
+
+Every new Tor connection costs seconds. These are the methods Orvid uses, with numbers measured on a phone over Tor. They work for any app that talks to many sites through Tor.
+
+- **Connect while the user types.** On the first letter, Orvid opens a connection to each source on that source's own circuit, and the search reuses it. A first request on a fresh circuit took 1.8-2.4 s, the same request on an open connection 0.6-0.8 s.
+- **Show each source as it answers.** Results go on screen as soon as the first sources reply, and later ones are merged in, so one slow site never holds the list back.
+- **Retry on failure, not on slowness.** When a source's first exit fails right away, Orvid tries a second exit at once. Sending a backup request just because a source is slow made things worse: in two runs with about 70 sources at once, the median reply took 5.1 and 4.8 s with a backup after 2.5 s, and 4.3 and 3.4 s without.
+- **Fetch the smallest page that has the video.** Many sites have an embed page with the same video link. Reading it instead of the full page cut 175 KB to 4-10 KB, and finding the link went from 17-23 s to 3-6 s.
+- **Give up early on servers that block Tor.** A media server that fails to answer twice is skipped for 10 minutes, so the next video on it fails in seconds instead of after 45.
+- **Load thumbnails at the size shown.** For list rows Orvid asks YouTube for the 480 px cover instead of the 1280 px one: 12 covers went from 1.9 MB to 220 KB.
+- **Skip dead sources.** A source that keeps failing while others work is tried again only every 6 hours.
+
 ## Getting started
 
 Search once and tap **Add repository**, or open Filters → Repositories → Add repository, and paste:

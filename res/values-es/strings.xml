@@ -58,8 +58,6 @@
     <string name="filter_type">Tipo</string>
     <string name="type_videos">Vídeos</string>
     <string name="type_shorts">Shorts</string>
-    <string name="filter_content">Contenido</string>
-    <string name="hide_adult">Ocultar contenido +18</string>
     <string name="age_title">Verificación de edad</string>
     <string name="age_message">Esta fuente tiene contenido para adultos. ¿Tienes 18 años o más?</string>
     <string name="age_yes">Sí, tengo 18 años o más</string>
@@ -94,7 +92,7 @@
     <string name="lock_prompt">Desbloquear Orvid</string>
     <string name="lock_no_screen">Primero configura un bloqueo de pantalla en los ajustes de Android.</string>
     <string name="panic_exit">Salida de pánico (desliza hacia abajo con dos dedos)</string>
-    <string name="tor_bridges">Puente de Tor (si tu red bloquea Tor)</string>
+    <string name="tor_bridges">Ocultar Tor a tu red (puente, más lento)</string>
     <string name="tor_bridge_hint">Si tu red bloquea Tor, activa el puente en Privacidad, en el panel de filtros.</string>
     <string name="not_interested">No me interesa</string>
     <string name="not_interested_done">Entendido. No se sugerirán vídeos como este.</string>
@@ -106,7 +104,6 @@
     <string name="orient_trans">Trans</string>
     <string name="next_video">Siguiente vídeo</string>
     <string name="previous_video">Vídeo anterior</string>
-    <string name="hide_junk">Ocultar vídeos muy cortos o muy largos</string>
     <string name="nothing_here">Aún no hay nada aquí. Añade un repositorio de fuentes para empezar a buscar.</string>
     <string name="add_repo">Añadir repositorio</string>
     <string name="repo_url_hint">Enlace del repositorio</string>
@@ -122,7 +119,6 @@
     <string name="other_repos">Otros repositorios</string>
     <string name="secret_added">Fuentes ocultas añadidas</string>
     <string name="secret_how">Estas fuentes permanecen ocultas hasta que las desbloquees. En la pantalla principal, separa dos dedos, confirma tu edad y activa las fuentes en el panel de filtros.</string>
-    <string name="dev_mode">Modo desarrollador</string>
     <string name="subtitle_failed">No se pudieron cargar los subtítulos</string>
     <string name="download">Descargar</string>
     <string name="download_audio">Solo audio</string>
@@ -148,4 +144,15 @@
     <string name="trace_summary">%1$d fuentes buscadas en %2$s s</string>
     <string name="trace_copied">Registro de búsqueda copiado</string>
     <string name="trace_running">Buscando en %1$d fuentes</string>
+    <string name="health_skipped">no responde, omitido</string>
+    <string name="health_down">No responde. Apágalo y enciéndelo para volver a intentarlo.</string>
+    <string name="health_flaky">Poco fiable últimamente</string>
+    <string name="play_next">Reproducir a continuación</string>
+    <string name="add_queue">Añadir a la cola</string>
+    <string name="queued">En cola: %1$d</string>
+    <string name="autoplay">Reproducción automática</string>
+    <string name="loop">Repetir</string>
+    <string name="up_next">A continuación en %1$d: %2$s
+Toca para cancelar</string>
+    <string name="block_screenshots">Bloquear capturas y grabación de pantalla</string>
 </resources>

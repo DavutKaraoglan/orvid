@@ -1,8 +1,6 @@
 package com.orvid.ui;
 
 import com.orvid.R;
-import com.orvid.adult.HtmlTube;
-import com.orvid.adult.Tubes;
 import com.orvid.ia.Archive;
 import com.orvid.more.Site;
 import com.orvid.more.Sites;
@@ -70,36 +68,6 @@ public final class Sources {
             site("europeana", R.drawable.ic_src_europeana, Sites.EUROPEANA, 0.5),
             site("ok", R.drawable.ic_src_ok, Sites.OK, 0.5).script(com.orvid.search.Query.CYRILLIC),
             site("soop", R.drawable.ic_src_soop, Sites.SOOP, 0.5).script(com.orvid.search.Query.HANGUL),
-            tube("hellporno", "HellPorno (18+)", R.drawable.ic_src_hellporno, Tubes.HELLPORNO),
-            tube("pornhat", "Pornhat (18+)", R.drawable.ic_src_pornhat, Tubes.PORNHAT),
-            tube("bravotube", "BravoTube (18+)", R.drawable.ic_src_bravotube, Tubes.BRAVOTUBE),
-            tube("hqporner", "HQporner (18+)", R.drawable.ic_src_hqporner, Tubes.HQPORNER),
-            tube("erome", "Erome (18+)", R.drawable.ic_src_erome, Tubes.EROME),
-            tube("porngo", "PornGo (18+)", R.drawable.ic_src_porngo, Tubes.PORNGO),
-            tube("gayporntube", "GayPornTube (18+)", R.drawable.ic_src_gayporntube, Tubes.GAYPORNTUBE),
-            tube("rule34video", "Rule34Video (18+)", R.drawable.ic_src_rule34video, Tubes.RULE34VIDEO),
-            tube("xxxymovies", "XXXYMovies (18+)", R.drawable.ic_src_xxxymovies, Tubes.XXXYMOVIES),
-            tube("zbporn", "ZBPorn (18+)", R.drawable.ic_src_zbporn, Tubes.ZBPORN),
-            tube("drtuber", "DrTuber (18+)", R.drawable.ic_src_drtuber, Tubes.DRTUBER),
-            tube("porndoe", "PornDoe (18+)", R.drawable.ic_src_porndoe, Tubes.PORNDOE),
-            tube("thisvid", "ThisVid (18+)", R.drawable.ic_src_thisvid, Tubes.THISVID),
-            tube("freeporn8", "FreePorn8 (18+)", R.drawable.ic_src_freeporn8, Tubes.FREEPORN8),
-            tube("pornwhite", "PornWhite (18+)", R.drawable.ic_src_pornwhite, Tubes.PORNWHITE),
-            tube("shooshtime", "ShooshTime (18+)", R.drawable.ic_src_shooshtime, Tubes.SHOOSHTIME),
-            tube("threemovs", "3Movs (18+)", R.drawable.ic_src_threemovs, Tubes.THREEMOVS),
-            tube("perfectgirls", "PerfectGirls (18+)", R.drawable.ic_src_perfectgirls, Tubes.PERFECTGIRLS),
-            tube("youjizz", "YouJizz (18+)", R.drawable.ic_src_youjizz, Tubes.YOUJIZZ),
-            tube("playvids", "PlayVids (18+)", R.drawable.ic_src_playvids, Tubes.PLAYVIDS),
-            tube("xfights", "XFights (18+)", R.drawable.ic_src_xfights, Tubes.XFIGHTS),
-            tube("anysex", "AnySex (18+)", R.drawable.ic_src_anysex, Tubes.ANYSEX),
-            tube("dafreeporn", "DaFreePorn (18+)", R.drawable.ic_src_dafreeporn, Tubes.DAFREEPORN),
-            tube("juicyvid", "JuicyVid (18+)", R.drawable.ic_src_juicyvid, Tubes.JUICYVID),
-            tube("megatube", "MegaTube (18+)", R.drawable.ic_src_megatube, Tubes.MEGATUBE),
-            tube("sortporn", "SortPorn (18+)", R.drawable.ic_src_sortporn, Tubes.SORTPORN),
-            tube("fapcat", "FapCat (18+)", R.drawable.ic_src_fapcat, Tubes.FAPCAT),
-            tube("maturekinkys", "MatureKinkys (18+)", R.drawable.ic_src_maturekinkys, Tubes.MATUREKINKYS),
-            tube("xozilla", "Xozilla (18+)", R.drawable.ic_src_xozilla, Tubes.XOZILLA),
-            tube("femdomvc", "FemdomVC (18+)", R.drawable.ic_src_femdomvc, Tubes.FEMDOMVC),
             web("spankbang", "SpankBang (18+)", R.drawable.ic_src_spankbang, WebSites.SPANKBANG),
             web("fourkporn", "4kporn (18+)", R.drawable.ic_src_fourkporn, WebSites.FOURKPORN),
             web("jable", "Jable (18+)", R.drawable.ic_src_jable, WebSites.JABLE),
@@ -128,16 +96,6 @@ public final class Sources {
         };
     }
 
-    private static Source tube(String key, String name, int icon, HtmlTube tube) {
-        return new Source(key, name, icon, tube.serviceId, 0.6, false, true) {
-            @Override
-            public Page search(String circuit, String query, Filters f, String next) throws Exception {
-                HtmlTube.Page p = tube.search(circuit, query, next);
-                return new Page(p.items, p.next);
-            }
-        };
-    }
-
     static Source forUrl(String url) {
         if (url == null) return null;
         Source ext = com.orvid.ext.Registry.forUrl(url);
@@ -147,8 +105,7 @@ public final class Sources {
         if (Archive.itemId(url) != null) return byService(Archive.SERVICE_ID);
         Site site = Sites.forUrl(url);
         if (site != null) return byService(site.serviceId);
-        HtmlTube tube = Tubes.forUrl(url);
-        return tube != null ? byService(tube.serviceId) : null;
+        return null;
     }
 
     static Source byService(int serviceId) {

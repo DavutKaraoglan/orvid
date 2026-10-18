@@ -43,16 +43,10 @@ public final class HtmlTube {
     private Pattern iframe;
     private Pattern mustContain;
     private Pattern mustSkip;
-    public boolean web;
     private boolean paged;
 
     public HtmlTube paged() {
         paged = true;
-        return this;
-    }
-
-    public HtmlTube web() {
-        web = true;
         return this;
     }
 

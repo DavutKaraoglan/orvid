@@ -58,8 +58,6 @@
     <string name="filter_type">Tipo</string>
     <string name="type_videos">Video</string>
     <string name="type_shorts">Shorts</string>
-    <string name="filter_content">Contenuti</string>
-    <string name="hide_adult">Nascondi contenuti 18+</string>
     <string name="age_title">Verifica dell\'età</string>
     <string name="age_message">Questa fonte ha contenuti per adulti. Hai almeno 18 anni?</string>
     <string name="age_yes">Sì, ho almeno 18 anni</string>
@@ -94,7 +92,7 @@
     <string name="lock_prompt">Sblocca Orvid</string>
     <string name="lock_no_screen">Imposta prima un blocco schermo nelle impostazioni di Android.</string>
     <string name="panic_exit">Uscita rapida (scorri in basso con due dita)</string>
-    <string name="tor_bridges">Bridge Tor (se la tua rete blocca Tor)</string>
+    <string name="tor_bridges">Nascondi Tor alla tua rete (bridge, più lento)</string>
     <string name="tor_bridge_hint">Se la tua rete blocca Tor, attiva il bridge in Privacy, nel pannello dei filtri.</string>
     <string name="not_interested">Non mi interessa</string>
     <string name="not_interested_done">Ok. Non verranno più suggeriti video come questo.</string>
@@ -106,7 +104,6 @@
     <string name="orient_trans">Trans</string>
     <string name="next_video">Video successivo</string>
     <string name="previous_video">Video precedente</string>
-    <string name="hide_junk">Nascondi video molto brevi o molto lunghi</string>
     <string name="nothing_here">Non c’è ancora niente qui. Aggiungi un repository di fonti per iniziare a cercare.</string>
     <string name="add_repo">Aggiungi repository</string>
     <string name="repo_url_hint">Link del repository</string>
@@ -122,7 +119,6 @@
     <string name="other_repos">Altri repository</string>
     <string name="secret_added">Fonti nascoste aggiunte</string>
     <string name="secret_how">Queste fonti restano nascoste finché non le sblocchi. Nella schermata principale allarga due dita, conferma la tua età e poi attiva le fonti nel pannello dei filtri.</string>
-    <string name="dev_mode">Modalità sviluppatore</string>
     <string name="subtitle_failed">Impossibile caricare i sottotitoli</string>
     <string name="download">Scarica</string>
     <string name="download_audio">Solo audio</string>
@@ -148,4 +144,15 @@
     <string name="trace_summary">%1$d fonti cercate in %2$s s</string>
     <string name="trace_copied">Registro di ricerca copiato</string>
     <string name="trace_running">Ricerca in %1$d fonti</string>
+    <string name="health_skipped">non risponde, saltato</string>
+    <string name="health_down">Non risponde. Disattiva e riattiva per riprovare.</string>
+    <string name="health_flaky">Poco affidabile di recente</string>
+    <string name="play_next">Riproduci dopo</string>
+    <string name="add_queue">Aggiungi alla coda</string>
+    <string name="queued">In coda: %1$d</string>
+    <string name="autoplay">Riproduzione automatica</string>
+    <string name="loop">Ripeti</string>
+    <string name="up_next">Prossimo tra %1$d: %2$s
+Tocca per annullare</string>
+    <string name="block_screenshots">Blocca screenshot e registrazione dello schermo</string>
 </resources>

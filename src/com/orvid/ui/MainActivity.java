@@ -24,7 +24,6 @@ import com.orvid.net.Hedge;
 import com.orvid.search.Filters;
 import com.orvid.search.Query;
 import com.orvid.search.Source;
-import com.orvid.search.Ranker;
 import com.orvid.yt.Search;
 import com.orvid.yt.Visionos;
 
@@ -135,7 +134,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
         com.orvid.yt.Related.safeSearch = filters.hideAdult;
         adapter = new VideoAdapter(this, OrvidApp.get().layoutMode(), item -> {
             com.orvid.ext.ExtSource ext = com.orvid.ext.Registry.forUrl(item.getUrl());
-            if (ext != null ? ext.webPlayback : com.orvid.web.WebSites.forUrl(item.getUrl()) != null || com.orvid.adult.Tubes.webOnly(item.getUrl())) {
+            if (ext != null ? ext.webPlayback : com.orvid.web.WebSites.forUrl(item.getUrl()) != null) {
                 startActivity(new Intent(this, WebPlayerActivity.class).putExtra(WebPlayerActivity.EXTRA_URL, item.getUrl()));
                 return;
             }
@@ -594,6 +593,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
         lastSourceError = null;
         if (flush != null) list.removeCallbacks(flush);
         flush = null;
+        graceOver = false;
         if (rankTask != null) list.removeCallbacks(rankTask);
         rankTask = null;
         rankDirty = false;
@@ -684,9 +684,9 @@ public final class MainActivity extends Activity implements Tor.Listener {
         for (int i = 0; i < extras.size(); i++) {
             final Source src = extras.get(i);
             final int slot = i;
-            if (!src.wanted(f, q)) continue;
+            if (!src.wanted(f, q) || healthSkip(generation, CORE + slot)) continue;
             pendingSources++;
-            jobs.add(queued(CORE + slot, src.priority(q), -src.weight, () -> runExtra(generation, f, src, slot, null)));
+            jobs.add(queued(CORE + slot, src.priority(q) + healthPenalty(src), -src.weight, () -> runExtra(generation, f, src, slot, null)));
         }
         if (pendingSources == 0) {
             adapter.set(Collections.<StreamInfoItem>emptyList());
@@ -708,13 +708,13 @@ public final class MainActivity extends Activity implements Tor.Listener {
         }
         try {
             Hedge.Result<Source.Page> first = Hedge.call(com.orvid.net.Prewarm.take(src.key), () -> Fetch.newCircuit(src.key),
-                    VK_HEDGE_MS, c -> src.search(c, use.plainQuery, f, null));
+                    EXTRA_HEDGE_MS, c -> src.search(c, use.plainQuery, f, null));
             com.orvid.net.Prewarm.learn(src.key, Fetch.firstHost(first.circuit));
             if (first.value.items.isEmpty()) {
                 Diag.mark(src.key + " empty, asking again from another exit");
                 com.orvid.net.Trace.note(com.orvid.net.Trace.Step.AGAIN, 0);
                 Hedge.Result<Source.Page> again = Hedge.call(Fetch.newCircuit("x"), () -> Fetch.newCircuit("x"),
-                        VK_HEDGE_MS, c -> src.search(c, use.plainQuery, f, null));
+                        EXTRA_HEDGE_MS, c -> src.search(c, use.plainQuery, f, null));
                 if (!again.value.items.isEmpty()) first = again;
             }
             final Hedge.Result<Source.Page> r = first;
@@ -738,7 +738,8 @@ public final class MainActivity extends Activity implements Tor.Listener {
             for (int i = 0; i < extras.size(); i++) {
                 final Source src = extras.get(i);
                 final int slot = i;
-                if (extraStarted[i] == null || extraStarted[i] == q2 || !src.wanted(f, q2)) continue;
+                if (extraStarted[i] == null || extraStarted[i] == q2 || !src.wanted(f, q2)
+                        || com.orvid.search.Health.state(src.key) == com.orvid.search.Health.DOWN) continue;
                 pendingSources++;
                 jobs.add(queued(CORE + slot, src.priority(q2), -src.weight, () -> runExtra(generation, f, src, slot, q2)));
             }
@@ -833,6 +834,39 @@ public final class MainActivity extends Activity implements Tor.Listener {
     private String[] traceState = new String[0];
     private boolean[] traceEnded = new boolean[0];
     private String[] traceInfo = new String[0];
+    private int[] healthCount = new int[0];
+    private boolean healthJudged;
+
+    private boolean tracked(int source) {
+        return source >= CORE && source - CORE < extras.size() && extras.get(source - CORE) instanceof com.orvid.ext.ExtSource;
+    }
+
+    private void judgeHealth() {
+        if (healthJudged) return;
+        healthJudged = true;
+        int others = 0;
+        for (int c : healthCount) if (c > 0) others++;
+        for (int i = CORE; i < healthCount.length; i++) {
+            if (!tracked(i)) continue;
+            String key = extras.get(i - CORE).key;
+            if (healthCount[i] > 0) com.orvid.search.Health.ok(key);
+            else if (others < HEALTH_QUORUM) continue;
+            else if (healthCount[i] == -2) com.orvid.search.Health.fail(key);
+            else if (healthCount[i] == 0) com.orvid.search.Health.empty(key);
+        }
+    }
+
+    private static final int HEALTH_QUORUM = 3;
+
+    private boolean healthSkip(int generation, int source) {
+        if (!tracked(source) || !com.orvid.search.Health.skip(extras.get(source - CORE).key)) return false;
+        traceSet(generation, source, getString(R.string.health_skipped), true);
+        return true;
+    }
+
+    private int healthPenalty(Source src) {
+        return src instanceof com.orvid.ext.ExtSource && com.orvid.search.Health.state(src.key) == com.orvid.search.Health.FLAKY ? 3 : 0;
+    }
     private String[] traceError = new String[0];
     private long traceFinishedAt;
     private int traceLast = -1;
@@ -845,6 +879,9 @@ public final class MainActivity extends Activity implements Tor.Listener {
         traceState = new String[n];
         traceEnded = new boolean[n];
         traceInfo = new String[n];
+        healthCount = new int[n];
+        java.util.Arrays.fill(healthCount, -1);
+        healthJudged = false;
         traceError = new String[n];
         traceFinishedAt = 0;
         traceLast = -1;
@@ -982,6 +1019,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
     }
 
     private static final long VK_HEDGE_MS = 2500;
+    private static final long EXTRA_HEDGE_MS = 0;
 
     private boolean anyExtraNext() {
         for (String n : extraNext) if (n != null) return true;
@@ -992,11 +1030,13 @@ public final class MainActivity extends Activity implements Tor.Listener {
     private List<List<StreamInfoItem>> arrived;
     private boolean shown;
     private Runnable flush;
+    private boolean graceOver;
 
     private void deliver(int generation, Query q, Filters f, int source, List<StreamInfoItem> items) {
         if (generation != searchGeneration) return;
         devStatus(source, items.size() + " " + (android.os.SystemClock.uptimeMillis() - searchStarted) / 100 / 10.0 + "s");
         traceSet(generation, source, getString(R.string.trace_results, items.size()), true);
+        if (source < healthCount.length) healthCount[source] = Math.max(0, healthCount[source]) + items.size();
         pendingSources--;
         if (arrived == null) {
             arrived = new ArrayList<>();
@@ -1008,12 +1048,16 @@ public final class MainActivity extends Activity implements Tor.Listener {
         for (StreamInfoItem i : items) if (have.add(i.getUrl())) merged.add(i);
         arrived.set(source, merged);
         if (!shown) {
-            if (pendingSources <= 0 || (source == 0 && !items.isEmpty())) {
+            if (pendingSources <= 0 || graceOver || (source == 0 && !items.isEmpty())) {
                 if (flush != null) list.removeCallbacks(flush);
                 flush = null;
                 requestRank(generation, true);
             } else if (flush == null) {
-                flush = () -> requestRank(generation, true);
+                flush = () -> {
+                    flush = null;
+                    graceOver = true;
+                    requestRank(generation, true);
+                };
                 list.postDelayed(flush, GRACE_MS);
             }
         } else {
@@ -1164,12 +1208,16 @@ public final class MainActivity extends Activity implements Tor.Listener {
         devStatus(source, why == null ? "skipped" : "FAIL " + (why.length() > 40 ? why.substring(0, 40) : why));
         if (e != null && generation == searchGeneration && source < traceError.length) traceError[source] = String.valueOf(e);
         traceSet(generation, source, e == null ? getString(R.string.trace_skipped) : getString(R.string.trace_failed, Ui.error(this, e)), true);
+        if (e != null && !(e instanceof Fetch.Cancelled) && tracked(source) && source < healthCount.length) {
+            healthCount[source] = -2;
+        }
         pendingSources--;
         lastSourceError = e;
         finishIfDone();
     }
 
     private void finishIfDone() {
+        if (pendingSources <= 0) judgeHealth();
         if (pendingSources <= 0 && !shown && arrived != null && query != null && !rankBusy) {
             if (flush != null) list.removeCallbacks(flush);
             flush = null;

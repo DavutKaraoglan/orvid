@@ -58,8 +58,6 @@
     <string name="filter_type">유형</string>
     <string name="type_videos">동영상</string>
     <string name="type_shorts">쇼츠</string>
-    <string name="filter_content">콘텐츠</string>
-    <string name="hide_adult">18세 이상 콘텐츠 숨기기</string>
     <string name="age_title">연령 확인</string>
     <string name="age_message">이 소스에는 성인 콘텐츠가 있습니다. 18세 이상입니까?</string>
     <string name="age_yes">예, 18세 이상입니다</string>
@@ -94,7 +92,7 @@
     <string name="lock_prompt">Orvid 잠금 해제</string>
     <string name="lock_no_screen">먼저 Android 설정에서 화면 잠금을 설정하세요.</string>
     <string name="panic_exit">긴급 종료(두 손가락으로 아래로 스와이프)</string>
-    <string name="tor_bridges">Tor 브리지(네트워크에서 Tor를 차단하는 경우)</string>
+    <string name="tor_bridges">네트워크에서 Tor 숨기기(브리지, 느림)</string>
     <string name="tor_bridge_hint">네트워크에서 Tor를 차단하면 필터 패널의 개인정보 보호에서 브리지를 켜세요.</string>
     <string name="not_interested">관심 없음</string>
     <string name="not_interested_done">알겠습니다. 이런 동영상은 추천되지 않습니다.</string>
@@ -106,7 +104,6 @@
     <string name="orient_trans">트랜스</string>
     <string name="next_video">다음 동영상</string>
     <string name="previous_video">이전 동영상</string>
-    <string name="hide_junk">너무 짧거나 너무 긴 동영상 숨기기</string>
     <string name="nothing_here">아직 표시할 내용이 없습니다. 검색하려면 소스 저장소를 추가하세요.</string>
     <string name="add_repo">저장소 추가</string>
     <string name="repo_url_hint">저장소 링크</string>
@@ -122,7 +119,6 @@
     <string name="other_repos">다른 저장소</string>
     <string name="secret_added">숨겨진 소스가 추가되었습니다</string>
     <string name="secret_how">이 소스는 잠금을 해제할 때까지 숨겨집니다. 메인 화면에서 두 손가락을 벌리고 나이를 확인한 다음 필터 패널에서 소스를 켜세요.</string>
-    <string name="dev_mode">개발자 모드</string>
     <string name="subtitle_failed">자막을 불러올 수 없습니다</string>
     <string name="download">다운로드</string>
     <string name="download_audio">오디오만</string>
@@ -148,4 +144,15 @@
     <string name="trace_summary">%2$s초 동안 소스 %1$d개 검색</string>
     <string name="trace_copied">검색 기록을 복사했습니다</string>
     <string name="trace_running">소스 %1$d개 검색 중</string>
+    <string name="health_skipped">응답 없음, 건너뜀</string>
+    <string name="health_down">응답이 없습니다. 껐다가 켜면 다시 시도합니다.</string>
+    <string name="health_flaky">최근 불안정함</string>
+    <string name="play_next">다음에 재생</string>
+    <string name="add_queue">대기열에 추가</string>
+    <string name="queued">대기열: %1$d개</string>
+    <string name="autoplay">자동 재생</string>
+    <string name="loop">반복</string>
+    <string name="up_next">%1$d초 후 다음: %2$s
+탭하여 취소</string>
+    <string name="block_screenshots">스크린샷 및 화면 녹화 차단</string>
 </resources>

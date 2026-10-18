@@ -58,8 +58,6 @@
     <string name="filter_type">类型</string>
     <string name="type_videos">视频</string>
     <string name="type_shorts">短视频</string>
-    <string name="filter_content">内容</string>
-    <string name="hide_adult">隐藏 18+ 内容</string>
     <string name="age_title">年龄验证</string>
     <string name="age_message">此来源包含成人内容。你已年满 18 岁吗？</string>
     <string name="age_yes">是，我已年满 18 岁</string>
@@ -94,7 +92,7 @@
     <string name="lock_prompt">解锁 Orvid</string>
     <string name="lock_no_screen">请先在 Android 设置中设置屏幕锁定。</string>
     <string name="panic_exit">紧急退出（双指向下滑动）</string>
-    <string name="tor_bridges">Tor 网桥（网络屏蔽 Tor 时）</string>
+    <string name="tor_bridges">向网络隐藏 Tor（网桥，较慢）</string>
     <string name="tor_bridge_hint">如果你的网络屏蔽了 Tor，请在筛选面板的“隐私”中开启网桥。</string>
     <string name="not_interested">不感兴趣</string>
     <string name="not_interested_done">知道了。不会再推荐类似的视频。</string>
@@ -106,7 +104,6 @@
     <string name="orient_trans">跨性别</string>
     <string name="next_video">下一个视频</string>
     <string name="previous_video">上一个视频</string>
-    <string name="hide_junk">隐藏过短或过长的视频</string>
     <string name="nothing_here">这里还没有内容。添加一个来源仓库即可开始搜索。</string>
     <string name="add_repo">添加仓库</string>
     <string name="repo_url_hint">仓库链接</string>
@@ -122,7 +119,6 @@
     <string name="other_repos">其他仓库</string>
     <string name="secret_added">已添加隐藏来源</string>
     <string name="secret_how">这些来源在解锁前保持隐藏。在主屏幕上将两根手指张开，确认年龄，然后在筛选面板中开启这些来源。</string>
-    <string name="dev_mode">开发者模式</string>
     <string name="subtitle_failed">无法加载字幕</string>
     <string name="download">下载</string>
     <string name="download_audio">仅音频</string>
@@ -148,4 +144,15 @@
     <string name="trace_summary">%2$s 秒内搜索了 %1$d 个来源</string>
     <string name="trace_copied">已复制搜索日志</string>
     <string name="trace_running">正在搜索 %1$d 个来源</string>
+    <string name="health_skipped">无响应，已跳过</string>
+    <string name="health_down">无响应。关闭后再打开即可重试。</string>
+    <string name="health_flaky">最近不稳定</string>
+    <string name="play_next">接下来播放</string>
+    <string name="add_queue">加入队列</string>
+    <string name="queued">队列中：%1$d</string>
+    <string name="autoplay">自动播放</string>
+    <string name="loop">循环</string>
+    <string name="up_next">%1$d 秒后播放：%2$s
+点按取消</string>
+    <string name="block_screenshots">禁止截屏和录屏</string>
 </resources>

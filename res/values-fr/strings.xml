@@ -58,8 +58,6 @@
     <string name="filter_type">Type</string>
     <string name="type_videos">Vidéos</string>
     <string name="type_shorts">Shorts</string>
-    <string name="filter_content">Contenu</string>
-    <string name="hide_adult">Masquer le contenu 18+</string>
     <string name="age_title">Vérification de l\'âge</string>
     <string name="age_message">Cette source contient du contenu pour adultes. Avez-vous 18 ans ou plus ?</string>
     <string name="age_yes">Oui, j\'ai 18 ans ou plus</string>
@@ -94,7 +92,7 @@
     <string name="lock_prompt">Déverrouiller Orvid</string>
     <string name="lock_no_screen">Configurez d\'abord un verrouillage de l\'écran dans les paramètres Android.</string>
     <string name="panic_exit">Sortie d\'urgence (balayez vers le bas avec deux doigts)</string>
-    <string name="tor_bridges">Pont Tor (si votre réseau bloque Tor)</string>
+    <string name="tor_bridges">Cacher Tor à votre réseau (pont, plus lent)</string>
     <string name="tor_bridge_hint">Si votre réseau bloque Tor, activez le pont dans Confidentialité, dans le panneau des filtres.</string>
     <string name="not_interested">Pas intéressé</string>
     <string name="not_interested_done">Compris. Les vidéos de ce type ne seront plus proposées.</string>
@@ -106,7 +104,6 @@
     <string name="orient_trans">Trans</string>
     <string name="next_video">Vidéo suivante</string>
     <string name="previous_video">Vidéo précédente</string>
-    <string name="hide_junk">Masquer les vidéos très courtes ou très longues</string>
     <string name="nothing_here">Rien à afficher pour l’instant. Ajoutez un dépôt de sources pour commencer à chercher.</string>
     <string name="add_repo">Ajouter un dépôt</string>
     <string name="repo_url_hint">Lien du dépôt</string>
@@ -122,7 +119,6 @@
     <string name="other_repos">Autres dépôts</string>
     <string name="secret_added">Sources cachées ajoutées</string>
     <string name="secret_how">Ces sources restent cachées jusqu’à ce que vous les déverrouilliez. Sur l’écran principal, écartez deux doigts, confirmez votre âge, puis activez les sources dans le panneau des filtres.</string>
-    <string name="dev_mode">Mode développeur</string>
     <string name="subtitle_failed">Impossible de charger les sous-titres</string>
     <string name="download">Télécharger</string>
     <string name="download_audio">Audio seul</string>
@@ -148,4 +144,15 @@
     <string name="trace_summary">%1$d sources parcourues en %2$s s</string>
     <string name="trace_copied">Journal de recherche copié</string>
     <string name="trace_running">Recherche dans %1$d sources</string>
+    <string name="health_skipped">ne répond pas, ignoré</string>
+    <string name="health_down">Ne répond pas. Désactivez puis réactivez pour réessayer.</string>
+    <string name="health_flaky">Peu fiable ces derniers temps</string>
+    <string name="play_next">Lire ensuite</string>
+    <string name="add_queue">Ajouter à la file</string>
+    <string name="queued">Dans la file : %1$d</string>
+    <string name="autoplay">Lecture auto</string>
+    <string name="loop">Boucle</string>
+    <string name="up_next">Ensuite dans %1$d : %2$s
+Touchez pour annuler</string>
+    <string name="block_screenshots">Bloquer les captures et l\'enregistrement d\'écran</string>
 </resources>

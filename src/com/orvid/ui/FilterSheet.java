@@ -174,8 +174,13 @@ final class FilterSheet {
             }
             Switch sw = source(activity, column, s.name, Ui.sourceIcon(activity, s), filters.on(s), on -> {
                 filters.set(s, on);
+                if (on) com.orvid.search.Health.reset(s.key);
                 changed[0] = true;
             });
+            if (s instanceof com.orvid.ext.ExtSource) {
+                int health = com.orvid.search.Health.state(s.key);
+                if (health != com.orvid.search.Health.OK) sw.setText(withHealth(activity, s.name, health));
+            }
             if (!s.adult) normalSwitches.add(sw);
             if (s.adult) {
                 adultSwitches.add(sw);
@@ -188,6 +193,7 @@ final class FilterSheet {
                     android.content.SharedPreferences prefs = activity.getSharedPreferences("settings", 0);
                     if (prefs.getBoolean("age_confirmed", false)) {
                         filters.set(s, true);
+                        com.orvid.search.Health.reset(s.key);
                         changed[0] = true;
                         return;
                     }
@@ -235,6 +241,8 @@ final class FilterSheet {
                     }
                     lock.setEnabled(on);
                 });
+        source(activity, column, activity.getString(R.string.block_screenshots), R.drawable.ic_no_screenshot,
+                lock.blockScreenshots(), lock::setBlockScreenshots);
         source(activity, column, activity.getString(R.string.tor_bridges), R.drawable.ic_bridge,
                 com.orvid.app.OrvidApp.get().bridges(), on -> com.orvid.app.OrvidApp.get().setBridges(on));
         source(activity, column, activity.getString(R.string.panic_exit), R.drawable.ic_panic,
@@ -325,6 +333,20 @@ final class FilterSheet {
             flow.addView(chip);
         }
         column.addView(flow);
+    }
+
+    private static CharSequence withHealth(Activity a, String name, int health) {
+        boolean down = health == com.orvid.search.Health.DOWN;
+        String note = a.getString(down ? R.string.health_down : R.string.health_flaky);
+        android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(name).append("\n");
+        int dot = b.length();
+        b.append("\u25CF ");
+        b.setSpan(new android.text.style.ForegroundColorSpan(down ? 0xFFE5484D : 0xFFE5A000), dot, dot + 1, 0);
+        int start = dot + 2;
+        b.append(note);
+        b.setSpan(new android.text.style.ForegroundColorSpan(a.getColor(R.color.text_secondary)), start, b.length(), 0);
+        b.setSpan(new android.text.style.RelativeSizeSpan(0.8f), dot, b.length(), 0);
+        return b;
     }
 
     private static Switch source(Activity a, LinearLayout column, String name, int icon, boolean on, BoolPick pick) {

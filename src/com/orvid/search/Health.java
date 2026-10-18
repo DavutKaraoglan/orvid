@@ -1,0 +1,63 @@
+package com.orvid.search;
+
+import android.content.SharedPreferences;
+
+import com.orvid.app.OrvidApp;
+
+public final class Health {
+
+    public static final int OK = 0;
+    public static final int FLAKY = 1;
+    public static final int DOWN = 2;
+
+    private static final int FLAKY_AT = 2;
+    private static final int DOWN_AT = 5;
+    private static final int EMPTY_FLAKY_AT = 6;
+    private static final long RETRY_MS = 6 * 60 * 60 * 1000L;
+
+    private Health() {
+    }
+
+    private static SharedPreferences prefs() {
+        return OrvidApp.get().getSharedPreferences("health", 0);
+    }
+
+    public static synchronized int state(String key) {
+        SharedPreferences p = prefs();
+        int fails = p.getInt(key + ".fails", 0);
+        if (fails >= DOWN_AT) return DOWN;
+        return fails >= FLAKY_AT || p.getInt(key + ".empty", 0) >= EMPTY_FLAKY_AT ? FLAKY : OK;
+    }
+
+    public static synchronized boolean skip(String key) {
+        SharedPreferences p = prefs();
+        if (p.getInt(key + ".fails", 0) < DOWN_AT) return false;
+        long now = System.currentTimeMillis();
+        if (now - p.getLong(key + ".tried", 0) < RETRY_MS) return true;
+        p.edit().putLong(key + ".tried", now).apply();
+        return false;
+    }
+
+    public static synchronized void ok(String key) {
+        SharedPreferences p = prefs();
+        if (!p.contains(key + ".fails") && !p.contains(key + ".empty")) return;
+        p.edit().remove(key + ".fails").remove(key + ".tried").remove(key + ".empty").apply();
+    }
+
+    public static synchronized void fail(String key) {
+        SharedPreferences p = prefs();
+        int fails = p.getInt(key + ".fails", 0) + 1;
+        SharedPreferences.Editor e = p.edit().putInt(key + ".fails", fails);
+        if (fails == DOWN_AT) e.putLong(key + ".tried", System.currentTimeMillis());
+        e.apply();
+    }
+
+    public static synchronized void empty(String key) {
+        SharedPreferences p = prefs();
+        p.edit().putInt(key + ".empty", p.getInt(key + ".empty", 0) + 1).apply();
+    }
+
+    public static synchronized void reset(String key) {
+        ok(key);
+    }
+}

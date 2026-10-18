@@ -593,6 +593,18 @@ final class PlayerControls implements Player.Listener {
                 sheet.replaceWith(this::showSubtitles);
             });
         }
+        boolean autoOn = com.orvid.app.OrvidApp.get().autoplay();
+        sheet.row(R.drawable.ic_autoplay, activity.getString(R.string.autoplay),
+                activity.getString(autoOn ? R.string.on : R.string.off), () -> {
+            com.orvid.app.OrvidApp.get().setAutoplay(!autoOn);
+            sheet.dismiss();
+        });
+        boolean loopOn = player.getRepeatMode() == Player.REPEAT_MODE_ONE;
+        sheet.row(R.drawable.ic_loop, activity.getString(R.string.loop),
+                activity.getString(loopOn ? R.string.on : R.string.off), () -> {
+            player.setRepeatMode(loopOn ? Player.REPEAT_MODE_OFF : Player.REPEAT_MODE_ONE);
+            sheet.dismiss();
+        });
         boolean debugOn = com.orvid.app.OrvidApp.get().debugOverlay();
         sheet.row(R.drawable.ic_bug, activity.getString(R.string.debug_overlay),
                 activity.getString(debugOn ? R.string.on : R.string.off), () -> {

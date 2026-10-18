@@ -58,8 +58,6 @@
     <string name="filter_type">Jenis</string>
     <string name="type_videos">Video</string>
     <string name="type_shorts">Shorts</string>
-    <string name="filter_content">Konten</string>
-    <string name="hide_adult">Sembunyikan konten 18+</string>
     <string name="age_title">Verifikasi usia</string>
     <string name="age_message">Sumber ini berisi konten dewasa. Apakah usia Anda 18 tahun atau lebih?</string>
     <string name="age_yes">Ya, usia saya 18 tahun atau lebih</string>
@@ -94,7 +92,7 @@
     <string name="lock_prompt">Buka kunci Orvid</string>
     <string name="lock_no_screen">Atur kunci layar di setelan Android terlebih dahulu.</string>
     <string name="panic_exit">Keluar darurat (geser ke bawah dengan dua jari)</string>
-    <string name="tor_bridges">Bridge Tor (jika jaringan Anda memblokir Tor)</string>
+    <string name="tor_bridges">Sembunyikan Tor dari jaringan Anda (bridge, lebih lambat)</string>
     <string name="tor_bridge_hint">Jika jaringan Anda memblokir Tor, aktifkan bridge di bagian Privasi pada panel filter.</string>
     <string name="not_interested">Tidak tertarik</string>
     <string name="not_interested_done">Oke. Video seperti ini tidak akan disarankan.</string>
@@ -106,7 +104,6 @@
     <string name="orient_trans">Trans</string>
     <string name="next_video">Video berikutnya</string>
     <string name="previous_video">Video sebelumnya</string>
-    <string name="hide_junk">Sembunyikan video yang sangat pendek atau sangat panjang</string>
     <string name="nothing_here">Belum ada apa pun di sini. Tambahkan repositori sumber untuk mulai mencari.</string>
     <string name="add_repo">Tambah repositori</string>
     <string name="repo_url_hint">Tautan repositori</string>
@@ -122,7 +119,6 @@
     <string name="other_repos">Repositori lain</string>
     <string name="secret_added">Sumber tersembunyi ditambahkan</string>
     <string name="secret_how">Sumber ini tetap tersembunyi sampai kamu membukanya. Di layar utama, renggangkan dua jari, konfirmasi usiamu, lalu aktifkan sumber di panel filter.</string>
-    <string name="dev_mode">Mode pengembang</string>
     <string name="subtitle_failed">Subtitel tidak dapat dimuat</string>
     <string name="download">Unduh</string>
     <string name="download_audio">Audio saja</string>
@@ -148,4 +144,15 @@
     <string name="trace_summary">%1$d sumber dicari dalam %2$s dtk</string>
     <string name="trace_copied">Log pencarian disalin</string>
     <string name="trace_running">Mencari di %1$d sumber</string>
+    <string name="health_skipped">tidak merespons, dilewati</string>
+    <string name="health_down">Tidak merespons. Matikan lalu nyalakan untuk mencoba lagi.</string>
+    <string name="health_flaky">Kurang andal belakangan ini</string>
+    <string name="play_next">Putar berikutnya</string>
+    <string name="add_queue">Tambah ke antrean</string>
+    <string name="queued">Dalam antrean: %1$d</string>
+    <string name="autoplay">Putar otomatis</string>
+    <string name="loop">Ulangi</string>
+    <string name="up_next">Berikutnya dalam %1$d: %2$s
+Ketuk untuk membatalkan</string>
+    <string name="block_screenshots">Blokir tangkapan dan rekaman layar</string>
 </resources>

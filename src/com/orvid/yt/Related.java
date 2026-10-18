@@ -12,16 +12,12 @@ import org.schabi.newpipe.extractor.ServiceList;
 import org.schabi.newpipe.extractor.stream.StreamInfoItem;
 import org.schabi.newpipe.extractor.stream.StreamType;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.zip.GZIPInputStream;
 
 public final class Related {
 
@@ -106,14 +102,7 @@ public final class Related {
                 }
                 int code = c.getResponseCode();
                 if (code >= 400) throw new IOException("HTTP " + code);
-                InputStream in = c.getInputStream();
-                if ("gzip".equalsIgnoreCase(c.getContentEncoding())) in = new GZIPInputStream(in);
-                ByteArrayOutputStream buf = new ByteArrayOutputStream();
-                try (InputStream s = in) {
-                    byte[] chunk = new byte[16384];
-                    for (int n = s.read(chunk); n > 0; n = s.read(chunk)) buf.write(chunk, 0, n);
-                }
-                return new String(buf.toByteArray(), StandardCharsets.UTF_8);
+                return Fetch.readBody(c);
             });
         } catch (IOException e) {
             throw e;

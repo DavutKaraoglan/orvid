@@ -490,9 +490,17 @@ final class VideoAdapter extends BaseAdapter {
             }
             stopPreview();
             android.widget.PopupMenu menu = new android.widget.PopupMenu(context, thumb != null ? thumb : v);
-            menu.getMenu().add(0, 1, 0, R.string.not_interested);
-            menu.getMenu().add(0, 2, 1, R.string.source_off);
+            menu.getMenu().add(0, 3, 0, R.string.play_next);
+            menu.getMenu().add(0, 4, 1, R.string.add_queue);
+            menu.getMenu().add(0, 1, 2, R.string.not_interested);
+            menu.getMenu().add(0, 2, 3, R.string.source_off);
             menu.setOnMenuItemClickListener(m -> {
+                if (m.getItemId() == 3 || m.getItemId() == 4) {
+                    int n = m.getItemId() == 3 ? com.orvid.play.Queue.playNext(item) : com.orvid.play.Queue.add(item);
+                    android.widget.Toast.makeText(context, context.getString(R.string.queued, n), android.widget.Toast.LENGTH_SHORT).show();
+                    if (context instanceof PlayerActivity) ((PlayerActivity) context).queueChanged();
+                    return true;
+                }
                 if (m.getItemId() == 2) {
                     turnOffSource(item);
                     return true;

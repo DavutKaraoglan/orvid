@@ -58,8 +58,6 @@
     <string name="filter_type">Тип</string>
     <string name="type_videos">Видео</string>
     <string name="type_shorts">Shorts</string>
-    <string name="filter_content">Контент</string>
-    <string name="hide_adult">Скрыть контент 18+</string>
     <string name="age_title">Проверка возраста</string>
     <string name="age_message">Этот источник содержит контент для взрослых. Вам есть 18 лет?</string>
     <string name="age_yes">Да, мне есть 18 лет</string>
@@ -94,7 +92,7 @@
     <string name="lock_prompt">Разблокировать Orvid</string>
     <string name="lock_no_screen">Сначала настройте блокировку экрана в настройках Android.</string>
     <string name="panic_exit">Экстренный выход (проведите вниз двумя пальцами)</string>
-    <string name="tor_bridges">Мост Tor (если ваша сеть блокирует Tor)</string>
+    <string name="tor_bridges">Скрыть Tor от вашей сети (мост, медленнее)</string>
     <string name="tor_bridge_hint">Если ваша сеть блокирует Tor, включите мост в разделе «Конфиденциальность» на панели фильтров.</string>
     <string name="not_interested">Не интересует</string>
     <string name="not_interested_done">Понятно. Похожие видео больше не будут предлагаться.</string>
@@ -106,7 +104,6 @@
     <string name="orient_trans">Транс</string>
     <string name="next_video">Следующее видео</string>
     <string name="previous_video">Предыдущее видео</string>
-    <string name="hide_junk">Скрывать очень короткие и очень длинные видео</string>
     <string name="nothing_here">Здесь пока ничего нет. Добавьте репозиторий источников, чтобы начать поиск.</string>
     <string name="add_repo">Добавить репозиторий</string>
     <string name="repo_url_hint">Ссылка на репозиторий</string>
@@ -122,7 +119,6 @@
     <string name="other_repos">Другие репозитории</string>
     <string name="secret_added">Скрытые источники добавлены</string>
     <string name="secret_how">Эти источники скрыты, пока вы их не откроете. На главном экране разведите два пальца, подтвердите возраст и включите источники в панели фильтров.</string>
-    <string name="dev_mode">Режим разработчика</string>
     <string name="subtitle_failed">Не удалось загрузить субтитры</string>
     <string name="download">Скачать</string>
     <string name="download_audio">Только аудио</string>
@@ -148,4 +144,15 @@
     <string name="trace_summary">источников: %1$d, за %2$s с</string>
     <string name="trace_copied">Журнал поиска скопирован</string>
     <string name="trace_running">Поиск в источниках: %1$d</string>
+    <string name="health_skipped">не отвечает, пропущено</string>
+    <string name="health_down">Не отвечает. Выключите и включите, чтобы попробовать снова.</string>
+    <string name="health_flaky">В последнее время ненадёжен</string>
+    <string name="play_next">Воспроизвести следующим</string>
+    <string name="add_queue">Добавить в очередь</string>
+    <string name="queued">В очереди: %1$d</string>
+    <string name="autoplay">Автовоспроизведение</string>
+    <string name="loop">Повтор</string>
+    <string name="up_next">Далее через %1$d: %2$s
+Нажмите, чтобы отменить</string>
+    <string name="block_screenshots">Запретить скриншоты и запись экрана</string>
 </resources>

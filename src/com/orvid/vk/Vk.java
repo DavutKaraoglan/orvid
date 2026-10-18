@@ -10,9 +10,7 @@ import org.schabi.newpipe.extractor.Image;
 import org.schabi.newpipe.extractor.stream.StreamInfoItem;
 import org.schabi.newpipe.extractor.stream.StreamType;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URLEncoder;
@@ -25,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
 
 public final class Vk {
 
@@ -272,17 +269,9 @@ public final class Vk {
                     out.write(raw);
                 }
                 int code = c.getResponseCode();
-                InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
-                ByteArrayOutputStream buf = new ByteArrayOutputStream();
-                if (in != null) {
-                    if ("gzip".equalsIgnoreCase(c.getContentEncoding())) in = new GZIPInputStream(in);
-                    try (InputStream s = in) {
-                        byte[] chunk = new byte[16384];
-                        for (int n = s.read(chunk); n > 0; n = s.read(chunk)) buf.write(chunk, 0, n);
-                    }
-                }
+                String body = Fetch.readBody(c);
                 if (code >= 300) throw new IOException("Captcha needed (HTTP " + code + ")");
-                return new String(buf.toByteArray(), StandardCharsets.UTF_8);
+                return body;
             });
             Diag.mark(label + " " + text.length() / 1024 + "KB " + (System.currentTimeMillis() - began) + "ms");
             return text;

@@ -58,8 +58,6 @@
     <string name="filter_type">Typ</string>
     <string name="type_videos">Filmy</string>
     <string name="type_shorts">Shorts</string>
-    <string name="filter_content">Treści</string>
-    <string name="hide_adult">Ukryj treści 18+</string>
     <string name="age_title">Weryfikacja wieku</string>
     <string name="age_message">To źródło zawiera treści dla dorosłych. Czy masz co najmniej 18 lat?</string>
     <string name="age_yes">Tak, mam co najmniej 18 lat</string>
@@ -94,7 +92,7 @@
     <string name="lock_prompt">Odblokuj Orvid</string>
     <string name="lock_no_screen">Najpierw ustaw blokadę ekranu w ustawieniach Androida.</string>
     <string name="panic_exit">Szybkie wyjście (przesuń w dół dwoma palcami)</string>
-    <string name="tor_bridges">Most Tor (jeśli twoja sieć blokuje Tor)</string>
+    <string name="tor_bridges">Ukryj Tor przed siecią (most, wolniej)</string>
     <string name="tor_bridge_hint">Jeśli twoja sieć blokuje Tor, włącz most w sekcji Prywatność w panelu filtrów.</string>
     <string name="not_interested">Nie interesuje mnie</string>
     <string name="not_interested_done">Jasne. Podobne filmy nie będą już proponowane.</string>
@@ -106,7 +104,6 @@
     <string name="orient_trans">Trans</string>
     <string name="next_video">Następny film</string>
     <string name="previous_video">Poprzedni film</string>
-    <string name="hide_junk">Ukryj bardzo krótkie lub bardzo długie filmy</string>
     <string name="nothing_here">Nic tu jeszcze nie ma. Dodaj repozytorium źródeł, aby zacząć szukać.</string>
     <string name="add_repo">Dodaj repozytorium</string>
     <string name="repo_url_hint">Link do repozytorium</string>
@@ -122,7 +119,6 @@
     <string name="other_repos">Inne repozytoria</string>
     <string name="secret_added">Dodano ukryte źródła</string>
     <string name="secret_how">Te źródła pozostaną ukryte, dopóki ich nie odblokujesz. Na ekranie głównym rozsuń dwa palce, potwierdź wiek, a potem włącz źródła w panelu filtrów.</string>
-    <string name="dev_mode">Tryb dewelopera</string>
     <string name="subtitle_failed">Nie udało się wczytać napisów</string>
     <string name="download">Pobierz</string>
     <string name="download_audio">Tylko dźwięk</string>
@@ -148,4 +144,15 @@
     <string name="trace_summary">przeszukano %1$d źródeł w %2$s s</string>
     <string name="trace_copied">Skopiowano dziennik wyszukiwania</string>
     <string name="trace_running">Przeszukuje źródła: %1$d</string>
+    <string name="health_skipped">nie odpowiada, pominięto</string>
+    <string name="health_down">Nie odpowiada. Wyłącz i włącz, aby spróbować ponownie.</string>
+    <string name="health_flaky">Ostatnio zawodne</string>
+    <string name="play_next">Odtwórz następne</string>
+    <string name="add_queue">Dodaj do kolejki</string>
+    <string name="queued">W kolejce: %1$d</string>
+    <string name="autoplay">Autoodtwarzanie</string>
+    <string name="loop">Zapętl</string>
+    <string name="up_next">Następne za %1$d: %2$s
+Dotknij, aby anulować</string>
+    <string name="block_screenshots">Blokuj zrzuty i nagrywanie ekranu</string>
 </resources>

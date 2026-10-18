@@ -256,12 +256,21 @@ public final class Images {
 
     private static String circuitFor(String url) {
         String host = android.net.Uri.parse(url).getHost();
-        int slot = Math.floorMod(host == null ? 0 : host.hashCode(), IMAGE_CIRCUITS);
+        String spread = host != null && host.endsWith("ytimg.com") ? url : host;
+        int slot = Math.floorMod(spread == null ? 0 : spread.hashCode(), IMAGE_CIRCUITS);
         return "images-" + slot;
     }
 
+    private static final int MEDIUM_WIDTH = 520;
+
     private static String smaller(String url, int targetWidth) {
-        if (targetWidth > 400) return url;
+        if (targetWidth > MEDIUM_WIDTH) return url;
+        if (targetWidth > 400) {
+            if (!url.contains("i.ytimg.com/") || !url.matches(".*/(hq720|sddefault|maxresdefault)\\.(jpg|webp).*")) return url;
+            String out = url.replaceFirst("/(hq720|sddefault|maxresdefault)\\.(jpg|webp)", "/hqdefault.$2");
+            int q = out.indexOf('?');
+            return q > 0 ? out.substring(0, q) : out;
+        }
         if (url.contains(".coub.com/") && url.contains("/big_")) return url.replace("/big_", "/small_");
         if (url.contains(".pstatic.net/") && url.contains("type=o500x280")) return url.replaceFirst("type=o500x280[^&]*", "type=w320");
         if (url.contains(".porngo.com/") && url.contains("/medium@2x/")) return url.replace("/medium@2x/", "/medium/");

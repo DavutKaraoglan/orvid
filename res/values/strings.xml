@@ -60,8 +60,6 @@
     <string name="filter_type">Type</string>
     <string name="type_videos">Videos</string>
     <string name="type_shorts">Shorts</string>
-    <string name="filter_content">Content</string>
-    <string name="hide_adult">Hide 18+ content</string>
     <string name="age_title">Age check</string>
     <string name="age_message">This source has adult content. Are you 18 or older?</string>
     <string name="age_yes">Yes, I am 18 or older</string>
@@ -96,7 +94,7 @@
     <string name="lock_prompt">Unlock Orvid</string>
     <string name="lock_no_screen">Set a screen lock in Android settings first.</string>
     <string name="panic_exit">Panic exit (swipe down with two fingers)</string>
-    <string name="tor_bridges">Tor bridge (if your network blocks Tor)</string>
+    <string name="tor_bridges">Hide Tor from your network (bridge, slower)</string>
     <string name="tor_bridge_hint">If your network blocks Tor, turn on the bridge under Privacy in the filter panel.</string>
     <string name="not_interested">Not interested</string>
     <string name="not_interested_done">Got it. Videos like this won\'t be suggested.</string>
@@ -108,7 +106,6 @@
     <string name="orient_trans">Trans</string>
     <string name="next_video">Next video</string>
     <string name="previous_video">Previous video</string>
-    <string name="hide_junk">Hide very short or very long videos</string>
     <string name="nothing_here">Nothing to show here yet. Add a source repository to start searching.</string>
     <string name="add_repo">Add repository</string>
     <string name="repo_url_hint">Repository link</string>
@@ -124,7 +121,6 @@
     <string name="other_repos">Other repositories</string>
     <string name="secret_added">Hidden sources added</string>
     <string name="secret_how">These sources stay hidden until you unlock them. On the main screen, spread two fingers apart, confirm your age, then turn the sources on in the filter panel.</string>
-    <string name="dev_mode">Developer mode</string>
     <string name="subtitle_failed">Subtitles could not be loaded</string>
     <string name="download">Download</string>
     <string name="download_audio">Audio only</string>
@@ -150,4 +146,15 @@
     <string name="trace_summary">%1$d sources searched in %2$s s</string>
     <string name="trace_copied">Search log copied</string>
     <string name="trace_running">Searching %1$d sources</string>
+    <string name="health_skipped">not responding, skipped</string>
+    <string name="health_down">Not responding. Turn it off and on to try again.</string>
+    <string name="health_flaky">Unreliable lately</string>
+    <string name="play_next">Play next</string>
+    <string name="add_queue">Add to queue</string>
+    <string name="queued">In queue: %1$d</string>
+    <string name="autoplay">Autoplay</string>
+    <string name="loop">Loop</string>
+    <string name="up_next">Up next in %1$d: %2$s
+Tap to cancel</string>
+    <string name="block_screenshots">Block screenshots and screen recording</string>
 </resources>

@@ -11,7 +11,6 @@ import org.schabi.newpipe.extractor.Image;
 import org.schabi.newpipe.extractor.stream.StreamInfoItem;
 import org.schabi.newpipe.extractor.stream.StreamType;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -22,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
 
 public final class Twitch {
 
@@ -225,17 +223,9 @@ public final class Twitch {
                     out.write(raw);
                 }
                 int code = c.getResponseCode();
-                InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
-                ByteArrayOutputStream buf = new ByteArrayOutputStream();
-                if (in != null) {
-                    if ("gzip".equalsIgnoreCase(c.getContentEncoding())) in = new GZIPInputStream(in);
-                    try (InputStream s = in) {
-                        byte[] chunk = new byte[16384];
-                        for (int n = s.read(chunk); n > 0; n = s.read(chunk)) buf.write(chunk, 0, n);
-                    }
-                }
+                String answer = Fetch.readBody(c);
                 if (code >= 400) throw new IOException("HTTP " + code);
-                return new String(buf.toByteArray(), StandardCharsets.UTF_8);
+                return answer;
             });
         } catch (IOException e) {
             Diag.mark(label + " FAIL " + e.getMessage());

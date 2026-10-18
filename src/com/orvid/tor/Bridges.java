@@ -59,7 +59,7 @@ public final class Bridges {
             if (last != Mode.DIRECT && available(last)) out.add(last);
             for (Mode m : Mode.values()) if (m != Mode.DIRECT && !out.contains(m) && available(m)) out.add(m);
         }
-        if (out.isEmpty()) out.add(Mode.DIRECT);
+        if (out.isEmpty() && !enabled) out.add(Mode.DIRECT);
         return out;
     }
 

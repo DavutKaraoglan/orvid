@@ -46,13 +46,13 @@ public final class Resolve {
     private static final java.util.concurrent.ExecutorService PREPARE = java.util.concurrent.Executors.newFixedThreadPool(2);
 
     public static boolean preparable(String url) {
-        if (url == null || com.orvid.adult.Tubes.webOnly(url)) return false;
+        if (url == null) return false;
         com.orvid.ext.ExtSource ext = com.orvid.ext.Registry.forUrl(url);
         if (ext != null) return !ext.webPlayback && !ext.hedged();
         if (com.orvid.dm.Dailymotion.videoId(url) != null || com.orvid.vk.Vk.videoId(url) != null) return true;
         return com.orvid.tw.Twitch.vodId(url) != null || com.orvid.tw.Twitch.clipSlug(url) != null
                 || com.orvid.pt.PeerTube.handles(url) || com.orvid.ia.Archive.itemId(url) != null
-                || com.orvid.more.Sites.forUrl(url) != null || com.orvid.adult.Tubes.forUrl(url) != null;
+                || com.orvid.more.Sites.forUrl(url) != null;
     }
 
     @SuppressWarnings("unchecked")
@@ -126,11 +126,6 @@ public final class Resolve {
         }
         com.orvid.more.Site site = com.orvid.more.Sites.forUrl(url);
         if (site != null) return site.resolve(c, url);
-        com.orvid.adult.HtmlTube tube = com.orvid.adult.Tubes.forUrl(url);
-        if (tube != null) {
-            com.orvid.adult.HtmlTube.Media m = tube.resolve(c, url);
-            return new Direct(m.title, "", m.mp4, false, m.referer);
-        }
         return null;
     }
 }

@@ -58,8 +58,6 @@
     <string name="filter_type">Tür</string>
     <string name="type_videos">Videolar</string>
     <string name="type_shorts">Shorts</string>
-    <string name="filter_content">İçerik</string>
-    <string name="hide_adult">+18 içeriği gizle</string>
     <string name="age_title">Yaş onayı</string>
     <string name="age_message">Bu kaynak yetişkin içeriği içerir. 18 yaşından büyük müsün?</string>
     <string name="age_yes">Evet, 18 yaşından büyüğüm</string>
@@ -94,7 +92,7 @@
     <string name="lock_prompt">Orvid\'in kilidini aç</string>
     <string name="lock_no_screen">Önce Android ayarlarından bir ekran kilidi belirle.</string>
     <string name="panic_exit">Panik çıkışı (iki parmakla aşağı kaydır)</string>
-    <string name="tor_bridges">Tor köprüsü (ağın Tor\'u engelliyorsa)</string>
+    <string name="tor_bridges">Tor\'u ağdan gizle (köprü, daha yavaş)</string>
     <string name="tor_bridge_hint">Ağın Tor\'u engelliyorsa filtre panelindeki Gizlilik bölümünden köprüyü aç.</string>
     <string name="not_interested">İlgilenmiyorum</string>
     <string name="not_interested_done">Anlaşıldı. Bunun gibi videolar önerilmeyecek.</string>
@@ -106,7 +104,6 @@
     <string name="orient_trans">Trans</string>
     <string name="next_video">Sonraki video</string>
     <string name="previous_video">Önceki video</string>
-    <string name="hide_junk">Çok kısa veya çok uzun videoları gizle</string>
     <string name="nothing_here">Burada gösterilecek bir şey yok. Aramaya başlamak için bir kaynak deposu ekle.</string>
     <string name="add_repo">Depo ekle</string>
     <string name="repo_url_hint">Depo linki</string>
@@ -122,7 +119,6 @@
     <string name="other_repos">Diğer depolar</string>
     <string name="secret_added">Gizli kaynaklar eklendi</string>
     <string name="secret_how">Bu kaynaklar sen açana kadar gizli kalır. Ana ekranda iki parmağını birbirinden uzaklaştır, yaşını onayla, sonra filtre panelinden kaynakları aç.</string>
-    <string name="dev_mode">Geliştirici modu</string>
     <string name="subtitle_failed">Altyazı yüklenemedi</string>
     <string name="download">İndir</string>
     <string name="download_audio">Sadece ses</string>
@@ -148,4 +144,15 @@
     <string name="trace_summary">%1$d kaynak %2$s sn\'de tarandı</string>
     <string name="trace_copied">Arama kaydı kopyalandı</string>
     <string name="trace_running">%1$d kaynakta aranıyor</string>
+    <string name="health_skipped">yanıt vermiyor, atlandı</string>
+    <string name="health_down">Yanıt vermiyor. Yeniden denemek için kapatıp açın.</string>
+    <string name="health_flaky">Son zamanlarda güvenilmez</string>
+    <string name="play_next">Sırada oynat</string>
+    <string name="add_queue">Sıraya ekle</string>
+    <string name="queued">Sırada: %1$d</string>
+    <string name="autoplay">Otomatik oynat</string>
+    <string name="loop">Döngü</string>
+    <string name="up_next">%1$d sn sonra: %2$s
+İptal için dokunun</string>
+    <string name="block_screenshots">Ekran görüntüsünü ve kaydını engelle</string>
 </resources>

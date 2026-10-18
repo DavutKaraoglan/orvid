@@ -58,8 +58,6 @@
     <string name="filter_type">النوع</string>
     <string name="type_videos">فيديوهات</string>
     <string name="type_shorts">Shorts</string>
-    <string name="filter_content">المحتوى</string>
-    <string name="hide_adult">إخفاء محتوى +18</string>
     <string name="age_title">التحقق من العمر</string>
     <string name="age_message">يحتوي هذا المصدر على محتوى للبالغين. هل عمرك 18 عامًا أو أكثر؟</string>
     <string name="age_yes">نعم، عمري 18 عامًا أو أكثر</string>
@@ -94,7 +92,7 @@
     <string name="lock_prompt">فتح قفل Orvid</string>
     <string name="lock_no_screen">اضبط أولًا قفل الشاشة من إعدادات Android.</string>
     <string name="panic_exit">خروج طارئ (اسحب للأسفل بإصبعين)</string>
-    <string name="tor_bridges">جسر Tor (إذا كانت شبكتك تحظر Tor)</string>
+    <string name="tor_bridges">إخفاء Tor عن شبكتك (جسر، أبطأ)</string>
     <string name="tor_bridge_hint">إذا كانت شبكتك تحظر Tor، فشغّل الجسر من قسم الخصوصية في لوحة عوامل التصفية.</string>
     <string name="not_interested">غير مهتم</string>
     <string name="not_interested_done">حسنًا. لن يتم اقتراح فيديوهات مثل هذا.</string>
@@ -106,7 +104,6 @@
     <string name="orient_trans">عابر</string>
     <string name="next_video">الفيديو التالي</string>
     <string name="previous_video">الفيديو السابق</string>
-    <string name="hide_junk">إخفاء الفيديوهات القصيرة جدًا أو الطويلة جدًا</string>
     <string name="nothing_here">لا يوجد شيء هنا بعد. أضف مستودع مصادر لتبدأ البحث.</string>
     <string name="add_repo">إضافة مستودع</string>
     <string name="repo_url_hint">رابط المستودع</string>
@@ -122,7 +119,6 @@
     <string name="other_repos">مستودعات أخرى</string>
     <string name="secret_added">أُضيفت مصادر مخفية</string>
     <string name="secret_how">تبقى هذه المصادر مخفية حتى تفتحها. في الشاشة الرئيسية باعد بين إصبعين، وأكّد عمرك، ثم فعّل المصادر من لوحة الفلاتر.</string>
-    <string name="dev_mode">وضع المطوّر</string>
     <string name="subtitle_failed">تعذّر تحميل الترجمة</string>
     <string name="download">تنزيل</string>
     <string name="download_audio">الصوت فقط</string>
@@ -148,4 +144,15 @@
     <string name="trace_summary">تم البحث في %1$d مصدر خلال %2$s ث</string>
     <string name="trace_copied">تم نسخ سجل البحث</string>
     <string name="trace_running">جارٍ البحث في %1$d مصدر</string>
+    <string name="health_skipped">لا يستجيب، تم التخطي</string>
+    <string name="health_down">لا يستجيب. أوقفه وشغّله لإعادة المحاولة.</string>
+    <string name="health_flaky">غير موثوق مؤخرًا</string>
+    <string name="play_next">تشغيل التالي</string>
+    <string name="add_queue">إضافة إلى قائمة الانتظار</string>
+    <string name="queued">في القائمة: %1$d</string>
+    <string name="autoplay">تشغيل تلقائي</string>
+    <string name="loop">تكرار</string>
+    <string name="up_next">التالي خلال %1$d: %2$s
+انقر للإلغاء</string>
+    <string name="block_screenshots">منع لقطات الشاشة وتسجيلها</string>
 </resources>

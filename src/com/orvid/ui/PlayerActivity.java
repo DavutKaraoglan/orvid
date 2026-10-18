@@ -1,13 +1,11 @@
 package com.orvid.ui;
 
 import android.app.Activity;
-import android.content.ContentValues;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.TextureView;
@@ -259,6 +257,9 @@ public final class PlayerActivity extends Activity {
                     buffering.setVisibility(View.GONE);
                     Diag.mark("player ready");
                     applySprite();
+                    cancelUpNext();
+                } else if (state == Player.STATE_ENDED) {
+                    upNext();
                 }
             }
 
@@ -426,10 +427,6 @@ public final class PlayerActivity extends Activity {
         else if (com.orvid.pt.PeerTube.handles(pageUrl)) loadPeerTube(pageUrl);
         else if (com.orvid.ia.Archive.itemId(pageUrl) != null) loadArchive(com.orvid.ia.Archive.itemId(pageUrl));
         else if (com.orvid.more.Sites.forUrl(pageUrl) != null) loadDirect(c -> com.orvid.more.Sites.forUrl(pageUrl).resolve(c, pageUrl));
-        else if (com.orvid.adult.Tubes.forUrl(pageUrl) != null) loadDirect(c -> {
-            com.orvid.adult.HtmlTube.Media m = com.orvid.adult.Tubes.forUrl(pageUrl).resolve(c, pageUrl);
-            return new com.orvid.play.Direct(m.title, "", m.mp4, false, m.referer);
-        });
         else if (newPipeHandles(pageUrl)) loadNewPipe(true);
         else loadGeneric();
     }
@@ -635,8 +632,78 @@ public final class PlayerActivity extends Activity {
     }
 
     private void openNext() {
+        cancelUpNext();
+        StreamInfoItem queued = com.orvid.play.Queue.poll();
+        if (queued != null) {
+            openRelated(queued);
+            return;
+        }
         List<StreamInfoItem> list = related.items();
         if (!list.isEmpty()) openRelated(list.get(0));
+    }
+
+    private StreamInfoItem nextItem() {
+        StreamInfoItem queued = com.orvid.play.Queue.peek();
+        if (queued != null) return queued;
+        List<StreamInfoItem> list = related.items();
+        return list.isEmpty() ? null : list.get(0);
+    }
+
+    void queueChanged() {
+        refreshSkip();
+    }
+
+    private static final int UP_NEXT_SECONDS = 5;
+    private TextView upNext;
+    private int upNextLeft;
+    private final Runnable upNextTick = new Runnable() {
+        @Override
+        public void run() {
+            if (upNext == null) return;
+            if (upNextLeft <= 0) {
+                openNext();
+                return;
+            }
+            StreamInfoItem item = nextItem();
+            if (item == null) {
+                cancelUpNext();
+                return;
+            }
+            upNext.setText(getString(R.string.up_next, upNextLeft, item.getName()));
+            upNextLeft--;
+            stage.postDelayed(this, 1000);
+        }
+    };
+
+    private void upNext() {
+        if (player == null || player.getRepeatMode() != Player.REPEAT_MODE_OFF || !OrvidApp.get().autoplay()
+                || nextItem() == null || upNext != null) return;
+        upNext = new TextView(this);
+        upNext.setTextColor(getColor(R.color.badge_text));
+        upNext.setTextSize(13);
+        upNext.setMaxLines(3);
+        upNext.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        int pad = Ui.dp(this, 12);
+        upNext.setPadding(pad, Ui.dp(this, 8), pad, Ui.dp(this, 8));
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(getColor(R.color.badge_bg));
+        bg.setCornerRadius(Ui.dp(this, 16));
+        upNext.setBackground(bg);
+        upNext.setOnClickListener(v -> cancelUpNext());
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, android.view.Gravity.BOTTOM | android.view.Gravity.CENTER_HORIZONTAL);
+        lp.bottomMargin = Ui.dp(this, 28);
+        lp.leftMargin = lp.rightMargin = Ui.dp(this, 24);
+        stage.addView(upNext, lp);
+        upNextLeft = UP_NEXT_SECONDS;
+        upNextTick.run();
+    }
+
+    private void cancelUpNext() {
+        if (upNext == null) return;
+        stage.removeCallbacks(upNextTick);
+        stage.removeView(upNext);
+        upNext = null;
     }
 
     private void openPrevious() {
@@ -645,7 +712,7 @@ public final class PlayerActivity extends Activity {
     }
 
     private void refreshSkip() {
-        if (controls != null) controls.showSkip(!BACK.isEmpty(), !related.items().isEmpty());
+        if (controls != null) controls.showSkip(!BACK.isEmpty(), !com.orvid.play.Queue.isEmpty() || !related.items().isEmpty());
     }
 
     private void showAvatar(String use) {
@@ -1210,8 +1277,10 @@ public final class PlayerActivity extends Activity {
             return;
         }
         com.orvid.search.Filters allowed = relatedFilters();
+        String own = ((TextView) header.findViewById(R.id.name)).getText().toString();
         List<StreamInfoItem> fresh = new ArrayList<>();
         for (StreamInfoItem i : items) {
+            if (!com.orvid.search.Ranker.sameScript(own, i.getName())) continue;
             if (sourceOn(allowed, i) && allowed.orientationAccepts(i) && relatedSeen.add(i.getUrl())) fresh.add(i);
         }
         reveal(fresh);
@@ -1270,17 +1339,19 @@ public final class PlayerActivity extends Activity {
             protected void show(com.orvid.yt.Search.Page p) {
                 relatedToken = p.continuation;
                 String own = ((TextView) header.findViewById(R.id.name)).getText().toString();
+                String ownChannel = ((TextView) header.findViewById(R.id.uploader)).getText().toString();
                 List<StreamInfoItem> fresh = new ArrayList<>();
                 int foreign = 0;
                 for (StreamInfoItem i : p.items) {
                     if (i.getUrl().equals(pageUrl) || !sourceOn(relatedFilters(), i)) continue;
-                    if (!com.orvid.search.Ranker.sameScript(own, i.getName())) {
+                    if (!com.orvid.search.Ranker.sameScript(own, i.getName())
+                            || !com.orvid.search.Ranker.nearTopic(own, ownChannel, i, related.items())) {
                         foreign++;
                         continue;
                     }
                     if (relatedSeen.add(i.getUrl())) fresh.add(i);
                 }
-                if (foreign > 0) Diag.mark("related more: " + foreign + " in another script dropped");
+                if (foreign > 0) Diag.mark("related more: " + foreign + " off topic dropped");
                 reveal(fresh);
                 Session.related.addAll(fresh);
                 Session.relatedToken = relatedToken;
@@ -1722,6 +1793,8 @@ public final class PlayerActivity extends Activity {
         if (!text.isEmpty()) description.setText(Html.fromHtml(text, Html.FROM_HTML_MODE_COMPACT));
         List<StreamInfoItem> more = new ArrayList<>();
         for (InfoItem i : info.getRelatedItems()) if (i instanceof StreamInfoItem) more.add((StreamInfoItem) i);
+        more = com.orvid.search.Ranker.similar(info.getName(), info.getUploaderName(), pageUrl, more,
+                java.util.Collections.<StreamInfoItem>emptyList(), true);
         related.set(more);
         header.findViewById(R.id.related_label).setVisibility(more.isEmpty() ? View.GONE : View.VISIBLE);
         if (!forPlayback) return;
@@ -1960,6 +2033,7 @@ public final class PlayerActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        cancelUpNext();
         Diag.listen(null);
         debug.removeCallbacks(saveLive);
         saveDiag();

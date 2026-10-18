@@ -25,6 +25,7 @@ public final class Ranker {
         public final StreamInfoItem item;
         public final double score;
         final int order;
+        int covered;
 
         Scored(StreamInfoItem item, double score, int order) {
             this.item = item;
@@ -48,12 +49,16 @@ public final class Ranker {
         int order = 0;
         for (int src = 0; src < sources.size(); src++) {
             List<StreamInfoItem> list = sources.get(src);
+            boolean literal = weights[src] < 1 && !(tagged != null && src < tagged.length && tagged[src]);
             for (int rank = 0; rank < list.size(); rank++) {
                 StreamInfoItem item = list.get(rank);
                 double s = score(q, ctx, item, rank, weights[src]);
+                if (literal && s >= 0 && !mentions(q, item)) s = LOOSE;
                 com.orvid.app.DevInfo.rank(item, src, rank, s);
                 if (s >= 0) {
-                    all.add(new Scored(item, s, order++));
+                    Scored kept = new Scored(item, s, order++);
+                    kept.covered = coverage(q, item);
+                    all.add(kept);
                     strictBySource[src]++;
                 } else if (s != Double.NEGATIVE_INFINITY) {
                     looseBySource.get(src).add(new Scored(item, s, order++));
@@ -73,6 +78,26 @@ public final class Ranker {
         Collections.sort(loose, (a, b) -> a.order - b.order);
         for (Scored s : loose) out.add(s.item);
         return collapse(out);
+    }
+
+    static int coverage(Query q, StreamInfoItem item) {
+        List<String> words = Query.words(Query.fold(item.getName() == null ? "" : item.getName()));
+        List<String> channel = Query.words(Query.fold(item.getUploaderName() == null ? "" : item.getUploaderName()));
+        int n = 0;
+        for (String t : q.terms) {
+            if (contains(words, t) || contains(channel, t) || Query.acronym(t, words)) n++;
+        }
+        return n;
+    }
+
+    static boolean mentions(Query q, StreamInfoItem item) {
+        if (q.terms.isEmpty()) return true;
+        List<String> words = Query.words(Query.fold(item.getName() == null ? "" : item.getName()));
+        List<String> channel = Query.words(Query.fold(item.getUploaderName() == null ? "" : item.getUploaderName()));
+        for (String t : q.terms) {
+            if (contains(words, t) || contains(channel, t) || Query.acronym(t, words)) return true;
+        }
+        return false;
     }
 
     static void popularity(Context ctx, List<List<StreamInfoItem>> sources) {
@@ -152,7 +177,7 @@ public final class Ranker {
                     double best = pool.get(0).score;
                     for (int i = 1; i < Math.min(pool.size(), 8); i++) {
                         Scored s = pool.get(i);
-                        if (s.item.getServiceId() != a && s.score >= best * 0.7 - 1) {
+                        if (s.item.getServiceId() != a && s.covered >= pool.get(0).covered && s.score >= best * 0.7 - 1) {
                             pick = i;
                             break;
                         }
@@ -163,7 +188,8 @@ public final class Ranker {
                 double best = pool.get(0).score;
                 for (int i = 1; i < Math.min(pool.size(), 8); i++) {
                     Scored s = pool.get(i);
-                    if (channels.getOrDefault(channelKey(s.item), 0) < SAME_CHANNEL && s.score >= best * 0.6) {
+                    if (channels.getOrDefault(channelKey(s.item), 0) < SAME_CHANNEL && s.covered >= pool.get(0).covered
+                            && s.score >= best * 0.6) {
                         pick = i;
                         break;
                     }
@@ -392,7 +418,7 @@ public final class Ranker {
                 boolean sameChannel = !ownChannel.isEmpty()
                         && ownChannel.equals(Query.fold(item.getUploaderName() == null ? "" : item.getUploaderName()));
                 if (!sameChannel && overlap < (trusted ? 1 : needed)) {
-                    weak.add(item);
+                    if (src == 0 || tagBased(item)) weak.add(item);
                     continue;
                 }
                 double s = overlap * 3 + (sameChannel ? 4 : 0) + 4.0 * weights[src] / (1 + rank * 0.3);
@@ -410,9 +436,63 @@ public final class Ranker {
         return out;
     }
 
+    public static boolean nearTopic(String title, String channel, StreamInfoItem item, List<StreamInfoItem> shown) {
+        String itemChannel = Query.fold(item.getUploaderName() == null ? "" : item.getUploaderName());
+        if (!itemChannel.isEmpty()) {
+            if (itemChannel.equals(Query.fold(channel == null ? "" : channel))) return true;
+            for (StreamInfoItem s : shown) {
+                if (itemChannel.equals(Query.fold(s.getUploaderName() == null ? "" : s.getUploaderName()))) return true;
+            }
+        }
+        java.util.Set<String> topic = new java.util.HashSet<>(keyTerms(Query.parse(title == null ? "" : title).terms));
+        java.util.Map<String, Integer> seen = new java.util.HashMap<>();
+        for (StreamInfoItem s : shown) {
+            for (String w : new java.util.HashSet<>(keyTerms(Query.words(Query.fold(s.getName() == null ? "" : s.getName()))))) {
+                if (!Query.isStop(w)) seen.merge(w, 1, Integer::sum);
+            }
+        }
+        for (java.util.Map.Entry<String, Integer> e : seen.entrySet()) if (e.getValue() >= 2) topic.add(e.getKey());
+        List<String> words = Query.words(Query.fold(item.getName() == null ? "" : item.getName()));
+        for (String t : topic) {
+            for (String w : words) if (sameWord(t, w)) return true;
+        }
+        return false;
+    }
+
+    private static boolean tagBased(StreamInfoItem item) {
+        com.orvid.ext.ExtSource ext = com.orvid.ext.Registry.forUrl(item.getUrl());
+        return ext != null && ext.adult;
+    }
+
     public static boolean sameScript(String title, String other) {
         if (title == null || other == null) return true;
-        return Query.script(title).equals(Query.script(other));
+        java.util.Set<String> a = scripts(title);
+        java.util.Set<String> b = scripts(other);
+        if (a.isEmpty() || b.isEmpty()) return true;
+        for (String x : a) if (b.contains(x)) return true;
+        return false;
+    }
+
+    private static final double SCRIPT_SHARE = 0.25;
+
+    static java.util.Set<String> scripts(String text) {
+        java.util.Map<String, Integer> counts = new java.util.HashMap<>();
+        int total = 0;
+        for (int i = 0; i < text.length(); ) {
+            int cp = text.codePointAt(i);
+            i += Character.charCount(cp);
+            if (!Character.isLetter(cp)) continue;
+            Character.UnicodeScript sc = Character.UnicodeScript.of(cp);
+            String group = sc == Character.UnicodeScript.HAN || sc == Character.UnicodeScript.HIRAGANA
+                    || sc == Character.UnicodeScript.KATAKANA ? "cjk" : sc.name();
+            counts.merge(group, 1, Integer::sum);
+            total++;
+        }
+        java.util.Set<String> out = new java.util.HashSet<>();
+        for (java.util.Map.Entry<String, Integer> e : counts.entrySet()) {
+            if (e.getValue() >= SCRIPT_SHARE * total) out.add(e.getKey());
+        }
+        return out;
     }
 
     public static List<int[]> highlights(Query q, String title) {

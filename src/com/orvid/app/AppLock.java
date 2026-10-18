@@ -42,6 +42,24 @@ public final class AppLock implements Application.ActivityLifecycleCallbacks {
     public void setEnabled(boolean on) {
         prefs.edit().putBoolean(KEY, on).apply();
         if (!on) locked = false;
+        applySecure();
+    }
+
+    public boolean blockScreenshots() {
+        return prefs.getBoolean("block_screenshots", false);
+    }
+
+    public void setBlockScreenshots(boolean on) {
+        prefs.edit().putBoolean("block_screenshots", on).apply();
+        applySecure();
+    }
+
+    private boolean secureWanted() {
+        return enabled() || blockScreenshots();
+    }
+
+    private void applySecure() {
+        boolean on = secureWanted();
         for (WeakReference<Activity> ref : alive) {
             Activity a = ref.get();
             if (a != null) secure(a, on);
@@ -61,7 +79,7 @@ public final class AppLock implements Application.ActivityLifecycleCallbacks {
     @Override
     public void onActivityCreated(Activity activity, Bundle state) {
         alive.add(new WeakReference<>(activity));
-        if (enabled()) secure(activity, true);
+        if (secureWanted()) secure(activity, true);
     }
 
     @Override

@@ -134,6 +134,15 @@ public final class Tor {
         changed();
         Thread t = new Thread(() -> {
             List<Bridges.Mode> plan = Bridges.order(preferred);
+            if (plan.isEmpty()) {
+                synchronized (lock) {
+                    state = State.FAILED;
+                    summary = "no bridges";
+                    lock.notifyAll();
+                }
+                changed();
+                return;
+            }
             int attempts = Math.max(3, plan.size() * 2);
             for (int attempt = 0; attempt < attempts; attempt++) {
                 mode = plan.get(attempt % plan.size());

@@ -379,7 +379,7 @@ public final class Fetch extends Downloader {
         }
     }
 
-    private static String readBody(HttpURLConnection c) throws IOException {
+    public static String readBody(HttpURLConnection c) throws IOException {
         InputStream in;
         try {
             in = c.getInputStream();

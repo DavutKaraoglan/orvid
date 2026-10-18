@@ -58,8 +58,6 @@
     <string name="filter_type">Tipo</string>
     <string name="type_videos">Vídeos</string>
     <string name="type_shorts">Shorts</string>
-    <string name="filter_content">Conteúdo</string>
-    <string name="hide_adult">Ocultar conteúdo +18</string>
     <string name="age_title">Verificação de idade</string>
     <string name="age_message">Esta fonte tem conteúdo adulto. Você tem 18 anos ou mais?</string>
     <string name="age_yes">Sim, tenho 18 anos ou mais</string>
@@ -94,7 +92,7 @@
     <string name="lock_prompt">Desbloquear o Orvid</string>
     <string name="lock_no_screen">Primeiro defina um bloqueio de tela nas configurações do Android.</string>
     <string name="panic_exit">Saída de pânico (deslize para baixo com dois dedos)</string>
-    <string name="tor_bridges">Ponte do Tor (se sua rede bloqueia o Tor)</string>
+    <string name="tor_bridges">Esconder o Tor da sua rede (ponte, mais lento)</string>
     <string name="tor_bridge_hint">Se sua rede bloqueia o Tor, ative a ponte em Privacidade, no painel de filtros.</string>
     <string name="not_interested">Não tenho interesse</string>
     <string name="not_interested_done">Entendido. Vídeos como este não serão sugeridos.</string>
@@ -106,7 +104,6 @@
     <string name="orient_trans">Trans</string>
     <string name="next_video">Próximo vídeo</string>
     <string name="previous_video">Vídeo anterior</string>
-    <string name="hide_junk">Ocultar vídeos muito curtos ou muito longos</string>
     <string name="nothing_here">Ainda não há nada aqui. Adicione um repositório de fontes para começar a pesquisar.</string>
     <string name="add_repo">Adicionar repositório</string>
     <string name="repo_url_hint">Link do repositório</string>
@@ -122,7 +119,6 @@
     <string name="other_repos">Outros repositórios</string>
     <string name="secret_added">Fontes ocultas adicionadas</string>
     <string name="secret_how">Essas fontes ficam ocultas até você desbloqueá-las. Na tela principal, afaste dois dedos, confirme sua idade e ative as fontes no painel de filtros.</string>
-    <string name="dev_mode">Modo de desenvolvedor</string>
     <string name="subtitle_failed">Não foi possível carregar as legendas</string>
     <string name="download">Baixar</string>
     <string name="download_audio">Somente áudio</string>
@@ -148,4 +144,15 @@
     <string name="trace_summary">%1$d fontes buscadas em %2$s s</string>
     <string name="trace_copied">Registro da busca copiado</string>
     <string name="trace_running">Buscando em %1$d fontes</string>
+    <string name="health_skipped">não responde, ignorado</string>
+    <string name="health_down">Não responde. Desligue e ligue para tentar de novo.</string>
+    <string name="health_flaky">Pouco confiável ultimamente</string>
+    <string name="play_next">Tocar a seguir</string>
+    <string name="add_queue">Adicionar à fila</string>
+    <string name="queued">Na fila: %1$d</string>
+    <string name="autoplay">Reprodução automática</string>
+    <string name="loop">Repetir</string>
+    <string name="up_next">A seguir em %1$d: %2$s
+Toque para cancelar</string>
+    <string name="block_screenshots">Bloquear capturas e gravação de tela</string>
 </resources>

@@ -58,8 +58,6 @@
     <string name="filter_type">Typ</string>
     <string name="type_videos">Videos</string>
     <string name="type_shorts">Shorts</string>
-    <string name="filter_content">Inhalt</string>
-    <string name="hide_adult">Inhalte ab 18 ausblenden</string>
     <string name="age_title">Altersprüfung</string>
     <string name="age_message">Diese Quelle enthält Inhalte für Erwachsene. Bist du 18 oder älter?</string>
     <string name="age_yes">Ja, ich bin 18 oder älter</string>
@@ -94,7 +92,7 @@
     <string name="lock_prompt">Orvid entsperren</string>
     <string name="lock_no_screen">Richte zuerst in den Android-Einstellungen eine Displaysperre ein.</string>
     <string name="panic_exit">Notausgang (mit zwei Fingern nach unten wischen)</string>
-    <string name="tor_bridges">Tor-Brücke (falls dein Netz Tor sperrt)</string>
+    <string name="tor_bridges">Tor vor deinem Netz verbergen (Brücke, langsamer)</string>
     <string name="tor_bridge_hint">Falls dein Netz Tor sperrt, schalte die Brücke unter Privatsphäre im Filterbereich ein.</string>
     <string name="not_interested">Kein Interesse</string>
     <string name="not_interested_done">Verstanden. Videos wie dieses werden nicht mehr vorgeschlagen.</string>
@@ -106,7 +104,6 @@
     <string name="orient_trans">Trans</string>
     <string name="next_video">Nächstes Video</string>
     <string name="previous_video">Vorheriges Video</string>
-    <string name="hide_junk">Sehr kurze oder sehr lange Videos ausblenden</string>
     <string name="nothing_here">Hier gibt es noch nichts. Füge ein Quellen-Repository hinzu, um zu suchen.</string>
     <string name="add_repo">Repository hinzufügen</string>
     <string name="repo_url_hint">Repository-Link</string>
@@ -122,7 +119,6 @@
     <string name="other_repos">Weitere Repositorys</string>
     <string name="secret_added">Versteckte Quellen hinzugefügt</string>
     <string name="secret_how">Diese Quellen bleiben verborgen, bis du sie freischaltest. Spreize auf dem Hauptbildschirm zwei Finger, bestätige dein Alter und schalte die Quellen dann im Filterbereich ein.</string>
-    <string name="dev_mode">Entwicklermodus</string>
     <string name="subtitle_failed">Untertitel konnten nicht geladen werden</string>
     <string name="download">Herunterladen</string>
     <string name="download_audio">Nur Audio</string>
@@ -148,4 +144,15 @@
     <string name="trace_summary">%1$d Quellen in %2$s s durchsucht</string>
     <string name="trace_copied">Suchprotokoll kopiert</string>
     <string name="trace_running">Durchsucht %1$d Quellen</string>
+    <string name="health_skipped">antwortet nicht, übersprungen</string>
+    <string name="health_down">Antwortet nicht. Zum erneuten Versuch aus- und einschalten.</string>
+    <string name="health_flaky">Zuletzt unzuverlässig</string>
+    <string name="play_next">Als Nächstes abspielen</string>
+    <string name="add_queue">Zur Warteschlange</string>
+    <string name="queued">In der Warteschlange: %1$d</string>
+    <string name="autoplay">Autoplay</string>
+    <string name="loop">Wiederholen</string>
+    <string name="up_next">Als Nächstes in %1$d: %2$s
+Zum Abbrechen tippen</string>
+    <string name="block_screenshots">Screenshots und Bildschirmaufnahmen sperren</string>
 </resources>
