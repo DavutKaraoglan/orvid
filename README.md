@@ -18,6 +18,19 @@ Orvid's goal is one private search box for videos from across the web. Any site 
 
 [Performance by version](docs/PERFORMANCE.md) compares search quality and start times across releases.
 
+## Compared with NewPipe over Tor
+
+Same phone and Wi-Fi, apps started fresh, timed from screen recordings. NewPipe ran through Orbot.
+
+| | Orvid | NewPipe + Orbot |
+|---|---|---|
+| Sources | 103 | 5 |
+| Enter to result list | 1.9 s | 7.1 s |
+| Enter to first 8 thumbnails | 6.9 s | 10.1 s |
+| Tap to first video frame | 7.0 s | 18.0 s |
+
+Averages of 2 Orvid and 4 NewPipe searches.
+
 ## Getting started
 
 Search once and tap **Add repository**, or open Filters → Repositories → Add repository, and paste:
@@ -47,8 +60,6 @@ pkg install openjdk-21 aapt2 apksigner zip unzip
 ```
 
 The APK lands in `build/orvid.apk`, signed with a local debug key. For a release build, point `ORVID_SIGNING_ENV` at a file that sets `ORVID_KEYSTORE`, `ORVID_KEY_ALIAS` and `ORVID_KS_PASS`.
-
-`libs/native` ships a prebuilt `libwhisper.so`. `tools/whisper/build.sh` rebuilds it from a pinned whisper.cpp commit.
 
 ## License
 

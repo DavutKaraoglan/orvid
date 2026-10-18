@@ -72,11 +72,6 @@
     <string name="date_week">هذا الأسبوع</string>
     <string name="date_month">هذا الشهر</string>
     <string name="date_year">هذا العام</string>
-    <string name="auto_captions_original">اللغة الأصلية</string>
-    <string name="auto_captions_translated">مترجمة إلى %s</string>
-    <string name="auto_captions_downloading">جارٍ تنزيل نموذج الترجمة %1$d%%</string>
-    <string name="auto_captions_failed">الترجمة التلقائية غير متاحة</string>
-    <string name="auto_captions_listening">جارٍ الاستماع…</string>
     <string name="layout_grid3">شبكة من ثلاثة أعمدة</string>
     <string name="clear">مسح</string>
     <string name="all_sources">كل المصادر</string>

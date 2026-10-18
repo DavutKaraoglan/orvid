@@ -72,11 +72,6 @@
     <string name="date_week">本周</string>
     <string name="date_month">本月</string>
     <string name="date_year">今年</string>
-    <string name="auto_captions_original">原始语言</string>
-    <string name="auto_captions_translated">翻译成%s</string>
-    <string name="auto_captions_downloading">正在下载字幕模型 %1$d%%</string>
-    <string name="auto_captions_failed">自动字幕不可用</string>
-    <string name="auto_captions_listening">正在聆听…</string>
     <string name="layout_grid3">三列网格</string>
     <string name="clear">清除</string>
     <string name="all_sources">所有来源</string>

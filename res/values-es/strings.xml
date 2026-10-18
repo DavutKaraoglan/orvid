@@ -72,11 +72,6 @@
     <string name="date_week">Esta semana</string>
     <string name="date_month">Este mes</string>
     <string name="date_year">Este año</string>
-    <string name="auto_captions_original">Idioma original</string>
-    <string name="auto_captions_translated">Traducidos al %s</string>
-    <string name="auto_captions_downloading">Descargando el modelo de subtítulos %1$d%%</string>
-    <string name="auto_captions_failed">Los subtítulos automáticos no están disponibles</string>
-    <string name="auto_captions_listening">Escuchando…</string>
     <string name="layout_grid3">Cuadrícula de tres columnas</string>
     <string name="clear">Borrar</string>
     <string name="all_sources">Todas las fuentes</string>

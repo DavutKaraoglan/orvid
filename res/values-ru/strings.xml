@@ -72,11 +72,6 @@
     <string name="date_week">За неделю</string>
     <string name="date_month">За месяц</string>
     <string name="date_year">За год</string>
-    <string name="auto_captions_original">Язык оригинала</string>
-    <string name="auto_captions_translated">Перевод на: %s</string>
-    <string name="auto_captions_downloading">Загрузка модели субтитров %1$d%%</string>
-    <string name="auto_captions_failed">Автосубтитры недоступны</string>
-    <string name="auto_captions_listening">Слушаю…</string>
     <string name="layout_grid3">Сетка в три столбца</string>
     <string name="clear">Очистить</string>
     <string name="all_sources">Все источники</string>

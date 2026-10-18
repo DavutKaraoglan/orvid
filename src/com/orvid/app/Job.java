@@ -19,6 +19,10 @@ public abstract class Job<T> implements Runnable {
         this.owner = owner;
     }
 
+    public interface Scoped {
+        com.orvid.net.Fetch.Scope scope();
+    }
+
     protected abstract T load() throws Exception;
 
     protected abstract void show(T result);
@@ -45,7 +49,8 @@ public abstract class Job<T> implements Runnable {
     @Override
     public final void run() {
         try {
-            final T result = load();
+            final T result = owner instanceof Scoped
+                    ? com.orvid.net.Fetch.within(((Scoped) owner).scope(), this::load) : load();
             deliver(new Runnable() {
                 @Override
                 public void run() {

@@ -72,11 +72,6 @@
     <string name="date_week">今週</string>
     <string name="date_month">今月</string>
     <string name="date_year">今年</string>
-    <string name="auto_captions_original">元の言語</string>
-    <string name="auto_captions_translated">%s に翻訳</string>
-    <string name="auto_captions_downloading">字幕モデルをダウンロード中 %1$d%%</string>
-    <string name="auto_captions_failed">自動字幕は利用できません</string>
-    <string name="auto_captions_listening">聞き取り中…</string>
     <string name="layout_grid3">3 列グリッド</string>
     <string name="clear">クリア</string>
     <string name="all_sources">すべてのソース</string>

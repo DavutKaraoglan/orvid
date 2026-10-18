@@ -72,11 +72,6 @@
     <string name="date_week">이번 주</string>
     <string name="date_month">이번 달</string>
     <string name="date_year">올해</string>
-    <string name="auto_captions_original">원래 언어</string>
-    <string name="auto_captions_translated">%s(으)로 번역</string>
-    <string name="auto_captions_downloading">자막 모델 다운로드 중 %1$d%%</string>
-    <string name="auto_captions_failed">자동 자막을 사용할 수 없습니다</string>
-    <string name="auto_captions_listening">듣는 중…</string>
     <string name="layout_grid3">3열 그리드</string>
     <string name="clear">지우기</string>
     <string name="all_sources">모든 소스</string>

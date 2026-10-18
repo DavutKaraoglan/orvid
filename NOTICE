@@ -19,12 +19,9 @@ Native binaries (libs/native/)
 - libtor.so from tor-android 0.4.9.14 (Tor, OpenSSL, libevent and their
   dependencies) - BSD-3-Clause and the licenses of the bundled projects -
   https://github.com/guardianproject/tor-android
-- libwhisper.so built from whisper.cpp and ggml - MIT -
-  https://github.com/ggml-org/whisper.cpp (source: tools/whisper/build.sh)
 - libgojni.so and libs/iptproxy-5.7.0.jar from IPtProxy 5.7.0 (Lyrebird obfs4
   and meek_lite, Snowflake client) - MIT, with BSD-2-Clause and BSD-3-Clause
   parts - https://github.com/tladesignz/IPtProxy
-- libc++_shared.so from LLVM - Apache-2.0 WITH LLVM-exception - https://llvm.org
 
 Data and assets
 - res/raw/geoip_dach: subset of the Tor GeoIP file, generated from the IPFire
@@ -34,7 +31,3 @@ Data and assets
 - Source icons from Simple Icons - CC0-1.0 - https://simpleicons.org
 - Other source icons are the favicons of the respective sites. Names and logos
   belong to their owners and identify the source of a result.
-
-Downloaded at runtime
-- Whisper base model (ggml-base-q5_1.bin) from
-  https://huggingface.co/ggerganov/whisper.cpp - MIT (OpenAI Whisper weights)

@@ -410,15 +410,6 @@ final class PlayerControls implements Player.Listener {
         refreshCc();
     }
 
-    private boolean autoOn() {
-        AutoCaptions auto = autoCaptions();
-        return auto != null && auto.mode() != AutoCaptions.OFF;
-    }
-
-    private void autoOff() {
-        if (autoOn()) autoCaptions().setMode(AutoCaptions.OFF);
-    }
-
     private void textOff() {
         player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
                 .clearOverridesOfType(C.TRACK_TYPE_TEXT).setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build());
@@ -440,19 +431,12 @@ final class PlayerControls implements Player.Listener {
 
     private void toggleSubtitles() {
         List<Choice> text = choices(C.TRACK_TYPE_TEXT);
-        if (autoOn() || textWanted()) {
-            autoOff();
+        if (textWanted()) {
             if (!text.isEmpty()) textOff();
             refreshCc();
             return;
         }
-        if (text.isEmpty()) {
-            AutoCaptions auto = autoCaptions();
-            if (auto == null || !auto.available()) return;
-            auto.setMode(AutoCaptions.TRANSLATED);
-            refreshCc();
-            return;
-        }
+        if (text.isEmpty()) return;
         String mine = Locale.getDefault().getLanguage();
         Choice pick = null;
         for (Choice c : text) {
@@ -583,11 +567,8 @@ final class PlayerControls implements Player.Listener {
             });
         }
         List<Choice> text = choices(C.TRACK_TYPE_TEXT);
-        AutoCaptions auto = autoCaptions();
-        boolean autoOk = auto != null && auto.available();
-        if (!text.isEmpty() || autoOk) {
+        if (!text.isEmpty()) {
             String now = selectedLabel(text);
-            if (now.isEmpty() && autoOk && auto.mode() != AutoCaptions.OFF) now = autoLabel(auto);
             sheet.row(R.drawable.ic_subtitles, activity.getString(R.string.subtitles),
                     now.isEmpty() ? activity.getString(R.string.off) : now, () -> {
                 sheet.replaceWith(this::showSubtitles);
@@ -721,32 +702,16 @@ final class PlayerControls implements Player.Listener {
         return "";
     }
 
-    private AutoCaptions autoCaptions() {
-        return activity instanceof PlayerActivity ? ((PlayerActivity) activity).captions() : null;
-    }
-
-    private String autoLabel(AutoCaptions auto) {
-        int m = auto.mode();
-        if (m == AutoCaptions.ORIGINAL) return activity.getString(R.string.auto_captions_original);
-        if (m == AutoCaptions.TRANSLATED) return activity.getString(R.string.auto_captions_translated, auto.targetName());
-        return activity.getString(R.string.off);
-    }
-
     private void showSubtitles() {
         Sheet sheet = new Sheet();
         List<Choice> text = choices(C.TRACK_TYPE_TEXT);
-        AutoCaptions auto = autoCaptions();
-        boolean autoOk = auto != null && auto.available();
-        int m = autoOk ? auto.mode() : AutoCaptions.OFF;
-        sheet.choice(activity.getString(R.string.off), selectedLabel(text).isEmpty() && m == AutoCaptions.OFF, () -> {
+        sheet.choice(activity.getString(R.string.off), selectedLabel(text).isEmpty(), () -> {
             if (!text.isEmpty()) textOff();
-            if (autoOk) auto.setMode(AutoCaptions.OFF);
             sheet.dismiss();
             refreshCc();
         });
         for (Choice c : text) {
             sheet.choice(c.label, c.selected, () -> {
-                autoOff();
                 player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
                         .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
                         .setOverrideForType(new TrackSelectionOverride(c.group, 0)).build());
@@ -754,22 +719,6 @@ final class PlayerControls implements Player.Listener {
                 refreshCc();
             });
         }
-        if (!autoOk) {
-            sheet.show();
-            return;
-        }
-        sheet.choice(activity.getString(R.string.auto_captions_original), m == AutoCaptions.ORIGINAL, () -> {
-            if (!choices(C.TRACK_TYPE_TEXT).isEmpty()) textOff();
-            auto.setMode(AutoCaptions.ORIGINAL);
-            sheet.dismiss();
-            refreshCc();
-        });
-        sheet.choice(activity.getString(R.string.auto_captions_translated, auto.targetName()), m == AutoCaptions.TRANSLATED, () -> {
-            if (!choices(C.TRACK_TYPE_TEXT).isEmpty()) textOff();
-            auto.setMode(AutoCaptions.TRANSLATED);
-            sheet.dismiss();
-            refreshCc();
-        });
         sheet.show();
     }
 
@@ -790,10 +739,8 @@ final class PlayerControls implements Player.Listener {
         download.setVisibility(activity instanceof PlayerActivity && ((PlayerActivity) activity).downloadable()
                 ? View.VISIBLE : View.GONE);
         List<Choice> text = choices(C.TRACK_TYPE_TEXT);
-        AutoCaptions auto = autoCaptions();
-        boolean autoOk = auto != null && auto.available();
-        cc.setVisibility(text.isEmpty() && !autoOk ? View.GONE : View.VISIBLE);
-        boolean on = textWanted() || autoOn();
+        cc.setVisibility(text.isEmpty() ? View.GONE : View.VISIBLE);
+        boolean on = textWanted();
         cc.setImageResource(on ? R.drawable.ic_cc_white : R.drawable.ic_cc_off_white);
         cc.setAlpha(on ? 1f : 0.85f);
     }

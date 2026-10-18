@@ -72,11 +72,6 @@
     <string name="date_week">Minggu ini</string>
     <string name="date_month">Bulan ini</string>
     <string name="date_year">Tahun ini</string>
-    <string name="auto_captions_original">Bahasa asli</string>
-    <string name="auto_captions_translated">Diterjemahkan ke %s</string>
-    <string name="auto_captions_downloading">Mengunduh model subtitel %1$d%%</string>
-    <string name="auto_captions_failed">Subtitel otomatis tidak tersedia</string>
-    <string name="auto_captions_listening">Mendengarkan…</string>
     <string name="layout_grid3">Kisi tiga kolom</string>
     <string name="clear">Hapus</string>
     <string name="all_sources">Semua sumber</string>

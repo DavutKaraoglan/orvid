@@ -74,11 +74,6 @@
     <string name="date_week">This week</string>
     <string name="date_month">This month</string>
     <string name="date_year">This year</string>
-    <string name="auto_captions_original">Original language</string>
-    <string name="auto_captions_translated">Translated to %s</string>
-    <string name="auto_captions_downloading">Downloading caption model %1$d%%</string>
-    <string name="auto_captions_failed">Auto captions are not available</string>
-    <string name="auto_captions_listening">Listening…</string>
     <string name="layout_grid3">Three-column grid</string>
     <string name="clear">Clear</string>
     <string name="all_sources">All sources</string>

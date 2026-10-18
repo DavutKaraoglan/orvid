@@ -72,11 +72,6 @@
     <string name="date_week">Son 1 hafta</string>
     <string name="date_month">Son 1 ay</string>
     <string name="date_year">Son 1 yıl</string>
-    <string name="auto_captions_original">Orijinal dil</string>
-    <string name="auto_captions_translated">%s diline çeviri</string>
-    <string name="auto_captions_downloading">Altyazı modeli indiriliyor %%%1$d</string>
-    <string name="auto_captions_failed">Otomatik altyazı kullanılamıyor</string>
-    <string name="auto_captions_listening">Dinleniyor…</string>
     <string name="layout_grid3">Üç sütun ızgara</string>
     <string name="clear">Temizle</string>
     <string name="all_sources">Tüm kaynaklar</string>

@@ -213,6 +213,8 @@ public final class MainActivity extends Activity implements Tor.Listener {
             public void onScrollStateChanged(AbsListView view, int scrollState) {
                 adapter.setIdle(scrollState == SCROLL_STATE_IDLE);
                 list.removeCallbacks(prepareVisible);
+                list.removeCallbacks(prepareLater);
+                prepareWaitStarted = 0;
                 if (scrollState == SCROLL_STATE_IDLE) list.postDelayed(prepareVisible, PREPARE_IDLE_MS);
             }
 
@@ -1105,8 +1107,10 @@ public final class MainActivity extends Activity implements Tor.Listener {
 
     private void prewarmSources() {
         Query blank = Query.parse("");
+        int[] waveCount = new int[2];
         for (Source s : Sources.current()) {
-            if (!(s instanceof com.orvid.ext.ExtSource) || !s.wanted(filters, blank)) continue;
+            if (!s.wanted(filters, blank) || waveCount[s.adult ? 1 : 0]++ >= FIRST_WAVE) continue;
+            if (!(s instanceof com.orvid.ext.ExtSource)) continue;
             com.orvid.ext.ExtSource ext = (com.orvid.ext.ExtSource) s;
             if (ext.webPlayback) continue;
             com.orvid.net.Prewarm.warm(ext.key, ext.host());
@@ -1307,31 +1311,43 @@ public final class MainActivity extends Activity implements Tor.Listener {
         com.orvid.play.Session.lastSearch = new ArrayList<>(ranked);
         list.setSelection(0);
         list.removeCallbacks(prepareVisible);
+        list.removeCallbacks(prepareLater);
+        prepareWaitStarted = 0;
         list.postDelayed(prepareVisible, PREPARE_IDLE_MS);
     }
 
 
     private static final int PREPARE_AHEAD = 2;
-    private static final int PREPARE_LIGHT = 2;
+    private static final int PREPARE_FIRST = 2;
     private static final long PREPARE_IDLE_MS = 1500;
-    private static final long PREPARE_RETRY_MS = 800;
-    private static final int PREPARE_RETRIES = 4;
-    private int prepareTries;
+    private static final long PREPARE_RETRY_MS = 400;
+    private static final long PREPARE_WAIT_MS = 8000;
+    private static final long PREPARE_REST_MS = 2000;
+    private long prepareWaitStarted;
     private final java.util.Set<String> prepared = new java.util.HashSet<>();
     private final Runnable prepareVisible = this::prepareVisible;
+    private List<StreamInfoItem> prepareRest = new ArrayList<>();
+    private final Runnable prepareLater = () -> {
+        for (StreamInfoItem item : prepareRest) {
+            if (prepared.add(item.getUrl())) com.orvid.play.Warm.link(item.getUrl());
+        }
+        prepareRest = new ArrayList<>();
+    };
 
     private void prepareVisible() {
         if (!searched || list.getChildCount() == 0) return;
-        if (OrvidApp.get().images().busy() && ++prepareTries <= PREPARE_RETRIES) {
+        long now = android.os.SystemClock.uptimeMillis();
+        if (prepareWaitStarted == 0) prepareWaitStarted = now;
+        if (OrvidApp.get().images().loadingVisible() && now - prepareWaitStarted < PREPARE_WAIT_MS) {
             list.postDelayed(prepareVisible, PREPARE_RETRY_MS);
             return;
         }
-        prepareTries = 0;
+        prepareWaitStarted = 0;
         int cols = VideoAdapter.columns(adapter.mode());
         int first = list.getFirstVisiblePosition();
         int center = list.getHeight() / 2;
         List<StreamInfoItem> rows = adapter.itemsInRows(first, list.getLastVisiblePosition() + 1);
-        List<StreamInfoItem> wanted = new ArrayList<>();
+        List<StreamInfoItem> rest = new ArrayList<>();
         List<Object[]> byDistance = new ArrayList<>();
         int lastFull = -1;
         for (int c = 0; c < list.getChildCount(); c++) {
@@ -1342,21 +1358,25 @@ public final class MainActivity extends Activity implements Tor.Listener {
             for (int k = 0; k < cols; k++) {
                 int index = c * cols + k;
                 if (index >= rows.size()) break;
-                StreamInfoItem item = rows.get(index);
-                wanted.add(item);
-                byDistance.add(new Object[] {item, distance});
+                byDistance.add(new Object[] {rows.get(index), distance});
             }
         }
-        for (int index = (lastFull + 1) * cols, n = 0; index < rows.size() && n < PREPARE_AHEAD; index++, n++) {
-            wanted.add(rows.get(index));
-        }
-        for (StreamInfoItem item : wanted) {
-            if (prepared.add(item.getUrl())) com.orvid.play.Warm.link(item.getUrl());
-        }
         byDistance.sort((x, y) -> Integer.compare((int) x[1], (int) y[1]));
-        for (int i = 0; i < Math.min(byDistance.size(), 1 + PREPARE_LIGHT); i++) {
-            com.orvid.play.Warm.prepare(((StreamInfoItem) byDistance.get(i)[0]).getUrl(), true);
+        for (int i = 0; i < byDistance.size(); i++) {
+            StreamInfoItem item = (StreamInfoItem) byDistance.get(i)[0];
+            if (i >= PREPARE_FIRST) {
+                rest.add(item);
+                continue;
+            }
+            if (prepared.add(item.getUrl())) com.orvid.play.Warm.link(item.getUrl());
+            com.orvid.play.Warm.prepare(item.getUrl(), true);
         }
+        for (int index = (lastFull + 1) * cols, n = 0; index < rows.size() && n < PREPARE_AHEAD; index++, n++) {
+            rest.add(rows.get(index));
+        }
+        prepareRest = rest;
+        list.removeCallbacks(prepareLater);
+        list.postDelayed(prepareLater, PREPARE_REST_MS);
     }
 
     private void mergeTail(List<StreamInfoItem> ranked) {

@@ -72,11 +72,6 @@
     <string name="date_week">इस हफ़्ते</string>
     <string name="date_month">इस महीने</string>
     <string name="date_year">इस साल</string>
-    <string name="auto_captions_original">मूल भाषा</string>
-    <string name="auto_captions_translated">%s में अनुवादित</string>
-    <string name="auto_captions_downloading">सबटाइटल मॉडल डाउनलोड हो रहा है %1$d%%</string>
-    <string name="auto_captions_failed">अपने-आप सबटाइटल उपलब्ध नहीं हैं</string>
-    <string name="auto_captions_listening">सुन रहा है…</string>
     <string name="layout_grid3">तीन कॉलम ग्रिड</string>
     <string name="clear">साफ़ करें</string>
     <string name="all_sources">सभी स्रोत</string>

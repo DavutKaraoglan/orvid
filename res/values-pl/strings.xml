@@ -72,11 +72,6 @@
     <string name="date_week">W tym tygodniu</string>
     <string name="date_month">W tym miesiącu</string>
     <string name="date_year">W tym roku</string>
-    <string name="auto_captions_original">Język oryginalny</string>
-    <string name="auto_captions_translated">Przetłumaczone na: %s</string>
-    <string name="auto_captions_downloading">Pobieranie modelu napisów %1$d%%</string>
-    <string name="auto_captions_failed">Napisy automatyczne są niedostępne</string>
-    <string name="auto_captions_listening">Słucham…</string>
     <string name="layout_grid3">Siatka trzykolumnowa</string>
     <string name="clear">Wyczyść</string>
     <string name="all_sources">Wszystkie źródła</string>

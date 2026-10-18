@@ -52,6 +52,10 @@ public final class OrvidApp extends Application {
         if (prefs.contains("dev_mode")) prefs.edit().remove("dev_mode").apply();
         if (prefs.contains("mode")) prefs.edit().remove("mode").apply();
         new File(getFilesDir(), "history.json").delete();
+        File speech = new File(getFilesDir(), "speech");
+        File[] models = speech.listFiles();
+        if (models != null) for (File f : models) f.delete();
+        speech.delete();
         images.clearDisk();
         Visionos.addWarmer(com.orvid.vk.Vk::warm);
         applyTor(true);
@@ -193,6 +197,8 @@ public final class OrvidApp extends Application {
         }
     }
 
+    private static final int WARM_PORTS = 4;
+
     private static void warmCircuits() {
         new Thread(() -> {
             try {
@@ -207,7 +213,9 @@ public final class OrvidApp extends Application {
                 } catch (Exception ignored) {
                 }
             }).start();
-            for (int port : Tor.get().ports()) {
+            int[] ports = Tor.get().ports();
+            for (int i = 0; i < Math.min(WARM_PORTS, ports.length); i++) {
+                int port = ports[i];
                 new Thread(() -> {
                     try {
                         java.net.Proxy proxy = new java.net.Proxy(java.net.Proxy.Type.HTTP,

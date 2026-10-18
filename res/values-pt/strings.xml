@@ -72,11 +72,6 @@
     <string name="date_week">Esta semana</string>
     <string name="date_month">Este mês</string>
     <string name="date_year">Este ano</string>
-    <string name="auto_captions_original">Idioma original</string>
-    <string name="auto_captions_translated">Traduzidas para %s</string>
-    <string name="auto_captions_downloading">Baixando o modelo de legendas %1$d%%</string>
-    <string name="auto_captions_failed">As legendas automáticas não estão disponíveis</string>
-    <string name="auto_captions_listening">Ouvindo…</string>
     <string name="layout_grid3">Grade de três colunas</string>
     <string name="clear">Limpar</string>
     <string name="all_sources">Todas as fontes</string>

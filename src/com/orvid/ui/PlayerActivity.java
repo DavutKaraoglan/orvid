@@ -72,7 +72,14 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class PlayerActivity extends Activity {
+public final class PlayerActivity extends Activity implements com.orvid.app.Job.Scoped {
+
+    private final com.orvid.net.Fetch.Scope jobScope = new com.orvid.net.Fetch.Scope();
+
+    @Override
+    public com.orvid.net.Fetch.Scope scope() {
+        return jobScope;
+    }
 
     public static final String EXTRA_URL = "url";
     public static final String EXTRA_SERVICE = "service";
@@ -218,9 +225,7 @@ public final class PlayerActivity extends Activity {
                         protected androidx.media3.exoplayer.audio.AudioSink buildAudioSink(
                                 android.content.Context context, boolean floatOutput, boolean playbackParams) {
                             return new androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
-                                    .setAudioProcessors(new androidx.media3.common.audio.AudioProcessor[]{AutoCaptions.TAP})
                                     .setEnableAudioTrackPlaybackParams(true)
-                                    .setAudioTrackBufferSizeProvider(AutoCaptions.BUFFER)
                                     .build();
                         }
                     })
@@ -238,14 +243,7 @@ public final class PlayerActivity extends Activity {
             if (pageUrl != null) Session.begin(player, pageUrl, thumb);
         }
         player.setVideoTextureView(surface);
-        captions = new AutoCaptions(this, player, subtitle);
-        captions.restore();
         player.addListener(playerListener = new Player.Listener() {
-            @Override
-            public void onPositionDiscontinuity(Player.PositionInfo oldPosition, Player.PositionInfo newPosition, int reason) {
-                if (reason == Player.DISCONTINUITY_REASON_SEEK) captions.seeked();
-            }
-
             @Override
             public void onPlaybackStateChanged(int state) {
                 stage.removeCallbacks(stallWatch);
@@ -293,7 +291,6 @@ public final class PlayerActivity extends Activity {
                     if (sb.length() > 0) sb.append('\n');
                     sb.append(c.text);
                 }
-                if (sb.length() == 0 && captions.mode() != AutoCaptions.OFF) return;
                 subtitle.setText(sb);
                 subtitle.setVisibility(sb.length() == 0 ? View.GONE : View.VISIBLE);
             }
@@ -972,11 +969,6 @@ public final class PlayerActivity extends Activity {
         } else {
             route();
         }
-    }
-    private AutoCaptions captions;
-
-    AutoCaptions captions() {
-        return captions;
     }
     private int reextracts;
     private int reroutes;
@@ -2072,6 +2064,7 @@ public final class PlayerActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        jobScope.cancel();
         cancelUpNext();
         Diag.listen(null);
         debug.removeCallbacks(saveLive);
@@ -2079,7 +2072,6 @@ public final class PlayerActivity extends Activity {
         stage.removeCallbacks(sampler);
         stage.removeCallbacks(stallWatch);
         controls.release();
-        captions.release();
         saveToSession();
         player.clearVideoTextureView(surface);
         player.removeListener(playerListener);
