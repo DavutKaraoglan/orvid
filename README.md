@@ -23,16 +23,16 @@ Orvid's goal is one private search box for videos from across the web. Any site 
 Search once and tap **Add repository**, or open Filters → Repositories → Add repository, and paste:
 
 ```
-https://raw.githubusercontent.com/DavutKaraoglan/orvid-sources/main/
+https://raw.githubusercontent.com/mankidev/orvid-sources/main/
 ```
 
-[orvid-sources](https://github.com/DavutKaraoglan/orvid-sources) explains the source format, so you can write sources for other sites.
+[orvid-sources](https://github.com/mankidev/orvid-sources) explains the source format, so you can write sources for other sites.
 
 ## Download
 
-Get the APK from [Releases](https://github.com/DavutKaraoglan/orvid/releases/latest), or add Orvid to Obtainium to get updates:
+Get the APK from [Releases](https://github.com/mankidev/orvid/releases/latest), or add Orvid to Obtainium to get updates:
 
-<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/DavutKaraoglan/orvid"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="54"></a>
+<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/mankidev/orvid"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="54"></a>
 
 Requires Android 8.0+.
 

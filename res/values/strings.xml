@@ -138,4 +138,16 @@
     <string name="download_merging">Merging audio and video</string>
     <string name="dev_mode_on">Developer mode on</string>
     <string name="dev_mode_off">Developer mode off</string>
+    <string name="trace_queued">waiting in line</string>
+    <string name="trace_tor">waiting for Tor</string>
+    <string name="trace_searching">searching</string>
+    <string name="trace_lane">trying Tor exit %1$d</string>
+    <string name="trace_retry">blocked, try %1$d</string>
+    <string name="trace_again">no results, asking another exit</string>
+    <string name="trace_results">found %1$d</string>
+    <string name="trace_skipped">skipped</string>
+    <string name="trace_failed">failed: %1$s</string>
+    <string name="trace_summary">%1$d sources searched in %2$s s</string>
+    <string name="trace_copied">Search log copied</string>
+    <string name="trace_running">Searching %1$d sources</string>
 </resources>

@@ -136,4 +136,16 @@
     <string name="download_merging">Ses ve görüntü birleştiriliyor</string>
     <string name="dev_mode_on">Geliştirici modu açık</string>
     <string name="dev_mode_off">Geliştirici modu kapalı</string>
+    <string name="trace_queued">sırada bekliyor</string>
+    <string name="trace_tor">Tor bekleniyor</string>
+    <string name="trace_searching">aranıyor</string>
+    <string name="trace_lane">%1$d. Tor çıkışı deneniyor</string>
+    <string name="trace_retry">engellendi, %1$d. deneme</string>
+    <string name="trace_again">sonuç yok, başka çıkışa soruluyor</string>
+    <string name="trace_results">%1$d bulundu</string>
+    <string name="trace_skipped">atlandı</string>
+    <string name="trace_failed">hata: %1$s</string>
+    <string name="trace_summary">%1$d kaynak %2$s sn\'de tarandı</string>
+    <string name="trace_copied">Arama kaydı kopyalandı</string>
+    <string name="trace_running">%1$d kaynakta aranıyor</string>
 </resources>

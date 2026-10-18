@@ -404,8 +404,15 @@ public final class Ranker {
         Collections.sort(all, (a, b) -> a.score != b.score ? Double.compare(b.score, a.score) : a.order - b.order);
         List<StreamInfoItem> out = new ArrayList<>(all.size());
         for (Scored s : all) out.add(s.item);
-        for (int i = 0; out.size() < minimum && i < weak.size(); i++) out.add(weak.get(i));
+        for (int i = 0; out.size() < minimum && i < weak.size(); i++) {
+            if (sameScript(title, weak.get(i).getName())) out.add(weak.get(i));
+        }
         return out;
+    }
+
+    public static boolean sameScript(String title, String other) {
+        if (title == null || other == null) return true;
+        return Query.script(title).equals(Query.script(other));
     }
 
     public static List<int[]> highlights(Query q, String title) {

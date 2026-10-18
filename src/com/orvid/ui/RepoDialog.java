@@ -37,7 +37,7 @@ final class RepoDialog {
 
     private RepoDialog(Activity a, String title) {
         this.a = a;
-        dialog = new Dialog(a);
+        dialog = Panic.guard(a, new Dialog(a));
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         column = new LinearLayout(a);
         column.setOrientation(LinearLayout.VERTICAL);

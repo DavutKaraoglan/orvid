@@ -27,7 +27,7 @@ final class FilterSheet {
     }
 
     static void show(Activity activity, int layout, Filters filters, Listener listener) {
-        Dialog dialog = new Dialog(activity);
+        Dialog dialog = Panic.guard(activity, new Dialog(activity));
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         LinearLayout column = new LinearLayout(activity);
         column.setOrientation(LinearLayout.VERTICAL);
@@ -160,7 +160,7 @@ final class FilterSheet {
                     b.setOnCheckedChangeListener(null);
                     b.setChecked(false);
                     b.setOnCheckedChangeListener(holder[0]);
-                    new android.app.AlertDialog.Builder(activity)
+                    Panic.guard(activity, new android.app.AlertDialog.Builder(activity)
                             .setTitle(R.string.age_title)
                             .setMessage(R.string.age_message)
                             .setPositiveButton(R.string.age_yes, (d, w) -> {
@@ -168,7 +168,7 @@ final class FilterSheet {
                                 b.setChecked(true);
                             })
                             .setNegativeButton(R.string.age_no, null)
-                            .show();
+                            .show());
                 };
                 master.setOnCheckedChangeListener(holder[0]);
             }
@@ -192,7 +192,7 @@ final class FilterSheet {
                         return;
                     }
                     b.setChecked(false);
-                    new android.app.AlertDialog.Builder(activity)
+                    Panic.guard(activity, new android.app.AlertDialog.Builder(activity)
                             .setTitle(R.string.age_title)
                             .setMessage(R.string.age_message)
                             .setPositiveButton(R.string.age_yes, (d, w) -> {
@@ -207,7 +207,7 @@ final class FilterSheet {
                                 });
                             })
                             .setNegativeButton(R.string.age_no, null)
-                            .show();
+                            .show());
                 });
             }
         }

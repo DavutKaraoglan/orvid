@@ -136,4 +136,16 @@
     <string name="download_merging">Fusion de l\'audio et de la vidéo</string>
     <string name="dev_mode_on">Mode développeur activé</string>
     <string name="dev_mode_off">Mode développeur désactivé</string>
+    <string name="trace_queued">en attente</string>
+    <string name="trace_tor">attente de Tor</string>
+    <string name="trace_searching">recherche</string>
+    <string name="trace_lane">essai de la sortie Tor %1$d</string>
+    <string name="trace_retry">bloqué, essai %1$d</string>
+    <string name="trace_again">aucun résultat, autre sortie</string>
+    <string name="trace_results">%1$d trouvés</string>
+    <string name="trace_skipped">ignoré</string>
+    <string name="trace_failed">échec : %1$s</string>
+    <string name="trace_summary">%1$d sources parcourues en %2$s s</string>
+    <string name="trace_copied">Journal de recherche copié</string>
+    <string name="trace_running">Recherche dans %1$d sources</string>
 </resources>

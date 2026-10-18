@@ -16,7 +16,7 @@ import java.nio.charset.StandardCharsets;
 
 public final class UpdateCheck {
 
-    private static final String LATEST = "https://api.github.com/repos/DavutKaraoglan/orvid/releases/latest";
+    private static final String LATEST = "https://api.github.com/repositories/1422380931/releases/latest";
     private static final long INTERVAL_MS = 12 * 60 * 60 * 1000L;
     private static volatile boolean started;
 
@@ -44,7 +44,7 @@ public final class UpdateCheck {
                 String tag = release.getString("tag_name", "");
                 String page = release.getString("html_url", "");
                 if (release.getBoolean("draft", false) || release.getBoolean("prerelease", false)) return;
-                if (!page.startsWith("https://github.com/DavutKaraoglan/orvid/")) return;
+                if (!page.startsWith("https://github.com/") || !page.contains("/orvid/releases/")) return;
                 if (newer(tag, current) <= 0 || tag.equals(prefs.getString("update_skipped", ""))) return;
                 activity.runOnUiThread(() -> show(activity, prefs, tag, page));
             } catch (Exception ignored) {

@@ -136,4 +136,16 @@
     <string name="download_merging">音声と映像を結合中</string>
     <string name="dev_mode_on">開発者モード オン</string>
     <string name="dev_mode_off">開発者モード オフ</string>
+    <string name="trace_queued">待機中</string>
+    <string name="trace_tor">Tor を待機中</string>
+    <string name="trace_searching">検索中</string>
+    <string name="trace_lane">Tor 出口 %1$d を試行中</string>
+    <string name="trace_retry">ブロック、%1$d 回目</string>
+    <string name="trace_again">結果なし、別の出口で再試行</string>
+    <string name="trace_results">%1$d 件</string>
+    <string name="trace_skipped">スキップ</string>
+    <string name="trace_failed">失敗: %1$s</string>
+    <string name="trace_summary">%1$d 個のソースを %2$s 秒で検索</string>
+    <string name="trace_copied">検索ログをコピーしました</string>
+    <string name="trace_running">%1$d 個のソースを検索中</string>
 </resources>

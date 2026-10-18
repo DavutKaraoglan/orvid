@@ -821,7 +821,7 @@ final class PlayerControls implements Player.Listener {
     }
 
     private final class Sheet {
-        private final Dialog dialog = new Dialog(activity);
+        private final Dialog dialog = Panic.guard(activity, new Dialog(activity));
         private final LinearLayout list = new LinearLayout(activity);
 
         Sheet() {

@@ -61,6 +61,20 @@ public final class ExtSource extends Source {
         }
     }
 
+    int minQuery;
+
+    @Override
+    public boolean wanted(com.orvid.search.Filters f, com.orvid.search.Query q) {
+        String typed = q.plainQuery == null ? "" : q.plainQuery.replace(" ", "");
+        if (minQuery > 0 && !typed.isEmpty() && typed.length() < minQuery) return false;
+        return super.wanted(f, q);
+    }
+
+    public String host() {
+        if (html != null) return html.host();
+        return com.orvid.net.Prewarm.host(key);
+    }
+
     public boolean hedged() {
         return hedge > 1;
     }

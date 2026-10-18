@@ -136,4 +136,16 @@
     <string name="download_merging">Menggabungkan audio dan video</string>
     <string name="dev_mode_on">Mode pengembang aktif</string>
     <string name="dev_mode_off">Mode pengembang nonaktif</string>
+    <string name="trace_queued">mengantre</string>
+    <string name="trace_tor">menunggu Tor</string>
+    <string name="trace_searching">mencari</string>
+    <string name="trace_lane">mencoba jalur keluar Tor %1$d</string>
+    <string name="trace_retry">diblokir, percobaan %1$d</string>
+    <string name="trace_again">tidak ada hasil, bertanya ke jalur lain</string>
+    <string name="trace_results">%1$d ditemukan</string>
+    <string name="trace_skipped">dilewati</string>
+    <string name="trace_failed">gagal: %1$s</string>
+    <string name="trace_summary">%1$d sumber dicari dalam %2$s dtk</string>
+    <string name="trace_copied">Log pencarian disalin</string>
+    <string name="trace_running">Mencari di %1$d sumber</string>
 </resources>

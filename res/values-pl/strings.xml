@@ -136,4 +136,16 @@
     <string name="download_merging">Łączenie dźwięku i obrazu</string>
     <string name="dev_mode_on">Tryb programisty włączony</string>
     <string name="dev_mode_off">Tryb programisty wyłączony</string>
+    <string name="trace_queued">w kolejce</string>
+    <string name="trace_tor">czeka na Tor</string>
+    <string name="trace_searching">szuka</string>
+    <string name="trace_lane">próbuje wyjścia Tor %1$d</string>
+    <string name="trace_retry">zablokowano, próba %1$d</string>
+    <string name="trace_again">brak wyników, pyta inne wyjście</string>
+    <string name="trace_results">znaleziono %1$d</string>
+    <string name="trace_skipped">pominięto</string>
+    <string name="trace_failed">błąd: %1$s</string>
+    <string name="trace_summary">przeszukano %1$d źródeł w %2$s s</string>
+    <string name="trace_copied">Skopiowano dziennik wyszukiwania</string>
+    <string name="trace_running">Przeszukuje źródła: %1$d</string>
 </resources>

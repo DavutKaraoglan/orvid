@@ -40,13 +40,17 @@ public final class Repos {
         public boolean adult;
     }
 
-    public static final String OFFICIAL = "https://raw.githubusercontent.com/DavutKaraoglan/orvid-sources/main/";
-    public static final String SECRET = "https://raw.githubusercontent.com/DavutKaraoglan/orvid-sources-secret/main/";
+    public static final String OFFICIAL = "https://raw.githubusercontent.com/mankidev/orvid-sources/main/";
+    public static final String SECRET = "https://raw.githubusercontent.com/mankidev/orvid-sources-secret/main/";
 
     public static boolean installed(File root, String url) {
-        String wanted = normalize(url);
-        for (Repo r : list(root)) if (r.url.equals(wanted)) return true;
+        String wanted = canonical(normalize(url));
+        for (Repo r : list(root)) if (canonical(r.url).equals(wanted)) return true;
         return false;
+    }
+
+    private static String canonical(String url) {
+        return url.replace("://raw.githubusercontent.com/DavutKaraoglan/", "://raw.githubusercontent.com/mankidev/");
     }
 
     public static List<Link> suggested(File root) {

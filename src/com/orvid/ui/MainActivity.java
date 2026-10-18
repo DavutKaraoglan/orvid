@@ -113,6 +113,16 @@ public final class MainActivity extends Activity implements Tor.Listener {
         addRepo = findViewById(R.id.add_repo);
         addRepo.setOnClickListener(v -> RepoDialog.add(this, this::repoChanged));
         correction = findViewById(R.id.correction);
+        trace = findViewById(R.id.trace);
+        traceLine = findViewById(R.id.trace_line);
+        traceCount = findViewById(R.id.trace_count);
+        traceBar = findViewById(R.id.trace_bar);
+        traceDetail = findViewById(R.id.trace_detail);
+        trace.setOnClickListener(v -> {
+            traceOpen = !traceOpen;
+            renderTrace();
+        });
+        traceDetail.setOnClickListener(v -> copyTrace());
         correction.setOnClickListener(v -> {
             if (correctedQuery == null) return;
             String fixed = correctedQuery;
@@ -147,7 +157,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
             @Override
             public void show(android.webkit.WebView view, String site) {
                 if (isFinishing() || dialog != null) return;
-                dialog = new android.app.Dialog(MainActivity.this);
+                dialog = Panic.guard(MainActivity.this, new android.app.Dialog(MainActivity.this));
                 dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
                 android.widget.LinearLayout box = new android.widget.LinearLayout(MainActivity.this);
                 box.setOrientation(android.widget.LinearLayout.VERTICAL);
@@ -237,7 +247,10 @@ public final class MainActivity extends Activity implements Tor.Listener {
                 boolean empty = s.length() == 0;
                 clearButton.setImageResource(empty ? R.drawable.ic_search : R.drawable.ic_close);
                 clearButton.setContentDescription(getString(empty ? R.string.search : R.string.clear));
-                if (s.length() > 0) OrvidApp.get().images().warm();
+                if (s.length() > 0) {
+                    OrvidApp.get().images().warm();
+                    prewarmSources();
+                }
             }
 
             @Override
@@ -598,6 +611,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
         prepared.clear();
         devSources.clear();
         searchStarted = android.os.SystemClock.uptimeMillis();
+        traceReset();
         findViewById(R.id.dev_status).setVisibility(View.GONE);
         pendingSources = 0;
 
@@ -611,7 +625,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
 
         if (q.siteIs("youtube", "YouTube") && f.youtube && com.orvid.ext.Registry.engineOn("youtube")) {
             pendingSources++;
-            jobs.add(queued(0, 0, () -> {
+            jobs.add(queued(0, 0, 0, () -> {
                 try {
                     Hedge.Result<Search.Page> r = Hedge.call(Visionos.takeCircuit(), Visionos::takeCircuit,
                             Fetch.torMode() ? HEDGE_MS : 0, c -> Search.first(c, q.platformQuery, f.youtubeParams()));
@@ -636,7 +650,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
         }
         if (q.siteIs("dailymotion", "Dailymotion") && f.dailymotion && com.orvid.ext.Registry.engineOn("dailymotion")) {
             pendingSources++;
-            jobs.add(queued(1, 0, () -> {
+            jobs.add(queued(1, 1, 0, () -> {
                 try {
                     Dailymotion.Page page = Dailymotion.search(Visionos.takeCircuit(), q.plainQuery, 1,
                             f.dailymotionParams(), f.type == Filters.TYPE_SHORTS);
@@ -652,7 +666,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
         }
         if (q.siteIs("vk", "VK") && f.vk && f.type != Filters.TYPE_SHORTS && com.orvid.ext.Registry.engineOn("vk")) {
             pendingSources++;
-            jobs.add(queued(Query.CYRILLIC.equals(q.script()) ? 2 : 4, -0.8, () -> {
+            jobs.add(queued(2, Query.CYRILLIC.equals(q.script()) ? 2 : 4, -0.8, () -> {
                 try {
                     Hedge.Result<com.orvid.vk.Vk.Page> r = Hedge.race(com.orvid.vk.Vk.circuits(Visionos::takeCircuit),
                             1200, c -> com.orvid.vk.Vk.search(c, q.plainQuery, null));
@@ -672,7 +686,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
             final int slot = i;
             if (!src.wanted(f, q)) continue;
             pendingSources++;
-            jobs.add(queued(src.priority(q), -src.weight, () -> runExtra(generation, f, src, slot, null)));
+            jobs.add(queued(CORE + slot, src.priority(q), -src.weight, () -> runExtra(generation, f, src, slot, null)));
         }
         if (pendingSources == 0) {
             adapter.set(Collections.<StreamInfoItem>emptyList());
@@ -693,10 +707,12 @@ public final class MainActivity extends Activity implements Tor.Listener {
             return;
         }
         try {
-            Hedge.Result<Source.Page> first = Hedge.call(Fetch.newCircuit("x"), () -> Fetch.newCircuit("x"),
+            Hedge.Result<Source.Page> first = Hedge.call(com.orvid.net.Prewarm.take(src.key), () -> Fetch.newCircuit(src.key),
                     VK_HEDGE_MS, c -> src.search(c, use.plainQuery, f, null));
+            com.orvid.net.Prewarm.learn(src.key, Fetch.firstHost(first.circuit));
             if (first.value.items.isEmpty()) {
                 Diag.mark(src.key + " empty, asking again from another exit");
+                com.orvid.net.Trace.note(com.orvid.net.Trace.Step.AGAIN, 0);
                 Hedge.Result<Source.Page> again = Hedge.call(Fetch.newCircuit("x"), () -> Fetch.newCircuit("x"),
                         VK_HEDGE_MS, c -> src.search(c, use.plainQuery, f, null));
                 if (!again.value.items.isEmpty()) first = again;
@@ -724,7 +740,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
                 final int slot = i;
                 if (extraStarted[i] == null || extraStarted[i] == q2 || !src.wanted(f, q2)) continue;
                 pendingSources++;
-                jobs.add(queued(src.priority(q2), -src.weight, () -> runExtra(generation, f, src, slot, q2)));
+                jobs.add(queued(CORE + slot, src.priority(q2), -src.weight, () -> runExtra(generation, f, src, slot, q2)));
             }
         }
         java.util.Collections.sort(jobs);
@@ -778,8 +794,178 @@ public final class MainActivity extends Activity implements Tor.Listener {
         }
     }
 
-    private Queued queued(int priority, double tie, Runnable body) {
-        return new Queued(priority, tie, searchScope, body);
+    private Queued queued(int source, int priority, double tie, Runnable body) {
+        final int generation = searchGeneration;
+        traceSet(generation, source, getString(R.string.trace_queued), false);
+        com.orvid.net.Trace.Sink sink = new com.orvid.net.Trace.Sink() {
+            @Override
+            public void note(com.orvid.net.Trace.Step step, int n) {
+                runOnUiThread(() -> traceSet(generation, source, traceStep(step, n), false));
+            }
+
+            @Override
+            public void page(String detail) {
+                runOnUiThread(() -> {
+                    if (generation != searchGeneration || source >= traceInfo.length) return;
+                    traceInfo[source] = detail;
+                    if (traceOpen) renderTrace();
+                });
+            }
+        };
+        return new Queued(priority, tie, searchScope, () -> {
+            runOnUiThread(() -> traceSet(generation, source, getString(R.string.trace_searching), false));
+            try {
+                com.orvid.net.Trace.with(sink, () -> {
+                    body.run();
+                    return null;
+                });
+            } catch (Exception ignored) {
+            }
+        });
+    }
+
+    private View trace;
+    private TextView traceLine;
+    private TextView traceCount;
+    private android.widget.ProgressBar traceBar;
+    private TextView traceDetail;
+    private boolean traceOpen;
+    private String[] traceState = new String[0];
+    private boolean[] traceEnded = new boolean[0];
+    private String[] traceInfo = new String[0];
+    private String[] traceError = new String[0];
+    private long traceFinishedAt;
+    private int traceLast = -1;
+    private int traceTotal;
+    private int traceDone;
+    private Runnable traceHide;
+
+    private void traceReset() {
+        int n = CORE + extras.size();
+        traceState = new String[n];
+        traceEnded = new boolean[n];
+        traceInfo = new String[n];
+        traceError = new String[n];
+        traceFinishedAt = 0;
+        traceLast = -1;
+        traceTotal = 0;
+        traceDone = 0;
+        if (traceHide != null) trace.removeCallbacks(traceHide);
+        traceHide = null;
+        trace.setVisibility(View.GONE);
+    }
+
+    private String traceName(int source) {
+        if (source == 0) return "YouTube";
+        if (source == 1) return "Dailymotion";
+        if (source == 2) return "VK";
+        return source - CORE < extras.size() ? extras.get(source - CORE).name : "?";
+    }
+
+    private String traceStep(com.orvid.net.Trace.Step step, int n) {
+        switch (step) {
+            case TOR: return getString(R.string.trace_tor);
+            case LANE: return getString(R.string.trace_lane, n);
+            case RETRY: return getString(R.string.trace_retry, n);
+            default: return getString(R.string.trace_again);
+        }
+    }
+
+    private void traceSet(int generation, int source, String state, boolean end) {
+        if (generation != searchGeneration || source < 0 || source >= traceState.length) return;
+        if (traceEnded[source] && !end) {
+            if (state.equals(getString(R.string.trace_queued))) {
+                traceEnded[source] = false;
+                traceTotal++;
+            } else {
+                return;
+            }
+        } else if (traceState[source] == null) {
+            traceTotal++;
+        }
+        if (end && !traceEnded[source]) {
+            traceEnded[source] = true;
+            traceDone++;
+        }
+        traceFinishedAt = traceDone >= traceTotal ? android.os.SystemClock.uptimeMillis() : 0;
+        traceState[source] = state;
+        traceLast = source;
+        renderTrace();
+    }
+
+    private void renderTrace() {
+        if (traceTotal == 0) return;
+        boolean finished = traceDone >= traceTotal;
+        if (finished) {
+            long ms = (traceFinishedAt > 0 ? traceFinishedAt : android.os.SystemClock.uptimeMillis()) - searchStarted;
+            traceLine.setText(getString(R.string.trace_summary, traceTotal, String.format(java.util.Locale.ROOT, "%.1f", ms / 1000.0)));
+        } else if (traceOpen) {
+            traceLine.setText(getString(R.string.trace_running, traceTotal));
+        } else if (traceLast >= 0) {
+            traceLine.setText(traceName(traceLast) + ": " + traceState[traceLast]);
+        }
+        traceCount.setText(traceDone + "/" + traceTotal);
+        traceBar.setMax(traceTotal);
+        traceBar.setProgress(traceDone);
+        if (traceOpen) {
+            StringBuilder b = new StringBuilder();
+            for (int pass = 0; pass < 2; pass++) {
+                for (int i = 0; i < traceState.length; i++) {
+                    if (traceState[i] == null || traceEnded[i] != (pass == 1)) continue;
+                    if (b.length() > 0) b.append('\n');
+                    b.append(traceName(i)).append(": ").append(traceState[i]);
+                    if (traceInfo[i] != null) b.append("\n    ").append(traceInfo[i]);
+                }
+            }
+            traceDetail.setText(b);
+            traceDetail.setVisibility(View.VISIBLE);
+        } else {
+            traceDetail.setVisibility(View.GONE);
+        }
+        trace.setVisibility(View.VISIBLE);
+        if (traceHide != null) trace.removeCallbacks(traceHide);
+        traceHide = null;
+        if (finished && !traceOpen) {
+            traceHide = () -> trace.setVisibility(View.GONE);
+            trace.postDelayed(traceHide, TRACE_LINGER_MS);
+        }
+    }
+
+    private static final long TRACE_LINGER_MS = 4000;
+
+    private void prewarmSources() {
+        Query blank = Query.parse("");
+        for (Source s : Sources.current()) {
+            if (!(s instanceof com.orvid.ext.ExtSource) || !s.wanted(filters, blank)) continue;
+            com.orvid.ext.ExtSource ext = (com.orvid.ext.ExtSource) s;
+            if (ext.webPlayback) continue;
+            com.orvid.net.Prewarm.warm(ext.key, ext.host());
+        }
+    }
+
+    private void copyTrace() {
+        StringBuilder b = new StringBuilder("Orvid ");
+        try {
+            b.append(getPackageManager().getPackageInfo(getPackageName(), 0).versionName);
+        } catch (Exception ignored) {
+        }
+        b.append('\n').append(traceLine.getText()).append(' ').append(traceCount.getText());
+        for (int i = 0; i < traceState.length; i++) {
+            if (traceState[i] == null) continue;
+            b.append('\n').append(traceName(i)).append(": ").append(traceState[i]);
+            if (traceInfo[i] != null) b.append("\n    ").append(traceInfo[i]);
+            if (traceError[i] != null) b.append("\n    ").append(traceError[i]);
+        }
+        android.content.ClipData clip = android.content.ClipData.newPlainText("Orvid", b);
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            android.os.PersistableBundle extras = new android.os.PersistableBundle();
+            extras.putBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE, true);
+            clip.getDescription().setExtras(extras);
+        }
+        android.content.ClipboardManager cm = getSystemService(android.content.ClipboardManager.class);
+        if (cm == null) return;
+        cm.setPrimaryClip(clip);
+        android.widget.Toast.makeText(this, R.string.trace_copied, android.widget.Toast.LENGTH_SHORT).show();
     }
 
     private static final int CORE = 3;
@@ -810,6 +996,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
     private void deliver(int generation, Query q, Filters f, int source, List<StreamInfoItem> items) {
         if (generation != searchGeneration) return;
         devStatus(source, items.size() + " " + (android.os.SystemClock.uptimeMillis() - searchStarted) / 100 / 10.0 + "s");
+        traceSet(generation, source, getString(R.string.trace_results, items.size()), true);
         pendingSources--;
         if (arrived == null) {
             arrived = new ArrayList<>();
@@ -975,6 +1162,8 @@ public final class MainActivity extends Activity implements Tor.Listener {
         if (generation != searchGeneration) return;
         String why = e == null ? null : e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
         devStatus(source, why == null ? "skipped" : "FAIL " + (why.length() > 40 ? why.substring(0, 40) : why));
+        if (e != null && generation == searchGeneration && source < traceError.length) traceError[source] = String.valueOf(e);
+        traceSet(generation, source, e == null ? getString(R.string.trace_skipped) : getString(R.string.trace_failed, Ui.error(this, e)), true);
         pendingSources--;
         lastSourceError = e;
         finishIfDone();

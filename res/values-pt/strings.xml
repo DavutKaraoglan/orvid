@@ -136,4 +136,16 @@
     <string name="download_merging">Juntando áudio e vídeo</string>
     <string name="dev_mode_on">Modo desenvolvedor ativado</string>
     <string name="dev_mode_off">Modo desenvolvedor desativado</string>
+    <string name="trace_queued">na fila</string>
+    <string name="trace_tor">aguardando o Tor</string>
+    <string name="trace_searching">buscando</string>
+    <string name="trace_lane">tentando saída Tor %1$d</string>
+    <string name="trace_retry">bloqueado, tentativa %1$d</string>
+    <string name="trace_again">sem resultados, pedindo a outra saída</string>
+    <string name="trace_results">%1$d encontrados</string>
+    <string name="trace_skipped">ignorado</string>
+    <string name="trace_failed">falhou: %1$s</string>
+    <string name="trace_summary">%1$d fontes buscadas em %2$s s</string>
+    <string name="trace_copied">Registro da busca copiado</string>
+    <string name="trace_running">Buscando em %1$d fontes</string>
 </resources>

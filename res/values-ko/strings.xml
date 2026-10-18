@@ -136,4 +136,16 @@
     <string name="download_merging">오디오와 영상 합치는 중</string>
     <string name="dev_mode_on">개발자 모드 켜짐</string>
     <string name="dev_mode_off">개발자 모드 꺼짐</string>
+    <string name="trace_queued">대기 중</string>
+    <string name="trace_tor">Tor 대기 중</string>
+    <string name="trace_searching">검색 중</string>
+    <string name="trace_lane">Tor 출구 %1$d 시도 중</string>
+    <string name="trace_retry">차단됨, %1$d번째 시도</string>
+    <string name="trace_again">결과 없음, 다른 출구에 요청</string>
+    <string name="trace_results">%1$d개 찾음</string>
+    <string name="trace_skipped">건너뜀</string>
+    <string name="trace_failed">실패: %1$s</string>
+    <string name="trace_summary">%2$s초 동안 소스 %1$d개 검색</string>
+    <string name="trace_copied">검색 기록을 복사했습니다</string>
+    <string name="trace_running">소스 %1$d개 검색 중</string>
 </resources>

@@ -51,6 +51,27 @@ public final class Panic {
         }
     }
 
+    public static <D extends android.app.Dialog> D guard(Activity activity, D dialog) {
+        android.view.Window window = dialog.getWindow();
+        if (window == null) return dialog;
+        android.view.Window.Callback inner = window.getCallback();
+        Panic panic = new Panic();
+        window.setCallback((android.view.Window.Callback) java.lang.reflect.Proxy.newProxyInstance(
+                android.view.Window.Callback.class.getClassLoader(), new Class<?>[]{android.view.Window.Callback.class},
+                (proxy, method, args) -> {
+                    if ("dispatchTouchEvent".equals(method.getName()) && panic.feed(activity, (MotionEvent) args[0])) {
+                        window.getDecorView().setVisibility(android.view.View.INVISIBLE);
+                        return true;
+                    }
+                    try {
+                        return method.invoke(inner, args);
+                    } catch (java.lang.reflect.InvocationTargetException e) {
+                        throw e.getCause();
+                    }
+                }));
+        return dialog;
+    }
+
     private static void exit(Activity activity) {
         activity.getWindow().getDecorView().setVisibility(android.view.View.INVISIBLE);
         try {

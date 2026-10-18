@@ -29,7 +29,7 @@ public final class Tor {
     private static final Pattern SUMMARY = Pattern.compile("SUMMARY=\"([^\"]*)\"");
     private static final Pattern LISTENER = Pattern.compile("127\\.0\\.0\\.1:(\\d+)");
 
-    private static final Tor INSTANCE = new Tor(12, null);
+    private static final Tor INSTANCE = new Tor(48, null);
     private static final Tor DACH = new Tor(2, "{de},{at},{ch}");
 
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();

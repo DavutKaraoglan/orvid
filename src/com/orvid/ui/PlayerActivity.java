@@ -1241,6 +1241,8 @@ public final class PlayerActivity extends Activity {
     private final java.util.Set<String> relatedSeen = new java.util.HashSet<>();
 
     private final java.util.Set<String> relatedSeeds = new java.util.HashSet<>();
+    private int relatedEmptyPages;
+    private static final int RELATED_EMPTY_LIMIT = 3;
 
     private String nextSeed() {
         for (StreamInfoItem i : related.items()) {
@@ -1267,15 +1269,24 @@ public final class PlayerActivity extends Activity {
             @Override
             protected void show(com.orvid.yt.Search.Page p) {
                 relatedToken = p.continuation;
+                String own = ((TextView) header.findViewById(R.id.name)).getText().toString();
                 List<StreamInfoItem> fresh = new ArrayList<>();
+                int foreign = 0;
                 for (StreamInfoItem i : p.items) {
-                    if (!i.getUrl().equals(pageUrl) && sourceOn(relatedFilters(), i) && relatedSeen.add(i.getUrl())) fresh.add(i);
+                    if (i.getUrl().equals(pageUrl) || !sourceOn(relatedFilters(), i)) continue;
+                    if (!com.orvid.search.Ranker.sameScript(own, i.getName())) {
+                        foreign++;
+                        continue;
+                    }
+                    if (relatedSeen.add(i.getUrl())) fresh.add(i);
                 }
+                if (foreign > 0) Diag.mark("related more: " + foreign + " in another script dropped");
                 reveal(fresh);
                 Session.related.addAll(fresh);
                 Session.relatedToken = relatedToken;
                 relatedLoading = false;
-                if (fresh.isEmpty()) loadMoreRelated();
+                relatedEmptyPages = fresh.isEmpty() ? relatedEmptyPages + 1 : 0;
+                if (fresh.isEmpty() && relatedEmptyPages < RELATED_EMPTY_LIMIT) loadMoreRelated();
             }
 
             @Override

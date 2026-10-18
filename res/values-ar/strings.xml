@@ -136,4 +136,16 @@
     <string name="download_merging">دمج الصوت والفيديو</string>
     <string name="dev_mode_on">وضع المطوّر مفعّل</string>
     <string name="dev_mode_off">وضع المطوّر متوقف</string>
+    <string name="trace_queued">في الانتظار</string>
+    <string name="trace_tor">بانتظار Tor</string>
+    <string name="trace_searching">جارٍ البحث</string>
+    <string name="trace_lane">تجربة مخرج Tor رقم %1$d</string>
+    <string name="trace_retry">محظور، المحاولة %1$d</string>
+    <string name="trace_again">لا نتائج، سؤال مخرج آخر</string>
+    <string name="trace_results">وُجد %1$d</string>
+    <string name="trace_skipped">تم التخطي</string>
+    <string name="trace_failed">فشل: %1$s</string>
+    <string name="trace_summary">تم البحث في %1$d مصدر خلال %2$s ث</string>
+    <string name="trace_copied">تم نسخ سجل البحث</string>
+    <string name="trace_running">جارٍ البحث في %1$d مصدر</string>
 </resources>

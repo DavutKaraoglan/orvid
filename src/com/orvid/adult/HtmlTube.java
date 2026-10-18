@@ -93,6 +93,20 @@ public final class HtmlTube {
     }
 
     private boolean followRedirect;
+    private Pattern embedFrom;
+    private String embedTo;
+
+    public HtmlTube embed(String from, String to) {
+        embedFrom = Pattern.compile(from);
+        embedTo = to;
+        return this;
+    }
+
+    private String pageFor(String url) {
+        if (embedFrom == null) return url;
+        Matcher e = embedFrom.matcher(url);
+        return e.find() ? embedTo.replace("$1", e.group(1)) : url;
+    }
 
     public HtmlTube followRedirect() {
         followRedirect = true;
@@ -135,6 +149,12 @@ public final class HtmlTube {
         return url != null && videoUrl.matcher(url).find();
     }
 
+    private static final Pattern PAGE_TITLE = Pattern.compile("<title[^>]*>([^<]{1,80})", Pattern.CASE_INSENSITIVE);
+
+    public String host() {
+        return URI.create(site).getHost();
+    }
+
     public Page search(String circuit, String query, String next) throws IOException {
         int page = next == null ? 1 : Integer.parseInt(next);
         String q = URLEncoder.encode(query, "UTF-8");
@@ -143,6 +163,36 @@ public final class HtmlTube {
                 .replace("{p}", Integer.toString(page));
         String html = Web.get(circuit, url, "tube search " + URI.create(site).getHost(), null, timeoutMs);
         Page p = new Page();
+        String[] cards = parse(html, p);
+        if (p.items.isEmpty() && page == 1 && searchFallback != null) {
+            html = Web.get(circuit, searchFallback.replace("{q}", q).replace("{qp}", qPath),
+                    "tube fallback " + URI.create(site).getHost(), null, timeoutMs);
+            cards = parse(html, p);
+            Matcher pt = PAGE_TITLE.matcher(html);
+            com.orvid.net.Trace.page("fallback HTML " + html.length() / 1024 + " KB, " + (cards.length - 1) + " \u2192 " + p.items.size()
+                    + (pt.find() ? ", \"" + Web.unescape(pt.group(1).trim()) + "\"" : ""));
+            return p;
+        }
+        Matcher pt = PAGE_TITLE.matcher(html);
+        com.orvid.net.Trace.page("HTML " + html.length() / 1024 + " KB, " + (cards.length - 1) + " \u2192 " + p.items.size()
+                + (pt.find() ? ", \"" + Web.unescape(pt.group(1).trim()) + "\"" : ""));
+        String nextUrl = laterPage.replace("{q}", q).replace("{qp}", qPath).replace("{p}", Integer.toString(page + 1));
+        String nextPath = nextUrl.startsWith(site) ? nextUrl.substring(site.length()) : nextUrl;
+        if (!p.items.isEmpty() && (paged || html.contains(nextPath) || html.contains(nextUrl)
+                || html.contains(nextPath.replace("&", "&amp;")))) {
+            p.next = Integer.toString(page + 1);
+        }
+        return p;
+    }
+
+    private String searchFallback;
+
+    public HtmlTube searchFallback(String url) {
+        searchFallback = url;
+        return this;
+    }
+
+    private String[] parse(String html, Page p) {
         Set<String> seen = new HashSet<>();
         String[] cards = html.split("(?=" + Pattern.quote(cardMarker) + ")");
         for (int i = 1; i < cards.length; i++) {
@@ -175,18 +225,12 @@ public final class HtmlTube {
             item.setThumbnails(thumbs);
             p.items.add(item);
         }
-        String nextUrl = laterPage.replace("{q}", q).replace("{qp}", qPath).replace("{p}", Integer.toString(page + 1));
-        String nextPath = nextUrl.startsWith(site) ? nextUrl.substring(site.length()) : nextUrl;
-        if (!p.items.isEmpty() && (paged || html.contains(nextPath) || html.contains(nextUrl)
-                || html.contains(nextPath.replace("&", "&amp;")))) {
-            p.next = Integer.toString(page + 1);
-        }
-        return p;
+        return cards;
     }
 
     public Media resolve(String circuit, String url) throws IOException {
         if (!handles(url)) throw new IOException("not a video link");
-        String html = Web.getUntil(circuit, url, "tube video " + URI.create(site).getHost(), null,
+        String html = Web.getUntil(circuit, pageFor(url), "tube video " + URI.create(site).getHost(), null,
                 iframe != null ? iframe : STREAM_MARKER, iframe != null ? 2048 : 24 * 1024, timeoutMs);
         Media m = new Media();
         m.referer = referer != null ? referer : url;
@@ -271,16 +315,44 @@ public final class HtmlTube {
         return m;
     }
 
+    private static final int MEDIA_HOP_TIMEOUT_MS = 12000;
+    private static final long DEAD_HOST_MS = 10 * 60 * 1000L;
+    private static final java.util.Map<String, long[]> DEAD = new java.util.HashMap<>();
+
+    private static boolean dead(String host) {
+        synchronized (DEAD) {
+            long[] d = DEAD.get(host);
+            return d != null && d[0] >= 2 && System.currentTimeMillis() - d[1] < DEAD_HOST_MS;
+        }
+    }
+
+    private static boolean markDead(String host) {
+        synchronized (DEAD) {
+            long now = System.currentTimeMillis();
+            long[] d = DEAD.get(host);
+            if (d == null || now - d[1] >= DEAD_HOST_MS) d = new long[]{0, now};
+            d[0]++;
+            d[1] = now;
+            DEAD.put(host, d);
+            return d[0] >= 2;
+        }
+    }
+
     private String unwrap(String circuit, String url, String referer) throws IOException {
         String current = url;
+        int hop = 0;
         try {
-            for (int hop = 0; hop < 4; hop++) {
+            for (; hop < 4; hop++) {
                 final String at = current;
+                if (hop > 0 && dead(URI.create(at).getHost())) {
+                    throw new com.orvid.net.Hedge.Final("media server unreachable over Tor: " + URI.create(at).getHost());
+                }
+                final int wait = hop == 0 ? timeoutMs : Math.min(timeoutMs, MEDIA_HOP_TIMEOUT_MS);
                 String next = Fetch.on(circuit, () -> {
                     java.net.HttpURLConnection c = Fetch.open(at);
                     c.setInstanceFollowRedirects(false);
-                    c.setConnectTimeout(timeoutMs);
-                    c.setReadTimeout(timeoutMs);
+                    c.setConnectTimeout(wait);
+                    c.setReadTimeout(wait);
                     c.setRequestProperty("User-Agent", Fetch.USER_AGENT);
                     c.setRequestProperty("Range", "bytes=0-0");
                     if (referer != null) c.setRequestProperty("Referer", referer);
@@ -296,7 +368,15 @@ public final class HtmlTube {
             }
         } catch (Exception e) {
             if (e instanceof Fetch.Cancelled) throw (Fetch.Cancelled) e;
+            if (e instanceof com.orvid.net.Hedge.Final) throw (com.orvid.net.Hedge.Final) e;
             com.orvid.net.Diag.mark("tube redirect FAIL " + e.getMessage());
+            if (String.valueOf(e.getMessage()).startsWith("HTTP 4")) throw new IOException("media link refused: " + e.getMessage());
+            if (hop > 0) {
+                String host = URI.create(current).getHost();
+                String why = "media server unreachable over Tor: " + host;
+                if (markDead(host)) throw new com.orvid.net.Hedge.Final(why);
+                throw new IOException(why);
+            }
             return url;
         }
         com.orvid.net.Diag.mark("tube media " + URI.create(current).getHost());

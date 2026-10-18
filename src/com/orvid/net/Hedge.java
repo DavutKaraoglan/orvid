@@ -21,6 +21,12 @@ public final class Hedge {
         T run(String circuit) throws Exception;
     }
 
+    public static final class Final extends java.io.IOException {
+        public Final(String message) {
+            super(message);
+        }
+    }
+
     public static final class Result<T> {
         public final T value;
         public final String circuit;
@@ -40,6 +46,7 @@ public final class Hedge {
         if (got == null && delayMs > 0) {
             String second = spare.get();
             Diag.mark("hedge: second circuit after " + delayMs + "ms");
+            Trace.note(Trace.Step.LANE, 2);
             b = done.submit(wrap(second, task));
             running = 2;
         }
@@ -55,6 +62,12 @@ public final class Hedge {
                 return r;
             } catch (ExecutionException e) {
                 last = e.getCause() instanceof Exception ? (Exception) e.getCause() : e;
+                if (b == null && delayMs > 0 && !(last instanceof Fetch.Cancelled)) {
+                    Diag.mark("hedge: first circuit failed early, second circuit now");
+                    Trace.note(Trace.Step.LANE, 2);
+                    b = done.submit(wrap(spare.get(), task));
+                    running++;
+                }
             }
         }
         throw last;
@@ -77,6 +90,7 @@ public final class Hedge {
                         ? done.poll(staggerMs, TimeUnit.MILLISECONDS) : done.take();
                 if (f == null) {
                     Diag.mark("race: circuit " + (next + 1) + " joins");
+                    Trace.note(Trace.Step.LANE, next + 1);
                     started.add(done.submit(wrap(circuits.get(next++), task, retry)));
                     running++;
                     continue;
@@ -86,6 +100,7 @@ public final class Hedge {
                     return f.get();
                 } catch (ExecutionException e) {
                     last = e.getCause() instanceof Exception ? (Exception) e.getCause() : e;
+                    if (last instanceof Final) throw last;
                     if (next < circuits.size()) {
                         started.add(done.submit(wrap(circuits.get(next++), task, retry)));
                         running++;
@@ -104,7 +119,8 @@ public final class Hedge {
 
     private static <T> Callable<Result<T>> wrap(String circuit, Task<T> task, boolean retry) {
         Fetch.Scope scope = Fetch.scope();
-        if (!retry) return () -> Fetch.within(scope, () -> new Result<>(Fetch.on(circuit, () -> task.run(circuit)), circuit));
-        return () -> Fetch.within(scope, () -> new Result<>(Fetch.retrying(circuit, task::run), circuit));
+        Trace.Sink sink = Trace.current();
+        if (!retry) return () -> Trace.with(sink, () -> Fetch.within(scope, () -> new Result<>(Fetch.on(circuit, () -> task.run(circuit)), circuit)));
+        return () -> Trace.with(sink, () -> Fetch.within(scope, () -> new Result<>(Fetch.retrying(circuit, task::run), circuit)));
     }
 }

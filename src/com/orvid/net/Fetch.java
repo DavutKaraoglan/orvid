@@ -85,12 +85,23 @@ public final class Fetch extends Downloader {
             else SCOPE.set(previous);
         }
     }
-    private static final Map<String, Integer> SLOTS = new LinkedHashMap<String, Integer>(64, 0.75f, true) {
+    private static final class Binding {
+        int slot = -1;
+        int avoid = -1;
+        String owner;
+        String host;
+    }
+
+    private static final Map<String, Binding> SLOTS = new LinkedHashMap<String, Binding>(64, 0.75f, true) {
         @Override
-        protected boolean removeEldestEntry(Map.Entry<String, Integer> eldest) {
-            return size() > 256;
+        protected boolean removeEldestEntry(Map.Entry<String, Binding> eldest) {
+            return size() > 512;
         }
     };
+    private static final long PORT_HOLD_MS = 31 * 60 * 1000L;
+    private static final int MAX_PORTS = 64;
+    private static final String[] slotOwner = new String[MAX_PORTS];
+    private static final long[] slotUsed = new long[MAX_PORTS];
     private static int nextSlot;
     private static volatile boolean torMode;
 
@@ -138,6 +149,7 @@ public final class Fetch extends Downloader {
                 if (scope != null && scope.cancelled()) throw new Cancelled();
                 if (i >= tries || !blocked(e)) throw e;
                 Diag.mark("blocked on try " + i + ", new circuit: " + e.getClass().getSimpleName());
+                Trace.note(Trace.Step.RETRY, i + 1);
                 rotate(circuit);
             }
         }
@@ -157,7 +169,10 @@ public final class Fetch extends Downloader {
 
     public static void rotate(String circuit) {
         synchronized (SLOTS) {
-            SLOTS.put(circuit, nextSlot++);
+            Binding b = SLOTS.get(circuit);
+            if (b == null) return;
+            b.avoid = b.slot;
+            b.slot = -1;
         }
     }
 
@@ -167,15 +182,81 @@ public final class Fetch extends Downloader {
         }
     }
 
-    private static int slot(String circuit) {
+    public static String firstHost(String circuit) {
+        if (circuit == null) return null;
         synchronized (SLOTS) {
-            Integer s = SLOTS.get(circuit == null ? "default" : circuit);
-            if (s == null) {
-                s = nextSlot++;
-                SLOTS.put(circuit == null ? "default" : circuit, s);
-            }
-            return s;
+            Binding b = SLOTS.get(circuit);
+            return b == null ? null : b.host;
         }
+    }
+
+    static String site(String host) {
+        if (host == null || host.isEmpty()) return null;
+        String h = host.toLowerCase(java.util.Locale.ROOT);
+        if (h.endsWith(".")) h = h.substring(0, h.length() - 1);
+        String[] parts = h.split("\\.");
+        if (parts.length <= 2) return h;
+        int keep = parts[parts.length - 1].length() == 2 && parts[parts.length - 2].length() <= 3 ? 3 : 2;
+        return String.join(".", java.util.Arrays.copyOfRange(parts, parts.length - keep, parts.length));
+    }
+
+    private static int slot(String circuit, String host, int ports) {
+        if (circuit != null && circuit.startsWith(DACH)) {
+            synchronized (SLOTS) {
+                Binding b = SLOTS.get(circuit);
+                if (b == null) {
+                    b = new Binding();
+                    SLOTS.put(circuit, b);
+                }
+                if (b.slot < 0) b.slot = Math.floorMod(nextSlot++, ports);
+                return b.slot;
+            }
+        }
+        String owner = site(host);
+        String name = circuit != null ? circuit : "default:" + owner;
+        int n = Math.min(ports, MAX_PORTS);
+        long now = System.currentTimeMillis();
+        synchronized (SLOTS) {
+            Binding b = SLOTS.get(name);
+            if (b == null) {
+                b = new Binding();
+                b.owner = owner != null ? owner : name;
+                b.host = host;
+                SLOTS.put(name, b);
+            }
+            if (b.slot < 0 || b.slot >= n) {
+                b.slot = pick(b.owner, n, b.avoid, now);
+                b.avoid = -1;
+            }
+            slotOwner[b.slot] = b.owner;
+            slotUsed[b.slot] = now;
+            return b.slot;
+        }
+    }
+
+    private static int pick(String owner, int n, int avoid, long now) {
+        int free = -1;
+        int same = -1;
+        int oldest = -1;
+        for (int i = 0; i < n; i++) {
+            if (i == avoid) continue;
+            boolean expired = slotOwner[i] == null || now - slotUsed[i] > PORT_HOLD_MS;
+            if (expired && (free < 0 || slotUsed[i] < slotUsed[free])) free = i;
+            if (owner.equals(slotOwner[i]) && (same < 0 || slotUsed[i] < slotUsed[same])) same = i;
+            if (oldest < 0 || slotUsed[i] < slotUsed[oldest]) oldest = i;
+        }
+        if (free >= 0) {
+            if (slotOwner[free] != null && !owner.equals(slotOwner[free])) release(free);
+            return free;
+        }
+        if (same >= 0) return same;
+        if (oldest < 0) oldest = 0;
+        Diag.mark("tor: port " + oldest + " shared by " + slotOwner[oldest] + " and " + owner);
+        return oldest;
+    }
+
+    private static void release(int slot) {
+        for (Binding b : SLOTS.values()) if (b.slot == slot) b.slot = -1;
     }
 
     public static final String DACH = "dach:";
@@ -185,15 +266,20 @@ public final class Fetch extends Downloader {
     }
 
     public static int torPortFor(String circuit) throws IOException {
+        return torPortFor(circuit, null);
+    }
+
+    public static int torPortFor(String circuit, String host) throws IOException {
         Tor tor = torFor(circuit);
         try {
+            if (tor.state() != Tor.State.READY) Trace.note(Trace.Step.TOR, 0);
             if (!tor.awaitReady(TOR_WAIT_MS)) throw new TorUnavailable();
         } catch (InterruptedException e) {
             throw new IOException("interrupted");
         }
         int[] ports = tor.ports();
         if (ports.length == 0) throw new TorUnavailable();
-        return ports[Math.floorMod(slot(circuit), ports.length)];
+        return ports[slot(circuit, host, ports.length)];
     }
 
     private static Tor torFor(String circuit) {
@@ -202,9 +288,9 @@ public final class Fetch extends Downloader {
         return Tor.dach();
     }
 
-    private static Proxy route() throws IOException {
+    private static Proxy route(String host) throws IOException {
         if (!torMode) return Proxy.NO_PROXY;
-        return new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", torPortFor(CIRCUIT.get())));
+        return new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", torPortFor(CIRCUIT.get(), host)));
     }
 
     @Override
@@ -261,7 +347,8 @@ public final class Fetch extends Downloader {
     public static HttpURLConnection open(String url) throws IOException {
         Scope scope = SCOPE.get();
         if (scope != null && scope.cancelled()) throw new Cancelled();
-        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection(route());
+        URL target = new URL(url);
+        HttpURLConnection c = (HttpURLConnection) target.openConnection(route(target.getHost()));
         if (scope != null) scope.add(c);
         c.setConnectTimeout(TIMEOUT_MS);
         c.setReadTimeout(TIMEOUT_MS);

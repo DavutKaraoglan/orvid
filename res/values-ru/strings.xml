@@ -136,4 +136,16 @@
     <string name="download_merging">Объединение аудио и видео</string>
     <string name="dev_mode_on">Режим разработчика включён</string>
     <string name="dev_mode_off">Режим разработчика выключен</string>
+    <string name="trace_queued">в очереди</string>
+    <string name="trace_tor">ожидание Tor</string>
+    <string name="trace_searching">поиск</string>
+    <string name="trace_lane">пробует выход Tor %1$d</string>
+    <string name="trace_retry">заблокировано, попытка %1$d</string>
+    <string name="trace_again">нет результатов, другой выход</string>
+    <string name="trace_results">найдено: %1$d</string>
+    <string name="trace_skipped">пропущено</string>
+    <string name="trace_failed">ошибка: %1$s</string>
+    <string name="trace_summary">источников: %1$d, за %2$s с</string>
+    <string name="trace_copied">Журнал поиска скопирован</string>
+    <string name="trace_running">Поиск в источниках: %1$d</string>
 </resources>

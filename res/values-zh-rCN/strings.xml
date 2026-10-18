@@ -136,4 +136,16 @@
     <string name="download_merging">正在合并音频和视频</string>
     <string name="dev_mode_on">开发者模式已开启</string>
     <string name="dev_mode_off">开发者模式已关闭</string>
+    <string name="trace_queued">排队中</string>
+    <string name="trace_tor">等待 Tor</string>
+    <string name="trace_searching">搜索中</string>
+    <string name="trace_lane">尝试 Tor 出口 %1$d</string>
+    <string name="trace_retry">被拦截，第 %1$d 次尝试</string>
+    <string name="trace_again">无结果，换出口重试</string>
+    <string name="trace_results">找到 %1$d 个</string>
+    <string name="trace_skipped">已跳过</string>
+    <string name="trace_failed">失败：%1$s</string>
+    <string name="trace_summary">%2$s 秒内搜索了 %1$d 个来源</string>
+    <string name="trace_copied">已复制搜索日志</string>
+    <string name="trace_running">正在搜索 %1$d 个来源</string>
 </resources>

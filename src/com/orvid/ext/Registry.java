@@ -119,6 +119,11 @@ public final class Registry {
             if (h.has("timeout")) html.timeout(Math.max(5, Math.min(60, h.getInt("timeout"))) * 1000);
             if (h.has("maxHeight")) html.maxHeight(Math.max(144, h.getInt("maxHeight")));
             if (h.getBoolean("followRedirect", false)) html.followRedirect();
+            if (h.getString("searchFallback", null) != null) html.searchFallback(h.getString("searchFallback"));
+            if (h.has("embed")) {
+                JsonObject e = h.getObject("embed");
+                html.embed(e.getString("from"), e.getString("to"));
+            }
         } else {
             String file = d.getString("script", null);
             if (file == null) throw new IOException("no html or script");
@@ -133,6 +138,7 @@ public final class Registry {
         }
         String lang = d.getString("lang", null);
         if (lang != null) s.script(lang);
+        s.minQuery = Math.max(0, Math.min(10, d.getInt("minQuery", 0)));
         return s;
     }
 

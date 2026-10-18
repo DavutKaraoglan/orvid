@@ -44,7 +44,7 @@ public final class Visionos {
     private static final Map<String, String> VISITORS = new HashMap<>();
     private static final Deque<String> READY = new ArrayDeque<>();
     private static final ExecutorService WARMER = Executors.newSingleThreadExecutor();
-    private static final int POOL = 2;
+    private static final int POOL = 4;
     private static final Deque<String> PLAY = new ArrayDeque<>();
     private static final int PLAY_POOL = 2;
     private static final long PLAY_REFILL_DELAY_MS = 8000;

@@ -136,4 +136,16 @@
     <string name="download_merging">ऑडियो और वीडियो जोड़े जा रहे हैं</string>
     <string name="dev_mode_on">डेवलपर मोड चालू</string>
     <string name="dev_mode_off">डेवलपर मोड बंद</string>
+    <string name="trace_queued">कतार में</string>
+    <string name="trace_tor">Tor का इंतज़ार</string>
+    <string name="trace_searching">खोज रहा है</string>
+    <string name="trace_lane">Tor निकास %1$d आज़मा रहा है</string>
+    <string name="trace_retry">अवरुद्ध, प्रयास %1$d</string>
+    <string name="trace_again">कोई परिणाम नहीं, दूसरे निकास से पूछ रहा है</string>
+    <string name="trace_results">%1$d मिले</string>
+    <string name="trace_skipped">छोड़ा गया</string>
+    <string name="trace_failed">विफल: %1$s</string>
+    <string name="trace_summary">%1$d स्रोत %2$s सेकंड में खोजे गए</string>
+    <string name="trace_copied">खोज लॉग कॉपी किया गया</string>
+    <string name="trace_running">%1$d स्रोतों में खोज रहा है</string>
 </resources>
