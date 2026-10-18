@@ -20,16 +20,13 @@ Orvid's goal is one private search box for videos from across the web. Any site 
 
 ## Compared with NewPipe over Tor
 
-Same phone and Wi-Fi, apps started fresh, timed from screen recordings. NewPipe ran through Orbot.
-
 | | Orvid | NewPipe + Orbot |
 |---|---|---|
 | Sources | 103 | 5 |
 | Enter to result list | 1.9 s | 7.1 s |
 | Enter to first 8 thumbnails | 6.9 s | 10.1 s |
-| Tap to first video frame | 7.0 s | 18.0 s |
+| First video frame | 7.0 s | 18.0 s |
 
-Averages of 2 Orvid and 4 NewPipe searches.
 
 ## Getting started
 
