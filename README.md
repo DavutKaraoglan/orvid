@@ -61,3 +61,5 @@ The APK lands in `build/orvid.apk`, signed with a local debug key. For a release
 ## License
 
 GPL-3.0-or-later. Third-party components are listed in [NOTICE](NOTICE).
+
+Orvid is not affiliated with or endorsed by The Tor Project. It is produced independently from the Tor® anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else. Tor and the Tor onion logo are trademarks of The Tor Project, Inc.
