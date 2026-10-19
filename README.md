@@ -18,7 +18,7 @@ Orvid's goal is one private search box for videos from across the web. Any site 
 
 [Performance by version](docs/PERFORMANCE.md) compares search quality and start times across releases.
 
-## Compared with NewPipe over Tor
+## Compared with NewPipe
 
 | | Orvid | NewPipe + Orbot |
 |---|---|---|
