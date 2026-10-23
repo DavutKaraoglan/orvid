@@ -177,10 +177,8 @@ final class FilterSheet {
                 if (on) com.orvid.search.Health.reset(s.key);
                 changed[0] = true;
             });
-            if (s instanceof com.orvid.ext.ExtSource) {
-                int health = com.orvid.search.Health.state(s.key);
-                if (health != com.orvid.search.Health.OK) markHealth(activity, column, sw, health);
-            }
+            int health = com.orvid.search.Health.state(s.key);
+            if (health != com.orvid.search.Health.OK) markHealth(activity, column, sw, health);
             if (!s.adult) normalSwitches.add(sw);
             if (s.adult) {
                 adultSwitches.add(sw);
@@ -243,6 +241,8 @@ final class FilterSheet {
                 });
         source(activity, column, activity.getString(R.string.block_screenshots), R.drawable.ic_no_screenshot,
                 lock.blockScreenshots(), lock::setBlockScreenshots);
+        source(activity, column, activity.getString(R.string.use_tor), R.drawable.ic_tor,
+                com.orvid.app.OrvidApp.get().torOn(), on -> com.orvid.app.OrvidApp.get().setTor(on));
         source(activity, column, activity.getString(R.string.tor_bridges), R.drawable.ic_bridge,
                 com.orvid.app.OrvidApp.get().bridges(), on -> com.orvid.app.OrvidApp.get().setBridges(on));
         source(activity, column, activity.getString(R.string.panic_exit), R.drawable.ic_panic,
@@ -337,7 +337,8 @@ final class FilterSheet {
 
     private static void markHealth(Activity a, LinearLayout column, Switch sw, int health) {
         boolean down = health == com.orvid.search.Health.DOWN;
-        String note = a.getString(down ? R.string.health_down : R.string.health_flaky);
+        String note = a.getString(down ? R.string.health_down
+                : health == com.orvid.search.Health.EMPTY ? R.string.health_empty : R.string.health_flaky);
         LinearLayout row = new LinearLayout(a);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(android.view.Gravity.CENTER_VERTICAL);

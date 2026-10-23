@@ -241,9 +241,10 @@ final class Script {
         JsonArray urls = JsonParser.array().from(list);
         if (urls.size() > MAX_ALL) throw new IOException("too many urls");
         java.util.List<java.util.concurrent.Future<String>> jobs = new java.util.ArrayList<>();
+        com.orvid.net.Fetch.Scope scope = com.orvid.net.Fetch.scope();
         for (int i = 0; i < urls.size(); i++) {
             String u = urls.getString(i, null);
-            jobs.add(PARALLEL.submit(() -> fetch(circuit, u, null, null, headers)));
+            jobs.add(PARALLEL.submit(() -> com.orvid.net.Fetch.within(scope, () -> fetch(circuit, u, null, null, headers))));
         }
         JsonArray out = new JsonArray();
         for (java.util.concurrent.Future<String> j : jobs) {

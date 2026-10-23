@@ -120,7 +120,8 @@ public final class Ui {
         if (picked == null) return null;
         java.util.regex.Matcher m = YT_THUMB.matcher(picked);
         if (!m.find()) return picked;
-        return "https://i.ytimg.com/vi_webp/" + m.group(1) + (targetWidth > 480 ? "/hq720.webp" : "/hqdefault.webp");
+        return targetWidth > 480 ? "https://i.ytimg.com/vi_webp/" + m.group(1) + "/hq720.webp"
+                : "https://i.ytimg.com/vi/" + m.group(1) + "/hqdefault.jpg";
     }
 
     private static String pickThumbnail(List<Image> images, int targetWidth) {
@@ -145,6 +146,7 @@ public final class Ui {
             if (t instanceof com.orvid.net.Fetch.TorUnavailable) return context.getString(R.string.error_tor);
         }
         if (e instanceof ReCaptchaException || e instanceof SignInConfirmNotBotException) {
+            if (!com.orvid.net.Fetch.torMode()) return context.getString(R.string.error_ip_blocked);
             return context.getString(R.string.error_captcha);
         }
         if (e instanceof AgeRestrictedContentException) return context.getString(R.string.error_age);

@@ -52,7 +52,7 @@ public final class Sources {
             site("odysee", R.drawable.ic_src_odysee, Sites.ODYSEE, 0.6),
             site("rutube", R.drawable.ic_src_rutube, Sites.RUTUBE, 0.6).script(com.orvid.search.Query.CYRILLIC),
             site("bitchute", R.drawable.ic_src_bitchute, Sites.BITCHUTE, 0.5),
-            site("aparat", R.drawable.ic_src_aparat, Sites.APARAT, 0.5).script(com.orvid.search.Query.ARABIC),
+            site("aparat", R.drawable.ic_src_aparat, Sites.APARAT, 0.5),
             site("mediathek", R.drawable.ic_src_mediathek, Sites.MEDIATHEK, 0.6),
             site("ccc", R.drawable.ic_src_ccc, Sites.CCC, 0.6),
             site("commons", R.drawable.ic_src_commons, Sites.COMMONS, 0.5),

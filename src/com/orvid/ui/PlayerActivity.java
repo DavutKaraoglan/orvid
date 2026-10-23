@@ -75,10 +75,16 @@ import java.util.regex.Pattern;
 public final class PlayerActivity extends Activity implements com.orvid.app.Job.Scoped {
 
     private final com.orvid.net.Fetch.Scope jobScope = new com.orvid.net.Fetch.Scope();
+    private final com.orvid.net.Fetch.Scope relatedScope = new com.orvid.net.Fetch.Scope().background();
 
     @Override
     public com.orvid.net.Fetch.Scope scope() {
         return jobScope;
+    }
+
+    @Override
+    public com.orvid.net.Fetch.Scope backgroundScope() {
+        return relatedScope;
     }
 
     public static final String EXTRA_URL = "url";
@@ -152,6 +158,8 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
         header = LayoutInflater.from(this).inflate(R.layout.header_player, details, false);
         hideWhenEmpty(header.findViewById(R.id.uploader));
         hideWhenEmpty(header.findViewById(R.id.sub));
+        header.findViewById(R.id.uploader).setOnClickListener(v -> openChannel());
+        header.findViewById(R.id.uploader_avatar).setOnClickListener(v -> openChannel());
         details.addHeaderView(header, null, false);
         ((TextView) header.findViewById(R.id.name)).addTextChangedListener(new android.text.TextWatcher() {
             @Override
@@ -230,7 +238,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
                         }
                     })
                 .setBandwidthMeter(new DefaultBandwidthMeter.Builder(getApplicationContext())
-                        .setInitialBitrateEstimate(Fetch.torMode() ? 500_000 : 800_000)
+                        .setInitialBitrateEstimate(com.orvid.play.Warm.startBitrate())
                         .build())
                 .setTrackSelector(new DefaultTrackSelector(getApplicationContext(),
                         new AdaptiveTrackSelection.Factory(3000, 25000, 25000, 0.75f)))
@@ -404,14 +412,49 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
         if (similar.isEmpty()) return;
         java.util.Map<String, Integer> at = new java.util.HashMap<>();
         for (int i = 0; i < pool.size(); i++) at.putIfAbsent(pool.get(i).getUrl(), i);
+        similar.removeIf(i -> recentlyShown(i.getUrl()));
+        if (similar.isEmpty()) return;
+        List<StreamInfoItem> seeds = new ArrayList<>();
         Integer self = at.get(pageUrl);
         if (self != null) {
             int n = pool.size();
-            java.util.Collections.sort(similar, (x, y) -> Integer.compare(
+            StreamInfoItem next = java.util.Collections.min(similar, (x, y) -> Integer.compare(
                     Math.floorMod(at.get(x.getUrl()) - self, n), Math.floorMod(at.get(y.getUrl()) - self, n)));
+            similar.remove(next);
+            seeds.add(next);
         }
-        Diag.mark("related seeded from search " + Math.min(RELATED_SEED, similar.size()));
-        appendRelated(similar.subList(0, Math.min(RELATED_SEED, similar.size())));
+        List<StreamInfoItem> top = new ArrayList<>(similar.subList(0, Math.min(similar.size(), RELATED_SEED * 3)));
+        java.util.Collections.shuffle(top, new java.util.Random(pageUrl.hashCode()));
+        for (StreamInfoItem i : top) {
+            if (seeds.size() >= RELATED_SEED) break;
+            seeds.add(i);
+        }
+        Diag.mark("related seeded from search " + seeds.size());
+        appendRelated(seeds);
+    }
+
+    private static final int RECENT_VIDEOS = 3;
+    private static final java.util.ArrayDeque<java.util.Set<String>> RECENT = new java.util.ArrayDeque<>();
+    private final java.util.Set<String> shownHere = new java.util.HashSet<>();
+
+    private static boolean recentlyShown(String url) {
+        synchronized (RECENT) {
+            for (java.util.Set<String> s : RECENT) if (s.contains(url)) return true;
+        }
+        return false;
+    }
+
+    private boolean remembered;
+
+    private void rememberShown() {
+        if (remembered) return;
+        remembered = true;
+        if (pageUrl != null) shownHere.add(pageUrl);
+        if (shownHere.isEmpty()) return;
+        synchronized (RECENT) {
+            RECENT.addFirst(new java.util.HashSet<>(shownHere));
+            while (RECENT.size() > RECENT_VIDEOS) RECENT.removeLast();
+        }
     }
 
     private void route() {
@@ -490,6 +533,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
         showAvatar(Session.avatar);
         ((TextView) header.findViewById(R.id.name)).setText(Session.title);
         ((TextView) header.findViewById(R.id.uploader)).setText(Session.author);
+        channelUrl = Session.channel;
         ((TextView) header.findViewById(R.id.sub)).setText(Session.sub);
         description.setText(Session.description);
         controls.setTitle(Session.title);
@@ -538,6 +582,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
         if (!Session.has(pageUrl)) return;
         Session.title = ((TextView) header.findViewById(R.id.name)).getText().toString();
         Session.author = ((TextView) header.findViewById(R.id.uploader)).getText().toString();
+        Session.channel = channelUrl;
         Session.sub = ((TextView) header.findViewById(R.id.sub)).getText().toString();
         Session.description = description.getText();
         Session.circuit = circuit;
@@ -753,6 +798,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
     }
 
     private void switchTo(String url, int service, String thumb, String title) {
+        rememberShown();
         startActivity(new Intent(this, PlayerActivity.class)
                 .putExtra(EXTRA_TITLE, title)
                 .putExtra(EXTRA_AVATAR, nextAvatar)
@@ -806,6 +852,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
         ((TextView) header.findViewById(R.id.sub)).setText(
                 v.views >= 0 ? getString(R.string.views, Ui.count(v.views)) : "");
         ((TextView) header.findViewById(R.id.uploader)).setText(v.author);
+        if (v.channelId != null) channelUrl = "https://www.youtube.com/channel/" + v.channelId;
         description.setText(v.description);
         showFrames(com.orvid.play.Storyboard.parse(v.storyboard, v.lengthSeconds * 1000, circuit));
 
@@ -873,6 +920,17 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
     private com.orvid.play.Storyboard.Spec pendingSprite;
 
     private String coverUrl;
+    private String channelUrl;
+
+    private void openChannel() {
+        if (!ChannelActivity.canOpen(channelUrl)) return;
+        ChannelActivity.open(this, channelUrl, ((TextView) header.findViewById(R.id.uploader)).getText().toString(), nextAvatarOrShown());
+    }
+
+    private String nextAvatarOrShown() {
+        String a = getIntent().getStringExtra(EXTRA_AVATAR);
+        return a != null ? a : Session.avatar;
+    }
     private boolean coverSpriteTried;
 
     private void applySprite() {
@@ -917,19 +975,51 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
     private static final long NEXT_WARM_CHECK_MS = 3000;
     private static final int NEXT_FIRST_FRAME = 2;
     private boolean nextWarmed;
+    private static final long FOCUS_LOW_MS = 15000;
+    private static final long FOCUS_HIGH_MS = 30000;
+    private static final long FOCUS_START_MS = 20000;
+    private static final long FOCUS_TICK_MS = 1000;
+    private final long openedAt = android.os.SystemClock.uptimeMillis();
+    private boolean focused = true;
+
+    private final Runnable focusTick = new Runnable() {
+        @Override
+        public void run() {
+            if (isFinishing()) return;
+            int state = player.getPlaybackState();
+            long ahead = player.getTotalBufferedDuration();
+            long duration = player.getDuration();
+            boolean whole = duration != C.TIME_UNSET && duration > 0 && player.getBufferedPosition() >= duration - 1000;
+            if (state == Player.STATE_ENDED || player.getPlayerError() != null) {
+                focused = false;
+            } else if (state == Player.STATE_IDLE) {
+                focused = android.os.SystemClock.uptimeMillis() - openedAt < FOCUS_START_MS;
+            } else if (player.isCurrentMediaItemLive()) {
+                focused = state == Player.STATE_BUFFERING;
+            } else if (whole || ahead >= FOCUS_HIGH_MS) {
+                focused = false;
+            } else if (ahead < FOCUS_LOW_MS || state == Player.STATE_BUFFERING) {
+                focused = true;
+            }
+            com.orvid.net.Focus.hold(focused);
+            stage.postDelayed(this, FOCUS_TICK_MS);
+        }
+    };
     private static final int LINK_AHEAD = 4;
+    private static final int LINK_AHEAD_DIRECT = 1;
     private int linked;
 
     private void linkAhead(List<StreamInfoItem> items) {
-        for (int i = linked; i < Math.min(items.size(), LINK_AHEAD); i++) com.orvid.play.Warm.link(items.get(i).getUrl());
-        linked = Math.max(linked, Math.min(items.size(), LINK_AHEAD));
+        int ahead = Fetch.torMode() ? LINK_AHEAD : LINK_AHEAD_DIRECT;
+        for (int i = linked; i < Math.min(items.size(), ahead); i++) com.orvid.play.Warm.link(items.get(i).getUrl());
+        linked = Math.max(linked, Math.min(items.size(), ahead));
     }
     private final Runnable warmNext = new Runnable() {
         @Override
         public void run() {
             if (isFinishing() || nextWarmed) return;
             List<StreamInfoItem> next = related.items();
-            if (!next.isEmpty() && player.getTotalBufferedDuration() >= NEXT_WARM_BUFFER_MS) {
+            if (!next.isEmpty() && !focused && player.getTotalBufferedDuration() >= NEXT_WARM_BUFFER_MS) {
                 nextWarmed = true;
                 com.orvid.play.Warm.prepare(next.get(0).getUrl());
                 for (int i = 1; i < Math.min(next.size(), 1 + NEXT_FIRST_FRAME); i++) {
@@ -1288,6 +1378,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
         if (room <= 0 || hiddenRelated.isEmpty()) return;
         List<StreamInfoItem> now = new ArrayList<>(hiddenRelated.subList(0, Math.min(room, hiddenRelated.size())));
         hiddenRelated.subList(0, now.size()).clear();
+        for (StreamInfoItem i : now) shownHere.add(i.getUrl());
         related.add(now);
         if (nextWarmed) linkAhead(related.items());
     }
@@ -1301,10 +1392,14 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
         com.orvid.search.Filters allowed = relatedFilters();
         String own = ((TextView) header.findViewById(R.id.name)).getText().toString();
         List<StreamInfoItem> fresh = new ArrayList<>();
+        List<StreamInfoItem> repeats = new ArrayList<>();
         for (StreamInfoItem i : items) {
             if (!com.orvid.search.Ranker.sameScript(own, i.getName())) continue;
-            if (sourceOn(allowed, i) && allowed.orientationAccepts(i) && relatedSeen.add(i.getUrl())) fresh.add(i);
+            if (sourceOn(allowed, i) && allowed.orientationAccepts(i) && relatedSeen.add(i.getUrl())) {
+                (recentlyShown(i.getUrl()) ? repeats : fresh).add(i);
+            }
         }
+        fresh.addAll(repeats);
         reveal(fresh);
         Session.related.addAll(fresh);
         header.findViewById(R.id.related_label).setVisibility(related.getCount() == 0 ? View.GONE : View.VISIBLE);
@@ -1831,6 +1926,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
         ((TextView) header.findViewById(R.id.name)).setText(info.getName());
         controls.setTitle(info.getName());
         ((TextView) header.findViewById(R.id.uploader)).setText(info.getUploaderName());
+        if (info.getUploaderUrl() != null) channelUrl = info.getUploaderUrl();
         CircuitDataSource.Factory data = new CircuitDataSource.Factory(circuit, Fetch.USER_AGENT);
         sources.clear();
         if (info.getHlsUrl() != null && !info.getHlsUrl().isEmpty()) {
@@ -2056,6 +2152,20 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        stage.removeCallbacks(focusTick);
+        stage.post(focusTick);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stage.removeCallbacks(focusTick);
+        com.orvid.net.Focus.hold(false);
+    }
+
+    @Override
     protected void onStop() {
         super.onStop();
         if (!isFinishing()) player.pause();
@@ -2065,6 +2175,10 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
     protected void onDestroy() {
         super.onDestroy();
         jobScope.cancel();
+        relatedScope.cancel();
+        rememberShown();
+        stage.removeCallbacks(focusTick);
+        com.orvid.net.Focus.hold(false);
         cancelUpNext();
         Diag.listen(null);
         debug.removeCallbacks(saveLive);

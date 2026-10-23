@@ -43,7 +43,7 @@ public final class Visionos {
 
     private static final Map<String, String> VISITORS = new HashMap<>();
     private static final Deque<String> READY = new ArrayDeque<>();
-    private static final ExecutorService WARMER = Executors.newSingleThreadExecutor();
+    private static final ExecutorService WARMER = Executors.newSingleThreadExecutor(com.orvid.net.Focus.background("orvid-yt-pool"));
     private static final int POOL = 4;
     private static final Deque<String> PLAY = new ArrayDeque<>();
     private static final int PLAY_POOL = 2;
@@ -95,6 +95,7 @@ public final class Visionos {
         public String id;
         public String title;
         public String author;
+        public String channelId;
         public String description;
         public long views = -1;
         public long lengthSeconds;
@@ -120,7 +121,10 @@ public final class Visionos {
         WARMERS.add(w);
     }
 
+    private static final String DIRECT_CIRCUIT = "v:direct";
+
     public static String takeCircuit() {
+        if (!Fetch.torMode()) return DIRECT_CIRCUIT;
         String c;
         synchronized (READY) {
             c = READY.poll();
@@ -130,6 +134,7 @@ public final class Visionos {
     }
 
     public static String takePlayCircuit() {
+        if (!Fetch.torMode()) return DIRECT_CIRCUIT;
         String c;
         synchronized (PLAY) {
             c = PLAY.poll();
@@ -146,6 +151,7 @@ public final class Visionos {
     }
 
     public static void refill() {
+        if (!Fetch.torMode()) return;
         WARMER.execute(() -> {
             if (!fillReady(1)) return;
             while (true) {
@@ -166,7 +172,7 @@ public final class Visionos {
         });
     }
 
-    private static final ExecutorService SIDE_WARMER = Executors.newSingleThreadExecutor();
+    private static final ExecutorService SIDE_WARMER = Executors.newSingleThreadExecutor(com.orvid.net.Focus.background("orvid-side-pool"));
 
     private static boolean fillReady(int size) {
         while (true) {
@@ -278,6 +284,7 @@ public final class Visionos {
         v.id = videoId;
         v.title = details.getString("title", "");
         v.author = details.getString("author", "");
+        v.channelId = details.getString("channelId", null);
         v.description = details.getString("shortDescription", "");
         try {
             v.views = Long.parseLong(details.getString("viewCount", "-1"));

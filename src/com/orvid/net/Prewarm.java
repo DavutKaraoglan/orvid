@@ -24,11 +24,7 @@ public final class Prewarm {
 
     private static final Map<String, Warm> WARM = new HashMap<>();
     private static final Map<String, String> HOSTS = new HashMap<>();
-    private static final ExecutorService POOL = Executors.newFixedThreadPool(6, r -> {
-        Thread t = new Thread(r, "orvid-prewarm");
-        t.setDaemon(true);
-        return t;
-    });
+    private static final ExecutorService POOL = Executors.newFixedThreadPool(6, Focus.background("orvid-prewarm"));
 
     private Prewarm() {
     }

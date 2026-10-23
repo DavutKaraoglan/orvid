@@ -23,6 +23,8 @@ public final class CircuitDataSource extends BaseDataSource {
     private static final long CHUNK = 10L * 1024 * 1024;
     private static final long HEAD_PART = 512L * 1024;
     private static final int PARTS = 3;
+    private static final long PARALLEL_MAX = 48L * 1024 * 1024;
+    private static final long PART_WAIT_MS = 60000;
     static final int CAPTION_RETRIES = 4;
     private static final java.util.concurrent.ExecutorService PARALLEL =
             java.util.concurrent.Executors.newCachedThreadPool();
@@ -92,7 +94,7 @@ public final class CircuitDataSource extends BaseDataSource {
     private long chunkSize = CHUNK;
     private long partsFrom = -1;
     private long[] partStart;
-    private java.util.List<java.util.concurrent.Future<byte[]>> parts;
+    private java.util.List<Part> parts;
     private byte[] memory;
     private long memoryEnd;
 
@@ -142,7 +144,7 @@ public final class CircuitDataSource extends BaseDataSource {
             throw e;
         }
         if (total > 0) knownTotal = total;
-        if (parallel && total > HEAD_PART * 2 && chunkEnd == HEAD_PART) startParts(total);
+        if (parallel && total > HEAD_PART * 2 && total <= PARALLEL_MAX && chunkEnd == HEAD_PART) startParts(total);
         opened = true;
         transferStarted(dataSpec);
         if (dataSpec.length != C.LENGTH_UNSET) return dataSpec.length;
@@ -274,6 +276,62 @@ public final class CircuitDataSource extends BaseDataSource {
         return "itag" + url.substring(s, e);
     }
 
+    private static final class Part {
+        final long from;
+        final byte[] data;
+        int filled;
+        int round;
+        IOException failed;
+        java.util.concurrent.Future<?> task;
+
+        Part(long from, long to) {
+            this.from = from;
+            data = new byte[(int) (to - from)];
+        }
+
+        synchronized int begin() {
+            return round;
+        }
+
+        synchronized long next() {
+            return from + filled;
+        }
+
+        synchronized void add(int owner, byte[] chunk, int n) throws IOException {
+            if (owner != round) throw new IOException("part replaced");
+            if (filled + n > data.length) throw new IOException("long part");
+            System.arraycopy(chunk, 0, data, filled, n);
+            filled += n;
+            notifyAll();
+        }
+
+        synchronized void fail(int owner, IOException e) {
+            if (owner != round) return;
+            failed = e;
+            notifyAll();
+        }
+
+        synchronized int await(int at, long until) throws IOException {
+            while (filled <= at && failed == null) {
+                long left = until - System.currentTimeMillis();
+                if (left <= 0) return -1;
+                try {
+                    wait(left);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new java.io.InterruptedIOException("part wait interrupted");
+                }
+            }
+            if (filled > at) return filled;
+            return -1;
+        }
+
+        synchronized void restart() {
+            round++;
+            failed = null;
+        }
+    }
+
     private void startParts(long total) {
         String url = spec.uri.toString();
         partsFrom = HEAD_PART;
@@ -285,44 +343,37 @@ public final class CircuitDataSource extends BaseDataSource {
             long to = Math.min(total, from + size);
             partStart[i] = from;
             partStart[i + 1] = to;
+            Part part = new Part(from, to);
+            parts.add(part);
             final String c = i == 0 ? circuit : circuit + "#p" + i;
-            parts.add(PARALLEL.submit(() -> fetchRange(c, url, from, to)));
+            part.task = PARALLEL.submit(() -> fill(c, url, part));
         }
         Diag.mark("media parallel " + PARTS + " parts of " + (total - HEAD_PART) / 1024 + "KB");
     }
 
-    private byte[] fetchRange(String c, String url, long from, long to) throws Exception {
-        return Fetch.on(c, () -> {
-            HttpURLConnection h = Fetch.open(url);
-            h.setRequestProperty("User-Agent", userAgent);
-            h.setRequestProperty("Accept-Encoding", "identity");
-            h.setRequestProperty("Range", "bytes=" + from + "-" + (to - 1));
-            int code = h.getResponseCode();
-            if (code != 206) throw new IOException("part HTTP " + code);
-            try (InputStream in = h.getInputStream()) {
-                java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream((int) (to - from));
-                byte[] chunk = new byte[65536];
-                for (int n = in.read(chunk); n > 0; n = in.read(chunk)) buf.write(chunk, 0, n);
-                if (buf.size() != to - from) throw new IOException("short part");
-                return buf.toByteArray();
-            }
-        });
-    }
-
-    private byte[] part(int i) throws IOException {
+    private void fill(String c, String url, Part part) {
+        int owner = part.begin();
         try {
-            return parts.get(i).get(60, java.util.concurrent.TimeUnit.SECONDS);
+            Fetch.on(c, () -> {
+                long from = part.next();
+                long to = part.from + part.data.length;
+                HttpURLConnection h = Fetch.open(url);
+                h.setRequestProperty("User-Agent", userAgent);
+                h.setRequestProperty("Accept-Encoding", "identity");
+                h.setRequestProperty("Range", "bytes=" + from + "-" + (to - 1));
+                int code = h.getResponseCode();
+                if (code != 206) throw new IOException("part HTTP " + code);
+                try (InputStream in = h.getInputStream()) {
+                    byte[] chunk = new byte[65536];
+                    for (int n = in.read(chunk); n > 0; n = in.read(chunk)) part.add(owner, chunk, n);
+                }
+                if (part.next() != to) throw new IOException("short part");
+                return null;
+            });
+        } catch (IOException e) {
+            part.fail(owner, e);
         } catch (Exception e) {
-            Diag.mark("media part " + i + " failed, retrying on main circuit");
-            try {
-                byte[] again = fetchRange(circuit, spec.uri.toString(), partStart[i], partStart[i + 1]);
-                parts.set(i, java.util.concurrent.CompletableFuture.completedFuture(again));
-                return again;
-            } catch (IOException io) {
-                throw io;
-            } catch (Exception other) {
-                throw new IOException(other);
-            }
+            part.fail(owner, new IOException(e));
         }
     }
 
@@ -330,10 +381,21 @@ public final class CircuitDataSource extends BaseDataSource {
         int i = 0;
         while (i < PARTS && position >= partStart[i + 1]) i++;
         if (i >= PARTS) return C.RESULT_END_OF_INPUT;
-        byte[] data = part(i);
-        int at = (int) (position - partStart[i]);
-        int n = Math.min(length, data.length - at);
-        System.arraycopy(data, at, buffer, offset, n);
+        Part part = parts.get(i);
+        int at = (int) (position - part.from);
+        long until = System.currentTimeMillis() + PART_WAIT_MS;
+        int have = part.await(at, until);
+        if (have < 0) {
+            Diag.mark("media part " + i + " failed, retrying on main circuit");
+            part.task.cancel(true);
+            part.restart();
+            String url = spec.uri.toString();
+            part.task = PARALLEL.submit(() -> fill(circuit, url, part));
+            have = part.await(at, until + PART_WAIT_MS);
+            if (have < 0) throw part.failed != null ? part.failed : new IOException("part timed out");
+        }
+        int n = Math.min(length, have - at);
+        System.arraycopy(part.data, at, buffer, offset, n);
         position += n;
         bytesTransferred(n);
         RECEIVED.addAndGet(n);
@@ -451,7 +513,7 @@ public final class CircuitDataSource extends BaseDataSource {
         memory = null;
         closeConnection();
         if (parts != null) {
-            for (java.util.concurrent.Future<byte[]> f : parts) f.cancel(true);
+            for (Part p : parts) p.task.cancel(true);
             parts = null;
         }
         if (opened) {

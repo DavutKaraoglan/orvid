@@ -87,6 +87,12 @@
     <string name="lock_prompt">Odblokuj Orvid</string>
     <string name="lock_no_screen">Najpierw ustaw blokadę ekranu w ustawieniach Androida.</string>
     <string name="panic_exit">Szybkie wyjście (przesuń w dół dwoma palcami)</string>
+    <string name="use_tor">Używaj Tor</string>
+    <string name="tor_banner_off">Tor jest wyłączony. Strony widzą twój adres IP.</string>
+    <string name="error_ip_blocked">YouTube na jakiś czas zablokował twój adres IP. Włącz Tor w filtrach, aby oglądać dalej.</string>
+    <string name="go_to_channel">Przejdź do kanału</string>
+    <string name="channel_subscribers">Subskrybenci: %1$s</string>
+    <string name="channel_empty">Ten kanał nie ma filmów</string>
     <string name="tor_bridges">Ukryj Tor przed siecią (most, wolniej)</string>
     <string name="tor_bridge_hint">Jeśli twoja sieć blokuje Tor, włącz most w sekcji Prywatność w panelu filtrów.</string>
     <string name="not_interested">Nie interesuje mnie</string>
@@ -142,6 +148,7 @@
     <string name="health_skipped">nie odpowiada, pominięto</string>
     <string name="health_down">Nie odpowiada. Wyłącz i włącz, aby spróbować ponownie.</string>
     <string name="health_flaky">Sprawiało problemy w ostatnich wyszukiwaniach</string>
+    <string name="health_empty">Nie zwróciło jeszcze żadnych wyników</string>
     <string name="play_next">Odtwórz następne</string>
     <string name="add_queue">Dodaj do kolejki</string>
     <string name="queued">W kolejce: %1$d</string>

@@ -87,6 +87,12 @@
     <string name="lock_prompt">Orvid 잠금 해제</string>
     <string name="lock_no_screen">먼저 Android 설정에서 화면 잠금을 설정하세요.</string>
     <string name="panic_exit">긴급 종료(두 손가락으로 아래로 스와이프)</string>
+    <string name="use_tor">Tor 사용</string>
+    <string name="tor_banner_off">Tor가 꺼져 있습니다. 사이트에서 IP 주소를 볼 수 있습니다.</string>
+    <string name="error_ip_blocked">YouTube가 IP 주소를 일시적으로 차단했습니다. 계속 보려면 필터에서 Tor를 켜세요.</string>
+    <string name="go_to_channel">채널로 이동</string>
+    <string name="channel_subscribers">구독자 %1$s명</string>
+    <string name="channel_empty">이 채널에는 동영상이 없습니다</string>
     <string name="tor_bridges">네트워크에서 Tor 숨기기(브리지, 느림)</string>
     <string name="tor_bridge_hint">네트워크에서 Tor를 차단하면 필터 패널의 개인정보 보호에서 브리지를 켜세요.</string>
     <string name="not_interested">관심 없음</string>
@@ -142,6 +148,7 @@
     <string name="health_skipped">응답 없음, 건너뜀</string>
     <string name="health_down">응답이 없습니다. 껐다가 켜면 다시 시도합니다.</string>
     <string name="health_flaky">최근 검색에서 문제가 있었습니다</string>
+    <string name="health_empty">아직 결과를 반환한 적이 없습니다</string>
     <string name="play_next">다음에 재생</string>
     <string name="add_queue">대기열에 추가</string>
     <string name="queued">대기열: %1$d개</string>

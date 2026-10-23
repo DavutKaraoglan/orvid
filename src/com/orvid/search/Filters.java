@@ -98,6 +98,22 @@ public final class Filters {
         sources.put(s.key, on);
     }
 
+    public Filters copy() {
+        Filters f = new Filters();
+        f.date = date;
+        f.type = type;
+        f.duration = duration;
+        f.sort = sort;
+        f.hideAdult = hideAdult;
+        f.hideJunk = hideJunk;
+        f.orientation = orientation;
+        f.youtube = youtube;
+        f.dailymotion = dailymotion;
+        f.vk = vk;
+        f.sources.putAll(sources);
+        return f;
+    }
+
     public static Filters load(SharedPreferences p) {
         Filters f = new Filters();
         f.type = p.getInt("f_type", TYPE_ALL);
@@ -259,18 +275,19 @@ public final class Filters {
         }
         List<StreamInfoItem> ranked = Ranker.rank(q, kept, weights, tagged);
         if (sort == SORT_RELEVANCE) return ranked;
-        ranked = onTopic(q, ranked);
-        if (sort == SORT_LONGEST) {
-            List<StreamInfoItem> out = new ArrayList<>(ranked);
-            Collections.sort(out, (a, b) -> Long.compare(b.getDuration(), a.getDuration()));
-            return out;
-        }
-        List<StreamInfoItem> out = new ArrayList<>(ranked);
-        if (sort == SORT_VIEWS) {
-            Collections.sort(out, (a, b) -> Long.compare(b.getViewCount(), a.getViewCount()));
-        } else {
-            Collections.sort(out, (a, b) -> Long.compare(epoch(b), epoch(a)));
-        }
-        return out;
+        int strict = Ranker.Ranked.strict(ranked);
+        List<StreamInfoItem> head = onTopic(q, new ArrayList<>(ranked.subList(0, strict)));
+        java.util.Set<StreamInfoItem> onTopic = Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        onTopic.addAll(head);
+        List<StreamInfoItem> tail = new ArrayList<>();
+        for (StreamInfoItem i : ranked.subList(0, strict)) if (!onTopic.contains(i)) tail.add(i);
+        tail.addAll(ranked.subList(strict, ranked.size()));
+        java.util.Comparator<StreamInfoItem> by = sort == SORT_LONGEST
+                ? (x, y) -> Long.compare(y.getDuration(), x.getDuration())
+                : sort == SORT_VIEWS ? (x, y) -> Long.compare(y.getViewCount(), x.getViewCount())
+                : (x, y) -> Long.compare(epoch(y), epoch(x));
+        Collections.sort(head, by);
+        Collections.sort(tail, by);
+        return Ranker.Ranked.of(head, tail);
     }
 }

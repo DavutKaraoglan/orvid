@@ -89,6 +89,12 @@
     <string name="lock_prompt">Unlock Orvid</string>
     <string name="lock_no_screen">Set a screen lock in Android settings first.</string>
     <string name="panic_exit">Panic exit (swipe down with two fingers)</string>
+    <string name="use_tor">Use Tor</string>
+    <string name="tor_banner_off">Tor is off. Sites can see your IP address.</string>
+    <string name="error_ip_blocked">YouTube has blocked your IP address for a while. Turn on Tor in the filters to keep watching.</string>
+    <string name="go_to_channel">Go to channel</string>
+    <string name="channel_subscribers">%1$s subscribers</string>
+    <string name="channel_empty">This channel has no videos</string>
     <string name="tor_bridges">Hide Tor from your network (bridge, slower)</string>
     <string name="tor_bridge_hint">If your network blocks Tor, turn on the bridge under Privacy in the filter panel.</string>
     <string name="not_interested">Not interested</string>
@@ -144,6 +150,7 @@
     <string name="health_skipped">not responding, skipped</string>
     <string name="health_down">Not responding. Turn it off and on to try again.</string>
     <string name="health_flaky">Had problems in recent searches</string>
+    <string name="health_empty">Hasn\'t returned any results yet</string>
     <string name="play_next">Play next</string>
     <string name="add_queue">Add to queue</string>
     <string name="queued">In queue: %1$d</string>

@@ -36,6 +36,10 @@ public final class Warm {
     private static final int PLAYLIST_MAX = 256 * 1024;
     private static final int SEGMENT_MAX = 1536 * 1024;
     private static final double BANDWIDTH_FRACTION = 0.7;
+
+    public static long startBitrate() {
+        return Fetch.torMode() ? 1_200_000 : 3_000_000;
+    }
     private static final int YT_VIDEO_FIRST = 200 * 1024;
     private static final int YT_AUDIO_FIRST = 64 * 1024;
     private static final int FILE_FIRST = 256 * 1024;
@@ -45,12 +49,8 @@ public final class Warm {
 
     private static final Map<String, Entry> CACHE = new LinkedHashMap<>(32, 0.75f, true);
     private static long size;
-    private static final ExecutorService EXEC = Executors.newFixedThreadPool(2, r -> {
-        Thread t = new Thread(r, "orvid-warm-media");
-        t.setDaemon(true);
-        t.setPriority(Thread.MIN_PRIORITY);
-        return t;
-    });
+    private static final ExecutorService EXEC = Executors.newFixedThreadPool(2,
+            com.orvid.net.Focus.background("orvid-warm-media", Thread.MIN_PRIORITY));
     private static final java.util.Set<String> STARTED = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     private Warm() {
@@ -181,7 +181,7 @@ public final class Warm {
         List<Visionos.Format> videos = Dash.videoTracks(v.formats, 2160, Codecs.vp9MaxHeight());
         Visionos.Format audio = Dash.audioTrack(v.formats);
         if (videos.isEmpty() || audio == null) return 0;
-        long allowed = (long) ((Fetch.torMode() ? 500_000 : 800_000) * BANDWIDTH_FRACTION);
+        long allowed = (long) (startBitrate() * BANDWIDTH_FRACTION);
         Visionos.Format first = null;
         Visionos.Format lowest = null;
         for (Visionos.Format f : videos) {
@@ -224,7 +224,7 @@ public final class Warm {
     }
 
     private static String variant(String base, String master) {
-        long allowed = (long) ((Fetch.torMode() ? 500_000 : 800_000) * BANDWIDTH_FRACTION);
+        long allowed = (long) (startBitrate() * BANDWIDTH_FRACTION);
         String best = null;
         long bestRate = -1;
         String lowest = null;

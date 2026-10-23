@@ -26,11 +26,31 @@ public final class Ranker {
         public final double score;
         final int order;
         int covered;
+        boolean partial;
 
         Scored(StreamInfoItem item, double score, int order) {
             this.item = item;
             this.score = score;
             this.order = order;
+        }
+    }
+
+    public static final class Ranked extends ArrayList<StreamInfoItem> {
+        public final int strict;
+
+        private Ranked(List<StreamInfoItem> items, int strict) {
+            super(items);
+            this.strict = Math.min(strict, items.size());
+        }
+
+        public static Ranked of(List<StreamInfoItem> head, List<StreamInfoItem> tail) {
+            List<StreamInfoItem> all = new ArrayList<>(head);
+            all.addAll(tail);
+            return new Ranked(all, head.size());
+        }
+
+        public static int strict(List<StreamInfoItem> list) {
+            return list instanceof Ranked ? ((Ranked) list).strict : list.size();
         }
     }
 
@@ -40,6 +60,7 @@ public final class Ranker {
 
     public static List<StreamInfoItem> rank(Query q, List<List<StreamInfoItem>> sources, double[] weights, boolean[] tagged) {
         Context ctx = context(q, blend(sources, 8));
+        vote(q, ctx, sources, weights);
         anchorPerSource(q, ctx, sources);
         popularity(ctx, sources);
         List<Scored> all = new ArrayList<>();
@@ -50,10 +71,13 @@ public final class Ranker {
         for (int src = 0; src < sources.size(); src++) {
             List<StreamInfoItem> list = sources.get(src);
             boolean literal = weights[src] < 1 && !(tagged != null && src < tagged.length && tagged[src]);
+            boolean strictOnly = literal && (!ctx.anchored.isEmpty() || guessed(q, list));
             for (int rank = 0; rank < list.size(); rank++) {
                 StreamInfoItem item = list.get(rank);
                 double s = score(q, ctx, item, rank, weights[src]);
-                if (literal && s >= 0 && !mentions(q, item)) s = LOOSE;
+                if (strictOnly && !mentions(q, item)) s = Double.NEGATIVE_INFINITY;
+                boolean partial = literal && q.terms.size() > 1 && mentions(q, item) && coverage(q, item) < required(q);
+                if (literal && s >= 0 && (!mentions(q, item) || partial)) s = LOOSE;
                 com.orvid.app.DevInfo.rank(item, src, rank, s);
                 if (s >= 0) {
                     Scored kept = new Scored(item, s, order++);
@@ -61,7 +85,9 @@ public final class Ranker {
                     all.add(kept);
                     strictBySource[src]++;
                 } else if (s != Double.NEGATIVE_INFINITY) {
-                    looseBySource.get(src).add(new Scored(item, s, order++));
+                    Scored loose = new Scored(item, s, order++);
+                    loose.partial = partial;
+                    looseBySource.get(src).add(loose);
                 }
             }
         }
@@ -77,7 +103,37 @@ public final class Ranker {
         }
         Collections.sort(loose, (a, b) -> a.order - b.order);
         for (Scored s : loose) out.add(s.item);
-        return collapse(out);
+        List<StreamInfoItem> head = collapse(out);
+        java.util.Set<StreamInfoItem> taken = Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        taken.addAll(out);
+        List<StreamInfoItem> withTail = new ArrayList<>(head);
+        for (int r = 0; ; r++) {
+            boolean more = false;
+            for (List<Scored> list : looseBySource) {
+                if (r >= list.size()) continue;
+                more = true;
+                if (!list.get(r).partial && !taken.contains(list.get(r).item)) withTail.add(list.get(r).item);
+            }
+            if (!more) break;
+        }
+        return new Ranked(collapse(withTail), head.size());
+    }
+
+    private static final int GUESS_MIN = 4;
+    private static final double GUESS_SHARE = 0.3;
+
+    static boolean guessed(Query q, List<StreamInfoItem> list) {
+        if (q.terms.isEmpty() || list.size() < GUESS_MIN) return false;
+        int hits = 0;
+        for (StreamInfoItem item : list) if (mentions(q, item)) hits++;
+        return hits < list.size() * GUESS_SHARE;
+    }
+
+    private static final int ALL_TERMS_UP_TO = 3;
+
+    static int required(Query q) {
+        int n = q.terms.size();
+        return n <= ALL_TERMS_UP_TO ? n : (n * 2 + 2) / 3;
     }
 
     static int coverage(Query q, StreamInfoItem item) {
@@ -232,9 +288,77 @@ public final class Ranker {
         ctx.anchored.addAll(anchored);
     }
 
+    private static final int VOTE_DEPTH = 10;
+    private static final int VOTE_MIN = 2;
+    private static final double YOUTUBE_VOTE = 2.0;
+    private static final double TOPIC_SHARE = 0.1;
+    private static final double LONE_SHARE = 0.25;
+    private static final int TOPIC_WORDS = 6;
+    private static final double YOUTUBE_TOPIC = 0.1;
+    private static final double STRONG_TOPIC = 0.25;
+    private static final double OFF_TOPIC = 3.0;
+    private static final int AMBIGUOUS_TERMS = 2;
+
+    static void vote(Query q, Context ctx, List<List<StreamInfoItem>> sources, double[] weights) {
+        java.util.Map<String, Double> share = new java.util.HashMap<>();
+        java.util.Map<String, Integer> support = new java.util.HashMap<>();
+        java.util.Map<String, Double> youtube = null;
+        double total = 0;
+        for (int src = 0; src < sources.size(); src++) {
+            List<StreamInfoItem> list = sources.get(src);
+            java.util.Map<String, Double> mass = new java.util.HashMap<>();
+            double sum = 0;
+            int used = 0;
+            for (int rank = 0; rank < list.size() && used < VOTE_DEPTH; rank++) {
+                StreamInfoItem item = list.get(rank);
+                if (!mentions(q, item)) continue;
+                used++;
+                double w = 1.0 / (1 + rank * 0.3);
+                sum += w;
+                for (String word : new java.util.HashSet<>(keyTerms(Query.words(Query.fold(item.getName() == null ? "" : item.getName()))))) {
+                    if (Query.isStop(word) || queryForm(q, word)) continue;
+                    mass.merge(word, w, Double::sum);
+                }
+            }
+            if (used < VOTE_MIN) continue;
+            if (src == 0) {
+                youtube = new java.util.HashMap<>();
+                for (java.util.Map.Entry<String, Double> e : mass.entrySet()) youtube.put(e.getKey(), e.getValue() / sum);
+            }
+            double voice = (src < weights.length ? weights[src] : 0.5) * (src == 0 ? YOUTUBE_VOTE : 1);
+            total += voice;
+            for (java.util.Map.Entry<String, Double> e : mass.entrySet()) {
+                share.merge(e.getKey(), voice * e.getValue() / sum, Double::sum);
+                support.merge(e.getKey(), 1, Integer::sum);
+            }
+        }
+        if (total == 0) return;
+        List<java.util.Map.Entry<String, Double>> ranked = new ArrayList<>(share.entrySet());
+        ranked.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
+        List<String> topic = new ArrayList<>();
+        ctx.topicShare.clear();
+        for (java.util.Map.Entry<String, Double> e : ranked) {
+            double part = e.getValue() / total;
+            if (topic.size() >= TOPIC_WORDS || part < TOPIC_SHARE) break;
+            if (support.get(e.getKey()) < 2 && part < LONE_SHARE) continue;
+            if (youtube != null && youtube.getOrDefault(e.getKey(), 0.0) < YOUTUBE_TOPIC) continue;
+            topic.add(e.getKey());
+            ctx.topicShare.put(e.getKey(), part);
+        }
+        if (topic.isEmpty()) return;
+        ctx.topic.clear();
+        ctx.topic.addAll(topic);
+    }
+
+    private static boolean queryForm(Query q, String word) {
+        for (String t : q.terms) if (sameWord(t, word)) return true;
+        return false;
+    }
+
     static final class Context {
         final java.util.Set<String> anchored = new java.util.HashSet<>();
         final List<String> topic = new ArrayList<>();
+        final java.util.Map<String, Double> topicShare = new java.util.HashMap<>();
         final java.util.Set<String> trustedChannels = new java.util.HashSet<>();
         final java.util.Map<StreamInfoItem, Double> popularity = new java.util.IdentityHashMap<>();
         double unknownPopularity;
@@ -319,8 +443,14 @@ public final class Ranker {
             }
         }
         int topicHits = 0;
-        for (String w : ctx.topic) if (titleWords.contains(w)) topicHits++;
-        s += Math.min(3, topicHits) * 1.5;
+        double topicWeight = 0;
+        double strongest = ctx.topicShare.isEmpty() ? 1 : java.util.Collections.max(ctx.topicShare.values());
+        for (String w : ctx.topic) {
+            if (!titleWords.contains(w)) continue;
+            topicHits++;
+            topicWeight += ctx.topicShare.getOrDefault(w, strongest) / strongest;
+        }
+        s += Math.min(3, topicWeight) * 1.5;
         if (!q.terms.isEmpty()) {
             int need = q.anyOf ? 1 : Math.max(1, (ctx.anchored.size() + 1) / 2);
             boolean trusted = ctx.trustedChannels.contains(channel);
@@ -331,7 +461,9 @@ public final class Ranker {
             String joined = String.join(" ", q.terms);
             if (q.terms.size() > 1 && title.contains(joined)) s += 4;
         }
-        if (!q.terms.isEmpty() && compact(channel).equals(String.join("", q.terms))) s += EXACT_CHANNEL;
+        boolean offTopic = q.terms.size() <= AMBIGUOUS_TERMS && !ctx.topicShare.isEmpty() && topicHits == 0 && strongest >= STRONG_TOPIC;
+        if (!q.terms.isEmpty() && !offTopic && compact(channel).equals(String.join("", q.terms))) s += EXACT_CHANNEL;
+        if (offTopic) s -= OFF_TOPIC;
         s += q.phrases.size() * 4;
         s += 6.0 * weight / (1 + rank * 0.35);
         Double popular = ctx.popularity.get(item);

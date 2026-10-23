@@ -22,17 +22,22 @@ public final class Search {
         public String corrected;
     }
 
+    private static final String FIRST_MASK = "contents.sectionListRenderer.contents(continuationItemRenderer,"
+            + "itemSectionRenderer.contents(showingResultsForRenderer," + Related.VIDEO_FIELDS + "))";
+    private static final String MORE_MASK = "onResponseReceivedCommands.appendContinuationItemsAction.continuationItems("
+            + "continuationItemRenderer,itemSectionRenderer.contents(" + Related.VIDEO_FIELDS + "))";
+
     public static Page first(String circuit, String query, String params) throws IOException {
         JsonObject body = new JsonObject();
         body.put("query", query);
         if (params != null) body.put("params", params);
-        return page(Related.post(circuit, SEARCH_URL, body, "search"));
+        return Related.masked(circuit, SEARCH_URL, body, "search", FIRST_MASK, Search::page);
     }
 
     public static Page more(String circuit, String continuation) throws IOException {
         JsonObject body = new JsonObject();
         body.put("continuation", continuation);
-        return page(Related.post(circuit, SEARCH_URL, body, "search more"));
+        return Related.masked(circuit, SEARCH_URL, body, "search more", MORE_MASK, Search::page);
     }
 
     private static Page page(String text) throws IOException {

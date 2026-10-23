@@ -26,6 +26,7 @@ public final class Fetch extends Downloader {
     public static final String USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0";
     private static final int TIMEOUT_MS = 20000;
+    private static final long RETRY_BUDGET_MS = 25000;
 
     private static final long TOR_WAIT_MS = 120000;
     private static final Fetch INSTANCE = new Fetch();
@@ -40,20 +41,51 @@ public final class Fetch extends Downloader {
 
     public static final class Scope {
         private volatile boolean cancelled;
+        volatile boolean background;
+        private final Scope parent;
         private final java.util.Set<HttpURLConnection> live =
                 java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+        private final java.util.Set<Scope> lanes =
+                java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+
+        public Scope() {
+            this(null);
+        }
+
+        private Scope(Scope parent) {
+            this.parent = parent;
+        }
+
+        public Scope lane() {
+            Scope lane = new Scope(this);
+            lane.background = background;
+            synchronized (live) {
+                if (cancelled) lane.cancelled = true;
+                else lanes.add(lane);
+            }
+            return lane;
+        }
 
         public boolean cancelled() {
-            return cancelled;
+            return cancelled || parent != null && parent.cancelled();
+        }
+
+        public Scope background() {
+            background = true;
+            return this;
         }
 
         public void cancel() {
             java.util.List<HttpURLConnection> open;
+            java.util.List<Scope> children;
             synchronized (live) {
                 cancelled = true;
                 open = new java.util.ArrayList<>(live);
                 live.clear();
+                children = new java.util.ArrayList<>(lanes);
+                lanes.clear();
             }
+            for (Scope child : children) child.cancel();
             for (HttpURLConnection c : open) {
                 try {
                     c.disconnect();
@@ -64,7 +96,7 @@ public final class Fetch extends Downloader {
 
         void add(HttpURLConnection c) throws IOException {
             synchronized (live) {
-                if (cancelled) throw new Cancelled();
+                if (cancelled()) throw new Cancelled();
                 live.add(c);
             }
         }
@@ -141,13 +173,14 @@ public final class Fetch extends Downloader {
 
     public static <T> T retrying(String circuit, Attempt<T> work) throws Exception {
         int tries = torMode ? 4 : 1;
+        long began = System.currentTimeMillis();
         for (int i = 1; ; i++) {
             try {
                 return on(circuit, () -> work.run(circuit));
             } catch (Exception e) {
                 Scope scope = SCOPE.get();
                 if (scope != null && scope.cancelled()) throw new Cancelled();
-                if (i >= tries || !blocked(e)) throw e;
+                if (i >= tries || !blocked(e) || System.currentTimeMillis() - began > RETRY_BUDGET_MS) throw e;
                 Diag.mark("blocked on try " + i + ", new circuit: " + e.getClass().getSimpleName());
                 Trace.note(Trace.Step.RETRY, i + 1);
                 rotate(circuit);
@@ -347,6 +380,7 @@ public final class Fetch extends Downloader {
     public static HttpURLConnection open(String url) throws IOException {
         Scope scope = SCOPE.get();
         if (scope != null && scope.cancelled()) throw new Cancelled();
+        Focus.await(scope);
         URL target = new URL(url);
         HttpURLConnection c = (HttpURLConnection) target.openConnection(route(target.getHost()));
         if (scope != null) scope.add(c);

@@ -40,13 +40,13 @@ public final class Related {
     public static Search.Page page(String circuit, String videoId) throws IOException {
         JsonObject body = new JsonObject();
         body.put("videoId", videoId);
-        return toPage(post(circuit, NEXT_URL, body, "related"));
+        return masked(circuit, NEXT_URL, body, "related", NEXT_MASK, Related::toPage);
     }
 
     public static Search.Page more(String circuit, String continuation) throws IOException {
         JsonObject body = new JsonObject();
         body.put("continuation", continuation);
-        return toPage(post(circuit, NEXT_URL, body, "related more"));
+        return masked(circuit, NEXT_URL, body, "related more", NEXT_MORE_MASK, Related::toPage);
     }
 
     private static Search.Page toPage(String text) throws IOException {
@@ -65,7 +65,30 @@ public final class Related {
         }
     }
 
+    static final String VIDEO_FIELDS = "videoWithContextRenderer(videoId,headline,shortBylineText,lengthText,"
+            + "shortViewCountText,publishedTimeText,thumbnail,channelThumbnail)";
+    private static final String NEXT_MASK = "contents.singleColumnWatchNextResults.results.results.contents"
+            + ".itemSectionRenderer.contents(continuationItemRenderer," + VIDEO_FIELDS + ")";
+    private static final String NEXT_MORE_MASK = "onResponseReceivedEndpoints.appendContinuationItemsAction"
+            + ".continuationItems(continuationItemRenderer," + VIDEO_FIELDS + ")";
+
+    interface Parse {
+        Search.Page apply(String text) throws IOException;
+    }
+
+    static Search.Page masked(String circuit, String url, JsonObject body, String label, String mask, Parse parse)
+            throws IOException {
+        Search.Page p = parse.apply(post(circuit, url, body, label, mask));
+        if (!p.items.isEmpty() || p.continuation != null) return p;
+        Diag.mark(label + ": nothing under the field mask, asking for the full answer");
+        return parse.apply(post(circuit, url, body, label, null));
+    }
+
     static String post(String circuit, String url, JsonObject body, String label) throws IOException {
+        return post(circuit, url, body, label, null);
+    }
+
+    static String post(String circuit, String url, JsonObject body, String label, String mask) throws IOException {
         String visitor = Visionos.visitorFor(circuit);
         JsonObject client = new JsonObject();
         client.put("clientName", CLIENT_NAME);
@@ -95,6 +118,7 @@ public final class Related {
                 c.setRequestProperty("X-YouTube-Client-Name", CLIENT_ID);
                 c.setRequestProperty("X-YouTube-Client-Version", CLIENT_VERSION);
                 if (visitor != null) c.setRequestProperty("X-Goog-Visitor-Id", visitor);
+                if (mask != null) c.setRequestProperty("X-Goog-FieldMask", mask);
                 c.setDoOutput(true);
                 c.setFixedLengthStreamingMode(raw.length);
                 try (OutputStream out = c.getOutputStream()) {
@@ -134,6 +158,8 @@ public final class Related {
         StreamInfoItem item = new StreamInfoItem(ServiceList.YouTube.getServiceId(),
                 "https://www.youtube.com/watch?v=" + id, text(v.getObject("headline")), StreamType.VIDEO_STREAM);
         item.setUploaderName(text(v.getObject("shortBylineText")));
+        String channel = channelId(v.getObject("shortBylineText"));
+        if (channel != null) item.setUploaderUrl("https://www.youtube.com/channel/" + channel);
         item.setDuration(seconds(text(v.getObject("lengthText"))));
         String views = text(v.getObject("shortViewCountText"));
         item.setViewCount(com.orvid.search.Counts.views(views, "en"));
@@ -148,6 +174,16 @@ public final class Related {
         item.setUploaderAvatars(images(v.getObject("channelThumbnail")
                 .getObject("channelThumbnailWithLinkRenderer").getObject("thumbnail").getArray("thumbnails")));
         return item;
+    }
+
+    private static String channelId(JsonObject byline) {
+        JsonArray runs = byline == null ? null : byline.getArray("runs", null);
+        if (runs == null) return null;
+        for (int i = 0; i < runs.size(); i++) {
+            String id = runs.getObject(i).getObject("navigationEndpoint").getObject("browseEndpoint").getString("browseId", null);
+            if (id != null && id.startsWith("UC")) return id;
+        }
+        return null;
     }
 
     private static List<Image> images(JsonArray list) {

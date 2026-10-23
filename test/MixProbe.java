@@ -50,6 +50,7 @@ public class MixProbe {
                 }
                 try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(saved))) { out.writeObject(lists); }
             }
+            while (lists.size() < n) lists.add(new ArrayList<>());
             double[] w = new double[n]; w[0] = 1; w[1] = 0.7; w[2] = 0.8;
             boolean[] tagged = new boolean[n];
             for (int i = 0; i < Sources.current().size(); i++) { w[CORE + i] = Sources.current().get(i).weight; tagged[CORE + i] = Sources.current().get(i).adult; }
@@ -64,8 +65,13 @@ public class MixProbe {
             StringBuilder ks = new StringBuilder("kept: ");
             for (int i = 0; i < n; i++) if (!lists.get(i).isEmpty()) ks.append(name(i)).append('=').append(kept[i]).append('/').append(lists.get(i).size()).append(' ');
             System.out.println(ks);
+            if (System.getenv("DROPPED") != null) {
+                Set<StreamInfoItem> in = Collections.newSetFromMap(new IdentityHashMap<>()); in.addAll(ranked);
+                for (int i = 0; i < n; i++) for (StreamInfoItem it : lists.get(i)) if (!in.contains(it)) System.out.printf("DROP %-10s %s | %s%n", name(i), cut(it.getName()), cut(it.getUploaderName()));
+                continue;
+            }
             if (System.getenv("KEPT_ONLY") != null) continue;
-            for (int i = 0; i < Math.min(30, ranked.size()); i++) {
+            for (int i = 0; i < Math.min(Integer.getInteger("top", 30), ranked.size()); i++) {
                 StreamInfoItem it = ranked.get(i);
                 System.out.printf("%2d %-10s %s | %s | v=%d%n", i + 1, name(src.get(it)), cut(it.getName()), cut(it.getUploaderName()), it.getViewCount());
             }

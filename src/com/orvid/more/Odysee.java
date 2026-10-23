@@ -85,7 +85,7 @@ final class Odysee extends Site {
         }
         int code = probe(circuit, stream);
         if (code == 401 || code == 403 || code == 429) {
-            throw new com.orvid.ext.ExtSource.Gone("Odysee does not serve this video over Tor (HTTP " + code + ")");
+            throw new com.orvid.ext.ExtSource.Gone("Odysee refused this video (HTTP " + code + ")");
         }
         return new Direct(title, author, stream, stream.contains(".m3u8"), REFERER);
     }

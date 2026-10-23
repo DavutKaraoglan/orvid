@@ -87,6 +87,12 @@
     <string name="lock_prompt">فتح قفل Orvid</string>
     <string name="lock_no_screen">اضبط أولًا قفل الشاشة من إعدادات Android.</string>
     <string name="panic_exit">خروج طارئ (اسحب للأسفل بإصبعين)</string>
+    <string name="use_tor">استخدام Tor</string>
+    <string name="tor_banner_off">Tor متوقف. يمكن للمواقع رؤية عنوان IP الخاص بك.</string>
+    <string name="error_ip_blocked">حظر YouTube عنوان IP الخاص بك لفترة. شغّل Tor من الفلاتر لمتابعة المشاهدة.</string>
+    <string name="go_to_channel">الذهاب إلى القناة</string>
+    <string name="channel_subscribers">%1$s مشترك</string>
+    <string name="channel_empty">لا توجد فيديوهات في هذه القناة</string>
     <string name="tor_bridges">إخفاء Tor عن شبكتك (جسر، أبطأ)</string>
     <string name="tor_bridge_hint">إذا كانت شبكتك تحظر Tor، فشغّل الجسر من قسم الخصوصية في لوحة عوامل التصفية.</string>
     <string name="not_interested">غير مهتم</string>
@@ -142,6 +148,7 @@
     <string name="health_skipped">لا يستجيب، تم التخطي</string>
     <string name="health_down">لا يستجيب. أوقفه وشغّله لإعادة المحاولة.</string>
     <string name="health_flaky">واجه مشاكل في عمليات البحث الأخيرة</string>
+    <string name="health_empty">لم يُرجع أي نتائج حتى الآن</string>
     <string name="play_next">تشغيل التالي</string>
     <string name="add_queue">إضافة إلى قائمة الانتظار</string>
     <string name="queued">في القائمة: %1$d</string>

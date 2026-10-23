@@ -87,6 +87,12 @@
     <string name="lock_prompt">Orvid\'in kilidini aç</string>
     <string name="lock_no_screen">Önce Android ayarlarından bir ekran kilidi belirle.</string>
     <string name="panic_exit">Panik çıkışı (iki parmakla aşağı kaydır)</string>
+    <string name="use_tor">Tor kullan</string>
+    <string name="tor_banner_off">Tor kapalı. Siteler IP adresini görebilir.</string>
+    <string name="error_ip_blocked">YouTube IP adresini bir süreliğine engelledi. İzlemeye devam etmek için filtrelerden Tor\'u aç.</string>
+    <string name="go_to_channel">Kanala git</string>
+    <string name="channel_subscribers">%1$s abone</string>
+    <string name="channel_empty">Bu kanalda video yok</string>
     <string name="tor_bridges">Tor\'u ağdan gizle (köprü, daha yavaş)</string>
     <string name="tor_bridge_hint">Ağın Tor\'u engelliyorsa filtre panelindeki Gizlilik bölümünden köprüyü aç.</string>
     <string name="not_interested">İlgilenmiyorum</string>
@@ -142,6 +148,7 @@
     <string name="health_skipped">yanıt vermiyor, atlandı</string>
     <string name="health_down">Yanıt vermiyor. Yeniden denemek için kapatıp açın.</string>
     <string name="health_flaky">Son aramalarda sorun çıkardı</string>
+    <string name="health_empty">Henüz hiç sonuç vermedi</string>
     <string name="play_next">Sırada oynat</string>
     <string name="add_queue">Sıraya ekle</string>
     <string name="queued">Sırada: %1$d</string>

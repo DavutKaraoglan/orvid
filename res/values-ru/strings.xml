@@ -87,6 +87,12 @@
     <string name="lock_prompt">Разблокировать Orvid</string>
     <string name="lock_no_screen">Сначала настройте блокировку экрана в настройках Android.</string>
     <string name="panic_exit">Экстренный выход (проведите вниз двумя пальцами)</string>
+    <string name="use_tor">Использовать Tor</string>
+    <string name="tor_banner_off">Tor выключен. Сайты видят ваш IP-адрес.</string>
+    <string name="error_ip_blocked">YouTube временно заблокировал ваш IP-адрес. Включите Tor в фильтрах, чтобы продолжить просмотр.</string>
+    <string name="go_to_channel">Перейти на канал</string>
+    <string name="channel_subscribers">Подписчиков: %1$s</string>
+    <string name="channel_empty">На этом канале нет видео</string>
     <string name="tor_bridges">Скрыть Tor от вашей сети (мост, медленнее)</string>
     <string name="tor_bridge_hint">Если ваша сеть блокирует Tor, включите мост в разделе «Конфиденциальность» на панели фильтров.</string>
     <string name="not_interested">Не интересует</string>
@@ -142,6 +148,7 @@
     <string name="health_skipped">не отвечает, пропущено</string>
     <string name="health_down">Не отвечает. Выключите и включите, чтобы попробовать снова.</string>
     <string name="health_flaky">Были проблемы при последних поисках</string>
+    <string name="health_empty">Пока не вернул ни одного результата</string>
     <string name="play_next">Воспроизвести следующим</string>
     <string name="add_queue">Добавить в очередь</string>
     <string name="queued">В очереди: %1$d</string>

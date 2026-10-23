@@ -14,6 +14,7 @@ public final class Session {
 
     public static String title = "";
     public static String author = "";
+    public static String channel;
     public static CharSequence description = "";
     public static String sub = "";
     public static String thumb;

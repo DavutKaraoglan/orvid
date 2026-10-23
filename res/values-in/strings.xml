@@ -87,6 +87,12 @@
     <string name="lock_prompt">Buka kunci Orvid</string>
     <string name="lock_no_screen">Atur kunci layar di setelan Android terlebih dahulu.</string>
     <string name="panic_exit">Keluar darurat (geser ke bawah dengan dua jari)</string>
+    <string name="use_tor">Gunakan Tor</string>
+    <string name="tor_banner_off">Tor mati. Situs dapat melihat alamat IP Anda.</string>
+    <string name="error_ip_blocked">YouTube memblokir alamat IP Anda untuk sementara. Aktifkan Tor di filter untuk terus menonton.</string>
+    <string name="go_to_channel">Buka saluran</string>
+    <string name="channel_subscribers">%1$s pelanggan</string>
+    <string name="channel_empty">Saluran ini tidak punya video</string>
     <string name="tor_bridges">Sembunyikan Tor dari jaringan Anda (bridge, lebih lambat)</string>
     <string name="tor_bridge_hint">Jika jaringan Anda memblokir Tor, aktifkan bridge di bagian Privasi pada panel filter.</string>
     <string name="not_interested">Tidak tertarik</string>
@@ -142,6 +148,7 @@
     <string name="health_skipped">tidak merespons, dilewati</string>
     <string name="health_down">Tidak merespons. Matikan lalu nyalakan untuk mencoba lagi.</string>
     <string name="health_flaky">Bermasalah dalam pencarian terakhir</string>
+    <string name="health_empty">Belum pernah memberi hasil</string>
     <string name="play_next">Putar berikutnya</string>
     <string name="add_queue">Tambah ke antrean</string>
     <string name="queued">Dalam antrean: %1$d</string>

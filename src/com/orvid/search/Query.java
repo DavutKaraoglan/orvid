@@ -175,12 +175,16 @@ public final class Query {
             "ler", "lar", "leri", "lari", "i", "u", "e", "a", "ye", "ya", "yi", "yu", "yla", "yle",
             "la", "le", "s", "es", "ed", "ing"));
 
+    private static final Set<String> VOWEL_ENDINGS = new HashSet<>(Arrays.asList("i", "u", "e", "a"));
+
     public static boolean wordMatches(String term, String word) {
         if (word.equals(term)) return true;
         if (word.startsWith(term) && (term.length() >= STEM || SUFFIXES.contains(word.substring(term.length())))) {
             return true;
         }
-        return word.length() >= STEM && term.startsWith(word) && SUFFIXES.contains(term.substring(word.length()));
+        if (word.length() < STEM || !term.startsWith(word)) return false;
+        String ending = term.substring(word.length());
+        return SUFFIXES.contains(ending) && !VOWEL_ENDINGS.contains(ending);
     }
 
     public static boolean acronym(String term, List<String> words) {

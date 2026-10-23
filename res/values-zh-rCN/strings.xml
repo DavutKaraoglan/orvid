@@ -87,6 +87,12 @@
     <string name="lock_prompt">解锁 Orvid</string>
     <string name="lock_no_screen">请先在 Android 设置中设置屏幕锁定。</string>
     <string name="panic_exit">紧急退出（双指向下滑动）</string>
+    <string name="use_tor">使用 Tor</string>
+    <string name="tor_banner_off">Tor 已关闭。网站可以看到你的 IP 地址。</string>
+    <string name="error_ip_blocked">YouTube 暂时封锁了你的 IP 地址。请在筛选中打开 Tor 继续观看。</string>
+    <string name="go_to_channel">前往频道</string>
+    <string name="channel_subscribers">%1$s 位订阅者</string>
+    <string name="channel_empty">此频道没有视频</string>
     <string name="tor_bridges">向网络隐藏 Tor（网桥，较慢）</string>
     <string name="tor_bridge_hint">如果你的网络屏蔽了 Tor，请在筛选面板的“隐私”中开启网桥。</string>
     <string name="not_interested">不感兴趣</string>
@@ -142,6 +148,7 @@
     <string name="health_skipped">无响应，已跳过</string>
     <string name="health_down">无响应。关闭后再打开即可重试。</string>
     <string name="health_flaky">最近的搜索中出现问题</string>
+    <string name="health_empty">尚未返回任何结果</string>
     <string name="play_next">接下来播放</string>
     <string name="add_queue">加入队列</string>
     <string name="queued">队列中：%1$d</string>

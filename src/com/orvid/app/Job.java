@@ -14,6 +14,7 @@ public abstract class Job<T> implements Runnable {
 
     private final Activity owner;
     private volatile boolean cancelled;
+    private boolean background;
 
     protected Job(Activity owner) {
         this.owner = owner;
@@ -21,6 +22,10 @@ public abstract class Job<T> implements Runnable {
 
     public interface Scoped {
         com.orvid.net.Fetch.Scope scope();
+
+        default com.orvid.net.Fetch.Scope backgroundScope() {
+            return scope();
+        }
     }
 
     protected abstract T load() throws Exception;
@@ -38,6 +43,7 @@ public abstract class Job<T> implements Runnable {
     }
 
     public final Job<T> startBackground() {
+        background = true;
         BACKGROUND.execute(this);
         return this;
     }
@@ -50,7 +56,8 @@ public abstract class Job<T> implements Runnable {
     public final void run() {
         try {
             final T result = owner instanceof Scoped
-                    ? com.orvid.net.Fetch.within(((Scoped) owner).scope(), this::load) : load();
+                    ? com.orvid.net.Fetch.within(background ? ((Scoped) owner).backgroundScope() : ((Scoped) owner).scope(), this::load)
+                    : load();
             deliver(new Runnable() {
                 @Override
                 public void run() {

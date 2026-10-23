@@ -2,11 +2,11 @@
 
 # Orvid
 
-Android video player that searches many video sites at once and sends every request over Tor. Sources come from repositories you add.
+Android video player that searches many video sites at once and sends its requests over Tor. Sources come from repositories you add.
 
 <p align="center"><img src="docs/screenshots.webp" alt="Search results from many sites, the player, the source list and privacy settings"></p>
 
-- **Tor built in.** Orvid starts its own Tor client and gives each source and each video its own circuit. Requests wait until Tor is connected. If your network blocks Tor, turn on a bridge (obfs4, Snowflake or meek) under Privacy in the filter panel.
+- **Tor built in.** Orvid starts its own Tor client and gives each source and each video its own circuit. Requests wait until Tor is connected. If your network blocks Tor, turn on a bridge (obfs4, Snowflake or meek) under Privacy in the filter panel. You can turn Tor off in the same section for a faster direct connection. While it is off, a banner on the main screen warns that sites can see your IP address.
 - **Sources from repositories.** Orvid ships with no sources. Add a repository to search YouTube, Dailymotion, VK, Twitch, PeerTube, Internet Archive, Odysee, TED and more at once, merged and ranked together. Adult sources live in a separate repository and stay hidden until unlocked with a gesture and an age check (spread two fingers apart on the main screen, then turn them on in the filter panel).
 - **Fast start.** Orvid resolves the videos you are likely to open and fetches their first seconds while you browse, so videos start sooner.
 - **Privacy tools.** Optional app lock with fingerprint or PIN that also hides the app in recent apps, and a panic exit: swipe down with two fingers to close Orvid and wipe its memory.

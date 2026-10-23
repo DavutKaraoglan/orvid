@@ -24,7 +24,8 @@ import java.util.regex.Pattern;
 public final class Dailymotion {
 
     public static final int SERVICE_ID = 100;
-    private static final String FIELDS = "id,title,owner.screenname,duration,views_total,thumbnail_240_url,thumbnail_480_url,created_time,aspect_ratio";
+    private static final int[] THUMB_HEIGHTS = {240, 360, 480};
+    private static final String FIELDS = "id,title,owner.screenname,duration,views_total,thumbnail_240_url,thumbnail_360_url,thumbnail_480_url,created_time,aspect_ratio";
     private static final long MIN_VIEWS = 300;
     private static final Pattern VIDEO_ID = Pattern.compile("dailymotion\\.com/(?:video|embed/video)/([a-zA-Z0-9]+)|dai\\.ly/([a-zA-Z0-9]+)");
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -80,11 +81,15 @@ public final class Dailymotion {
                 item.setUploadDate(new org.schabi.newpipe.extractor.localization.DateWrapper(
                         java.time.Instant.ofEpochSecond(created), false));
             }
-            String thumb = v.getString("thumbnail_480_url", null);
+            double aspect = v.getDouble("aspect_ratio", 16 / 9.0);
             List<Image> thumbs = new ArrayList<>();
-            if (thumb != null) thumbs.add(new Image(thumb, 270, 480, Image.ResolutionLevel.MEDIUM));
             String small = v.getString("thumbnail_240_url", null);
-            if (thumb != null && small != null) com.orvid.image.Images.previewOf(thumb, small);
+            for (int height : THUMB_HEIGHTS) {
+                String thumb = v.getString("thumbnail_" + height + "_url", null);
+                if (thumb == null) continue;
+                thumbs.add(new Image(thumb, height, (int) Math.round(height * aspect), Image.ResolutionLevel.MEDIUM));
+                if (small != null && height > 240) com.orvid.image.Images.previewOf(thumb, small);
+            }
             item.setThumbnails(thumbs);
             p.items.add(item);
         }

@@ -58,7 +58,7 @@ public final class OrvidApp extends Application {
         speech.delete();
         images.clearDisk();
         Visionos.addWarmer(com.orvid.vk.Vk::warm);
-        applyTor(true);
+        applyTor(!prefs.getBoolean("tor_off", false));
     }
 
     public static OrvidApp get() {
@@ -107,6 +107,7 @@ public final class OrvidApp extends Application {
 
     public void setBridges(boolean on) {
         prefs.edit().putBoolean("tor_bridges", on).apply();
+        if (!Fetch.torMode()) return;
         Tor.get().stop();
         Tor.dach().stop();
         applyTor(true);
@@ -114,6 +115,16 @@ public final class OrvidApp extends Application {
 
     public void restartTor() {
         applyTor(true);
+    }
+
+    public boolean torOn() {
+        return Fetch.torMode();
+    }
+
+    public void setTor(boolean on) {
+        prefs.edit().putBoolean("tor_off", !on).apply();
+        if (on == Fetch.torMode()) return;
+        applyTor(on);
     }
 
     public int layoutMode() {

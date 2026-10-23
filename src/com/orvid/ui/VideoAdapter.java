@@ -85,6 +85,50 @@ final class VideoAdapter extends BaseAdapter {
         android.widget.Toast.makeText(context, context.getString(R.string.source_off_done, name), android.widget.Toast.LENGTH_SHORT).show();
     }
 
+    private void showMenu(StreamInfoItem item, View anchor) {
+        android.widget.PopupMenu menu = new android.widget.PopupMenu(context, anchor);
+        menu.getMenu().add(0, 3, 0, R.string.play_next);
+        menu.getMenu().add(0, 4, 1, R.string.add_queue);
+        menu.getMenu().add(0, 1, 2, R.string.not_interested);
+        menu.getMenu().add(0, 2, 3, R.string.source_off);
+        if (ChannelActivity.canOpen(item.getUploaderUrl())) menu.getMenu().add(0, 5, 4, R.string.go_to_channel);
+        menu.setOnMenuItemClickListener(m -> {
+            if (m.getItemId() == 5) {
+                openChannel(item);
+                return true;
+            }
+            if (m.getItemId() == 3 || m.getItemId() == 4) {
+                int n = m.getItemId() == 3 ? com.orvid.play.Queue.playNext(item) : com.orvid.play.Queue.add(item);
+                android.widget.Toast.makeText(context, context.getString(R.string.queued, n), android.widget.Toast.LENGTH_SHORT).show();
+                if (context instanceof PlayerActivity) ((PlayerActivity) context).queueChanged();
+                return true;
+            }
+            if (m.getItemId() == 2) {
+                turnOffSource(item);
+                return true;
+            }
+            com.orvid.search.NotInterested.add(item);
+            prune();
+            android.widget.Toast.makeText(context, R.string.not_interested_done, android.widget.Toast.LENGTH_SHORT).show();
+            return true;
+        });
+        menu.show();
+    }
+
+    private void channelTap(View v, StreamInfoItem item) {
+        if (ChannelActivity.canOpen(item.getUploaderUrl())) {
+            v.setOnClickListener(x -> openChannel(item));
+        } else {
+            v.setOnClickListener(null);
+            v.setClickable(false);
+        }
+    }
+
+    private void openChannel(StreamInfoItem item) {
+        ChannelActivity.open(context, item.getUploaderUrl(), item.getUploaderName(),
+                Ui.thumbnail(item.getUploaderAvatars(), Ui.dp(context, 64)));
+    }
+
     void pruneOff(com.orvid.search.Filters f) {
         if (items.removeIf(i -> !f.serviceOn(i.getServiceId()))) notifyDataSetChanged();
     }
@@ -128,12 +172,31 @@ final class VideoAdapter extends BaseAdapter {
         notifyDataSetChanged();
     }
 
+    private final java.util.Set<StreamInfoItem> tail = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+
+    static String key(StreamInfoItem item) {
+        String id = Visionos.videoId(item.getUrl());
+        return id != null ? "yt:" + id : item.getUrl();
+    }
+
+    java.util.Set<String> keys() {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        for (StreamInfoItem i : items) out.add(key(i));
+        return out;
+    }
+
+    boolean inTail(StreamInfoItem item) {
+        return tail.contains(item);
+    }
+
     void set(List<StreamInfoItem> next) {
         skeletons = 0;
         items.clear();
         items.addAll(next);
+        tail.clear();
+        tail.addAll(next.subList(com.orvid.search.Ranker.Ranked.strict(next), next.size()));
         notifyDataSetChanged();
-        prefetchFrom = 0;
+        if (next.isEmpty()) prefetchFrom = 0;
         prefetch();
     }
 
@@ -142,7 +205,12 @@ final class VideoAdapter extends BaseAdapter {
     private int prefetchFrom;
 
     private void prefetch() {
-        prefetch(items, prefetchFrom, PREFETCH, false);
+        boolean direct = !com.orvid.net.Fetch.torMode();
+        prefetch(items, prefetchFrom, direct ? prefetchCount() * 2 : prefetchCount(), direct);
+    }
+
+    private int prefetchCount() {
+        return mode == CARD ? 6 : mode == COMPACT ? 12 : mode == GRID ? 16 : PREFETCH;
     }
 
     void prefetchAfter(int item) {
@@ -239,14 +307,42 @@ final class VideoAdapter extends BaseAdapter {
         return x >= at[0] && x < at[0] + thumb.getWidth() && y >= at[1] && y < at[1] + thumb.getHeight();
     }
 
-    void add(List<StreamInfoItem> more) {
+    int add(List<StreamInfoItem> more) {
+        return add(more, 0);
+    }
+
+    int add(List<StreamInfoItem> more, int frozen) {
         if (skeletons > 0) {
             skeletons = 0;
             items.clear();
+            tail.clear();
         }
-        items.addAll(more);
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (StreamInfoItem i : items) seen.add(key(i));
+        int at = items.size();
+        for (int i = 0; i < items.size(); i++) {
+            if (tail.contains(items.get(i))) {
+                at = i;
+                break;
+            }
+        }
+        at = Math.max(at, Math.min(frozen, items.size()));
+        int strict = com.orvid.search.Ranker.Ranked.strict(more);
+        int added = 0;
+        for (int i = 0; i < more.size(); i++) {
+            StreamInfoItem item = more.get(i);
+            if (!seen.add(key(item))) continue;
+            if (i < strict) {
+                items.add(at++, item);
+            } else {
+                items.add(item);
+                tail.add(item);
+            }
+            added++;
+        }
         notifyDataSetChanged();
         prefetch();
+        return added;
     }
 
     int itemCount() {
@@ -495,7 +591,9 @@ final class VideoAdapter extends BaseAdapter {
             }
             int size = avatarImage.getLayoutParams().width;
             OrvidApp.get().images().loadAvatar(avatarImage, Ui.thumbnail(item.getUploaderAvatars(), size), size);
+            channelTap(avatarImage, item);
         }
+        if (avatar != null) channelTap(avatar, item);
         view.setOnClickListener(v -> onPick.pick(item));
         view.setOnLongClickListener(v -> {
             if (onThumb(thumb, v) && thumb.getParent() instanceof android.widget.FrameLayout) {
@@ -504,31 +602,11 @@ final class VideoAdapter extends BaseAdapter {
                 previewThumb = thumb;
                 previewUrl = item.getUrl();
                 com.orvid.play.Warm.prepare(previewUrl);
+                showMenu(item, thumb);
                 return true;
             }
             stopPreview();
-            android.widget.PopupMenu menu = new android.widget.PopupMenu(context, thumb != null ? thumb : v);
-            menu.getMenu().add(0, 3, 0, R.string.play_next);
-            menu.getMenu().add(0, 4, 1, R.string.add_queue);
-            menu.getMenu().add(0, 1, 2, R.string.not_interested);
-            menu.getMenu().add(0, 2, 3, R.string.source_off);
-            menu.setOnMenuItemClickListener(m -> {
-                if (m.getItemId() == 3 || m.getItemId() == 4) {
-                    int n = m.getItemId() == 3 ? com.orvid.play.Queue.playNext(item) : com.orvid.play.Queue.add(item);
-                    android.widget.Toast.makeText(context, context.getString(R.string.queued, n), android.widget.Toast.LENGTH_SHORT).show();
-                    if (context instanceof PlayerActivity) ((PlayerActivity) context).queueChanged();
-                    return true;
-                }
-                if (m.getItemId() == 2) {
-                    turnOffSource(item);
-                    return true;
-                }
-                com.orvid.search.NotInterested.add(item);
-                prune();
-                android.widget.Toast.makeText(context, R.string.not_interested_done, android.widget.Toast.LENGTH_SHORT).show();
-                return true;
-            });
-            menu.show();
+            showMenu(item, thumb != null ? thumb : v);
             return true;
         });
         view.setOnTouchListener((v, e) -> {

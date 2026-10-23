@@ -87,6 +87,12 @@
     <string name="lock_prompt">Orvid entsperren</string>
     <string name="lock_no_screen">Richte zuerst in den Android-Einstellungen eine Displaysperre ein.</string>
     <string name="panic_exit">Notausgang (mit zwei Fingern nach unten wischen)</string>
+    <string name="use_tor">Tor verwenden</string>
+    <string name="tor_banner_off">Tor ist aus. Websites sehen deine IP-Adresse.</string>
+    <string name="error_ip_blocked">YouTube hat deine IP-Adresse vorübergehend gesperrt. Schalte Tor in den Filtern ein, um weiterzuschauen.</string>
+    <string name="go_to_channel">Zum Kanal</string>
+    <string name="channel_subscribers">%1$s Abonnenten</string>
+    <string name="channel_empty">Dieser Kanal hat keine Videos</string>
     <string name="tor_bridges">Tor vor deinem Netz verbergen (Brücke, langsamer)</string>
     <string name="tor_bridge_hint">Falls dein Netz Tor sperrt, schalte die Brücke unter Privatsphäre im Filterbereich ein.</string>
     <string name="not_interested">Kein Interesse</string>
@@ -142,6 +148,7 @@
     <string name="health_skipped">antwortet nicht, übersprungen</string>
     <string name="health_down">Antwortet nicht. Zum erneuten Versuch aus- und einschalten.</string>
     <string name="health_flaky">Hatte bei den letzten Suchen Probleme</string>
+    <string name="health_empty">Hat noch keine Ergebnisse geliefert</string>
     <string name="play_next">Als Nächstes abspielen</string>
     <string name="add_queue">Zur Warteschlange</string>
     <string name="queued">In der Warteschlange: %1$d</string>

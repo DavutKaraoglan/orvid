@@ -87,6 +87,12 @@
     <string name="lock_prompt">Orvid のロックを解除</string>
     <string name="lock_no_screen">先に Android の設定で画面ロックを設定してください。</string>
     <string name="panic_exit">緊急終了 (2 本指で下にスワイプ)</string>
+    <string name="use_tor">Tor を使う</string>
+    <string name="tor_banner_off">Tor はオフです。サイトから IP アドレスが見えます。</string>
+    <string name="error_ip_blocked">YouTube があなたの IP アドレスを一時的にブロックしました。視聴を続けるにはフィルターで Tor をオンにしてください。</string>
+    <string name="go_to_channel">チャンネルへ移動</string>
+    <string name="channel_subscribers">登録者 %1$s 人</string>
+    <string name="channel_empty">このチャンネルには動画がありません</string>
     <string name="tor_bridges">ネットワークから Tor を隠す (ブリッジ、低速)</string>
     <string name="tor_bridge_hint">ネットワークが Tor をブロックしている場合は、フィルタパネルのプライバシーでブリッジをオンにしてください。</string>
     <string name="not_interested">興味なし</string>
@@ -142,6 +148,7 @@
     <string name="health_skipped">応答なし、スキップ</string>
     <string name="health_down">応答がありません。オフにしてからオンにすると再試行します。</string>
     <string name="health_flaky">最近の検索で問題がありました</string>
+    <string name="health_empty">まだ結果を返したことがありません</string>
     <string name="play_next">次に再生</string>
     <string name="add_queue">キューに追加</string>
     <string name="queued">キュー: %1$d 件</string>

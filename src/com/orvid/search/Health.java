@@ -9,10 +9,11 @@ public final class Health {
     public static final int OK = 0;
     public static final int FLAKY = 1;
     public static final int DOWN = 2;
+    public static final int EMPTY = 3;
 
-    private static final int FLAKY_AT = 2;
+    private static final int FLAKY_AT = 3;
     private static final int DOWN_AT = 5;
-    private static final int EMPTY_FLAKY_AT = 6;
+    private static final int EMPTY_AT = 3;
     private static final long RETRY_MS = 6 * 60 * 60 * 1000L;
 
     private Health() {
@@ -26,7 +27,8 @@ public final class Health {
         SharedPreferences p = prefs();
         int fails = p.getInt(key + ".fails", 0);
         if (fails >= DOWN_AT) return DOWN;
-        return fails >= FLAKY_AT || p.getInt(key + ".empty", 0) >= EMPTY_FLAKY_AT ? FLAKY : OK;
+        if (fails >= FLAKY_AT) return FLAKY;
+        return !p.getBoolean(key + ".worked", false) && p.getInt(key + ".empty", 0) >= EMPTY_AT ? EMPTY : OK;
     }
 
     public static synchronized boolean skip(String key) {
@@ -40,8 +42,8 @@ public final class Health {
 
     public static synchronized void ok(String key) {
         SharedPreferences p = prefs();
-        if (!p.contains(key + ".fails") && !p.contains(key + ".empty")) return;
-        p.edit().remove(key + ".fails").remove(key + ".tried").remove(key + ".empty").apply();
+        if (p.getBoolean(key + ".worked", false) && !p.contains(key + ".fails") && !p.contains(key + ".empty")) return;
+        p.edit().remove(key + ".fails").remove(key + ".tried").remove(key + ".empty").putBoolean(key + ".worked", true).apply();
     }
 
     public static synchronized void fail(String key) {
@@ -54,10 +56,10 @@ public final class Health {
 
     public static synchronized void empty(String key) {
         SharedPreferences p = prefs();
-        p.edit().putInt(key + ".empty", p.getInt(key + ".empty", 0) + 1).apply();
+        p.edit().remove(key + ".fails").remove(key + ".tried").putInt(key + ".empty", p.getInt(key + ".empty", 0) + 1).apply();
     }
 
     public static synchronized void reset(String key) {
-        ok(key);
+        prefs().edit().remove(key + ".fails").remove(key + ".tried").remove(key + ".empty").apply();
     }
 }

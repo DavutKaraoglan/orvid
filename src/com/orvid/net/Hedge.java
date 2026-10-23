@@ -39,7 +39,8 @@ public final class Hedge {
 
     public static <T> Result<T> call(String first, Supplier<String> spare, long delayMs, Task<T> task) throws Exception {
         CompletionService<Result<T>> done = new ExecutorCompletionService<>(POOL);
-        Future<Result<T>> a = done.submit(wrap(first, task));
+        java.util.Map<Future<Result<T>>, Fetch.Scope> lanes = new java.util.HashMap<>();
+        Future<Result<T>> a = submit(done, lanes, first, task, true);
         Future<Result<T>> b = null;
         Future<Result<T>> got = delayMs > 0 ? done.poll(delayMs, TimeUnit.MILLISECONDS) : null;
         int running = 1;
@@ -47,7 +48,7 @@ public final class Hedge {
             String second = spare.get();
             Diag.mark("hedge: second circuit after " + delayMs + "ms");
             Trace.note(Trace.Step.LANE, 2);
-            b = done.submit(wrap(second, task));
+            b = submit(done, lanes, second, task, true);
             running = 2;
         }
         Exception last = null;
@@ -57,20 +58,18 @@ public final class Hedge {
             running--;
             try {
                 Result<T> r = f.get();
-                if (a != f) a.cancel(true);
-                if (b != null && b != f) b.cancel(true);
+                stopOthers(lanes, f);
                 return r;
             } catch (ExecutionException e) {
                 last = e.getCause() instanceof Exception ? (Exception) e.getCause() : e;
                 if (last instanceof Final) {
-                    a.cancel(true);
-                    if (b != null) b.cancel(true);
+                    stopOthers(lanes, null);
                     throw last;
                 }
                 if (b == null && spare != null && !(last instanceof Fetch.Cancelled)) {
                     Diag.mark("hedge: first circuit failed early, second circuit now");
                     Trace.note(Trace.Step.LANE, 2);
-                    b = done.submit(wrap(spare.get(), task));
+                    b = submit(done, lanes, spare.get(), task, true);
                     running++;
                 }
             }
@@ -84,8 +83,9 @@ public final class Hedge {
 
     public static <T> Result<T> race(java.util.List<String> circuits, long staggerMs, boolean retry, Task<T> task) throws Exception {
         CompletionService<Result<T>> done = new ExecutorCompletionService<>(POOL);
-        java.util.List<Future<Result<T>>> started = new java.util.ArrayList<>();
-        started.add(done.submit(wrap(circuits.get(0), task, retry)));
+        java.util.Map<Future<Result<T>>, Fetch.Scope> lanes = new java.util.HashMap<>();
+        Future<Result<T>> won = null;
+        submit(done, lanes, circuits.get(0), task, retry);
         int next = 1;
         int running = 1;
         Exception last = null;
@@ -96,36 +96,51 @@ public final class Hedge {
                 if (f == null) {
                     Diag.mark("race: circuit " + (next + 1) + " joins");
                     Trace.note(Trace.Step.LANE, next + 1);
-                    started.add(done.submit(wrap(circuits.get(next++), task, retry)));
+                    submit(done, lanes, circuits.get(next++), task, retry);
                     running++;
                     continue;
                 }
                 running--;
                 try {
-                    return f.get();
+                    Result<T> r = f.get();
+                    won = f;
+                    return r;
                 } catch (ExecutionException e) {
                     last = e.getCause() instanceof Exception ? (Exception) e.getCause() : e;
                     if (last instanceof Final) throw last;
                     if (next < circuits.size()) {
-                        started.add(done.submit(wrap(circuits.get(next++), task, retry)));
+                        submit(done, lanes, circuits.get(next++), task, retry);
                         running++;
                     }
                 }
             }
             throw last;
         } finally {
-            for (Future<Result<T>> f : started) f.cancel(true);
+            stopOthers(lanes, won);
         }
     }
 
-    private static <T> Callable<Result<T>> wrap(String circuit, Task<T> task) {
-        return wrap(circuit, task, true);
+    private static <T> Future<Result<T>> submit(CompletionService<Result<T>> done,
+            java.util.Map<Future<Result<T>>, Fetch.Scope> lanes, String circuit, Task<T> task, boolean retry) {
+        Fetch.Scope parent = Fetch.scope();
+        Fetch.Scope lane = parent != null ? parent.lane() : new Fetch.Scope();
+        if (parent == null) lane.background = Focus.backgroundThread();
+        Future<Result<T>> f = done.submit(wrap(lane, circuit, task, retry));
+        lanes.put(f, lane);
+        return f;
     }
 
-    private static <T> Callable<Result<T>> wrap(String circuit, Task<T> task, boolean retry) {
-        Fetch.Scope scope = Fetch.scope();
+    private static <T> void stopOthers(java.util.Map<Future<Result<T>>, Fetch.Scope> lanes, Future<Result<T>> keep) {
+        for (java.util.Map.Entry<Future<Result<T>>, Fetch.Scope> e : lanes.entrySet()) {
+            if (e.getKey() == keep) continue;
+            e.getKey().cancel(true);
+            e.getValue().cancel();
+        }
+    }
+
+    private static <T> Callable<Result<T>> wrap(Fetch.Scope lane, String circuit, Task<T> task, boolean retry) {
         Trace.Sink sink = Trace.current();
-        if (!retry) return () -> Trace.with(sink, () -> Fetch.within(scope, () -> new Result<>(Fetch.on(circuit, () -> task.run(circuit)), circuit)));
-        return () -> Trace.with(sink, () -> Fetch.within(scope, () -> new Result<>(Fetch.retrying(circuit, task::run), circuit)));
+        if (!retry) return () -> Trace.with(sink, () -> Fetch.within(lane, () -> new Result<>(Fetch.on(circuit, () -> task.run(circuit)), circuit)));
+        return () -> Trace.with(sink, () -> Fetch.within(lane, () -> new Result<>(Fetch.retrying(circuit, task::run), circuit)));
     }
 }

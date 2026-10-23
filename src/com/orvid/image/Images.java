@@ -41,7 +41,7 @@ public final class Images {
         };
         pool = new ThreadPoolExecutor(12, 12, 30, TimeUnit.SECONDS, new java.util.concurrent.PriorityBlockingQueue<Runnable>());
         aheadPool = new ThreadPoolExecutor(AHEAD_THREADS, AHEAD_THREADS, 30, TimeUnit.SECONDS,
-                new java.util.concurrent.PriorityBlockingQueue<Runnable>());
+                new java.util.concurrent.PriorityBlockingQueue<Runnable>(), com.orvid.net.Focus.background("orvid-thumb-ahead"));
         aheadPool.allowCoreThreadTimeOut(true);
     }
 
@@ -49,11 +49,8 @@ public final class Images {
     private static final int WARM_CONNECTIONS = 12;
     private static final long WARM_EVERY_MS = 60000;
     private volatile long warmedAt;
-    private final java.util.concurrent.ExecutorService warmer = java.util.concurrent.Executors.newCachedThreadPool(r -> {
-        Thread t = new Thread(r, "orvid-warm");
-        t.setDaemon(true);
-        return t;
-    });
+    private final java.util.concurrent.ExecutorService warmer = java.util.concurrent.Executors.newCachedThreadPool(
+            com.orvid.net.Focus.background("orvid-warm"));
 
     public boolean busy() {
         return pool.getActiveCount() > 0 || !pool.getQueue().isEmpty();
@@ -69,8 +66,8 @@ public final class Images {
         long now = System.currentTimeMillis();
         if (now - warmedAt < WARM_EVERY_MS) return;
         warmedAt = now;
-        String circuit = circuitFor(WARM_URL);
         for (int i = 0; i < WARM_CONNECTIONS; i++) {
+            String circuit = "images-" + (i % IMAGE_CIRCUITS);
             warmer.execute(() -> {
                 try {
                     Fetch.on(circuit, () -> download(WARM_URL, null));
@@ -151,11 +148,10 @@ public final class Images {
             try {
                 if (!wanted(key)) return;
                 long began = android.os.SystemClock.uptimeMillis();
-                String preview = preview(wanted);
+                String preview = Fetch.torMode() ? preview(wanted) : null;
                 if (preview != null && raw.get(wanted) == null) {
-                    byte[] small = obtain(preview, null, 0);
-                    Bitmap first = small == null ? null : decode(small, targetWidth);
-                    if (first != null && wanted(key)) deliver(key, first);
+                    if (raw.get(preview) != null) showPreview(key, preview, targetWidth);
+                    else pool.execute(new Job(priority, () -> showPreview(key, preview, targetWidth)));
                 }
                 byte[] bytes = obtain(wanted, page, targetWidth);
                 if (bytes != null) com.orvid.app.DevInfo.thumb(page, bytes.length, android.os.SystemClock.uptimeMillis() - began);
@@ -170,6 +166,22 @@ public final class Images {
                 if (visible) visibleLoads.decrementAndGet();
             }
         }));
+    }
+
+    private void showPreview(String key, String preview, int targetWidth) {
+        if (!wanted(key) || memory.get(key) != null) return;
+        byte[] small = obtain(preview, null, 0);
+        Bitmap first = small == null ? null : decode(small, targetWidth);
+        if (first == null || !wanted(key)) return;
+        java.util.Set<ImageView> views = waiting.get(key);
+        if (views == null) return;
+        java.util.List<ImageView> targets = new java.util.ArrayList<>(views);
+        main.post(() -> {
+            if (memory.get(key) != null) return;
+            for (ImageView v : targets) {
+                if (key.equals(v.getTag(R.id.image_key))) v.setImageBitmap(first);
+            }
+        });
     }
 
     private final java.util.concurrent.ConcurrentHashMap<String, java.util.Set<ImageView>> waiting = new java.util.concurrent.ConcurrentHashMap<>();
@@ -215,7 +227,13 @@ public final class Images {
     }
 
     private static final java.util.regex.Pattern YT_LARGE =
-            java.util.regex.Pattern.compile("^(https://i\\.ytimg\\.com/vi(?:_webp)?/[A-Za-z0-9_-]{11}/)(?:hq720|hqdefault|sddefault|maxresdefault)\\.(jpg|webp).*");
+            java.util.regex.Pattern.compile("^https://i\\.ytimg\\.com/vi(?:_webp)?/([A-Za-z0-9_-]{11})/(?:hq720|hqdefault|sddefault|maxresdefault)\\.(?:jpg|webp).*");
+    private static final java.util.regex.Pattern YT_ANY =
+            java.util.regex.Pattern.compile("^https://i\\.ytimg\\.com/vi(?:_webp)?/([A-Za-z0-9_-]{11})/(hq720|hqdefault|mqdefault|sddefault|maxresdefault)\\.(?:jpg|webp).*");
+
+    private static String ytJpg(String id, String name) {
+        return "https://i.ytimg.com/vi/" + id + "/" + name + ".jpg";
+    }
 
     private static final java.util.Map<String, String> PREVIEWS = java.util.Collections.synchronizedMap(
             new java.util.LinkedHashMap<String, String>(256, 0.75f, true) {
@@ -231,7 +249,7 @@ public final class Images {
 
     private static String preview(String url) {
         java.util.regex.Matcher m = YT_LARGE.matcher(url);
-        if (m.matches()) return m.group(1) + "mqdefault." + m.group(2);
+        if (m.matches()) return ytJpg(m.group(1), "mqdefault");
         return PREVIEWS.get(url);
     }
 
@@ -271,6 +289,8 @@ public final class Images {
                             if (page != null) byPage.put(page, wanted);
                             return body;
                         }
+                    } catch (Gone gone) {
+                        return null;
                     } catch (Throwable ignored) {
                     }
                     if (attempt + 1 < ATTEMPTS) Fetch.rotate(circuit);
@@ -314,9 +334,16 @@ public final class Images {
         c.setRequestProperty("Accept", "image/webp,image/jpeg,image/png,image/*;q=0.8");
         if (referer != null) c.setRequestProperty("Referer", referer);
         int code = c.getResponseCode();
+        if (code == 404 || code == 410) throw new Gone(code);
         if (code >= 400) throw new IOException("HTTP " + code);
         try (java.io.InputStream in = c.getInputStream()) {
             return in.readAllBytes();
+        }
+    }
+
+    private static final class Gone extends IOException {
+        Gone(int code) {
+            super("HTTP " + code);
         }
     }
 
@@ -329,23 +356,44 @@ public final class Images {
 
     private static final int MEDIUM_WIDTH = 520;
 
-    private static String smaller(String url, int targetWidth) {
-        if (targetWidth > MEDIUM_WIDTH) return url;
-        if (targetWidth > 400) {
-            if (!url.contains("i.ytimg.com/") || !url.matches(".*/(hq720|sddefault|maxresdefault)\\.(jpg|webp).*")) return url;
-            String out = url.replaceFirst("/(hq720|sddefault|maxresdefault)\\.(jpg|webp)", "/hqdefault.$2");
-            int q = out.indexOf('?');
-            return q > 0 ? out.substring(0, q) : out;
+    private static final int SITE_WIDE = 640;
+    private static final java.util.regex.Pattern MZ_SQUARE =
+            java.util.regex.Pattern.compile("/\\d+x\\d+bb\\.(?:jpg|webp|png)$");
+    private static final java.util.regex.Pattern TWIMG_MEDIA =
+            java.util.regex.Pattern.compile("^https://pbs\\.twimg\\.com/(?:ext_tw_video_thumb|amplify_video_thumb|tweet_video_thumb|media)/[^?]+\\.jpg$");
+
+    private static String sized(String url, int targetWidth) {
+        boolean small = targetWidth <= 400;
+        if (TWIMG_MEDIA.matcher(url).matches()) return url + "?format=jpg&name=900x900";
+        if (url.contains(".coub.com/") && url.contains("/big_") && targetWidth <= SITE_WIDE) {
+            return url.replace("/big_", small ? "/small_" : "/med_");
         }
-        if (url.contains(".coub.com/") && url.contains("/big_")) return url.replace("/big_", "/small_");
+        if (small && url.contains(".jtvnw.net/") && url.contains("-640x360.")) return url.replace("-640x360.", "-320x180.");
+        if (small && url.contains(".bitchute.com/") && url.contains("_640x360.")) return url.replace("_640x360.", "_320x180.");
+        if (small && url.startsWith("https://pi.tedcdn.com/") && url.endsWith("?w=480")) return url.substring(0, url.length() - 3) + "360";
+        if (url.contains(".mzstatic.com/")) {
+            java.util.regex.Matcher m = MZ_SQUARE.matcher(url);
+            if (m.find()) {
+                int side = Math.min(600, Math.max(200, targetWidth));
+                return url.substring(0, m.start()) + "/" + side + "x" + side + "bb.webp";
+            }
+        }
+        return null;
+    }
+
+    private static String smaller(String url, int targetWidth) {
+        String site = sized(url, targetWidth);
+        if (site != null) return site;
+        if (targetWidth > MEDIUM_WIDTH) return url;
+        java.util.regex.Matcher yt = YT_ANY.matcher(url);
+        if (targetWidth > 400) {
+            if (!yt.matches() || "mqdefault".equals(yt.group(2))) return url;
+            return ytJpg(yt.group(1), "hqdefault");
+        }
         if (url.contains(".pstatic.net/") && url.contains("type=o500x280")) return url.replaceFirst("type=o500x280[^&]*", "type=w320");
         if (url.contains(".porngo.com/") && url.contains("/medium@2x/")) return url.replace("/medium@2x/", "/medium/");
-        if (!url.contains("i.ytimg.com/")) return url;
-        String out = url.replace("/hq720.webp", "/mqdefault.webp").replace("/hq720.jpg", "/mqdefault.jpg")
-                .replace("/hqdefault.webp", "/mqdefault.webp").replace("/hqdefault.jpg", "/mqdefault.jpg");
-        if (out.equals(url)) return url;
-        int q = out.indexOf('?');
-        return q > 0 ? out.substring(0, q) : out;
+        if (!yt.matches() || "sddefault".equals(yt.group(2)) || "maxresdefault".equals(yt.group(2))) return url;
+        return ytJpg(yt.group(1), "mqdefault");
     }
 
     private byte[] fetch(String url, String referer) throws IOException {
@@ -353,7 +401,7 @@ public final class Images {
             return download(url, referer);
         } catch (IOException e) {
             if (!url.endsWith("/hq720.webp")) throw e;
-            return download(url.replace("/hq720.webp", "/hqdefault.webp"), referer);
+            return download(url.replace("/vi_webp/", "/vi/").replace("/hq720.webp", "/hqdefault.jpg"), referer);
         }
     }
 

@@ -76,11 +76,12 @@ public abstract class Site {
 
     protected static void durations(List<StreamInfoItem> items, long budgetMs, Seconds lookup) {
         List<java.util.concurrent.Future<?>> jobs = new ArrayList<>();
+        com.orvid.net.Fetch.Scope scope = com.orvid.net.Fetch.scope();
         for (StreamInfoItem item : items) {
             if (item.getDuration() > 0) continue;
             jobs.add(LOOKUPS.submit(() -> {
                 try {
-                    long s = lookup.of(item);
+                    long s = com.orvid.net.Fetch.within(scope, () -> lookup.of(item));
                     if (s > 0) item.setDuration(s);
                 } catch (Exception ignored) {
                 }
