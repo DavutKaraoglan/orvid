@@ -263,12 +263,11 @@ public final class Visionos {
         body.put("contentCheckOk", true);
         body.put("racyCheckOk", true);
 
-        String answer = request(circuit, PLAYER_URL, JsonWriter.string(body), visitor);
-        JsonObject root;
-        try {
-            root = JsonParser.object().from(answer);
-        } catch (Exception e) {
-            throw new IOException("player answer is not JSON");
+        String json = JsonWriter.string(body);
+        JsonObject root = playerAnswer(request(circuit, PLAYER_URL, json, visitor, PLAYER_MASK));
+        if (root.getObject("playabilityStatus").getString("status", null) == null) {
+            com.orvid.net.Diag.mark("visionos player: nothing under the field mask, asking for the full answer");
+            root = playerAnswer(request(circuit, PLAYER_URL, json, visitor, null));
         }
         JsonObject status = root.getObject("playabilityStatus");
         String state = status.getString("status", "");
@@ -495,7 +494,24 @@ public final class Visionos {
         return visitor;
     }
 
+    private static final String PLAYER_MASK = "playabilityStatus(status,reason),"
+            + "videoDetails(title,author,channelId,shortDescription,viewCount,lengthSeconds,isLive,isLiveContent),"
+            + "storyboards.playerStoryboardSpecRenderer.spec,streamingData(hlsManifestUrl,formats,adaptiveFormats),"
+            + "captions.playerCaptionsTracklistRenderer.captionTracks";
+
+    private static JsonObject playerAnswer(String answer) throws IOException {
+        try {
+            return JsonParser.object().from(answer);
+        } catch (Exception e) {
+            throw new IOException("player answer is not JSON");
+        }
+    }
+
     private static String request(String circuit, String url, String json, String visitor) throws IOException {
+        return request(circuit, url, json, visitor, null);
+    }
+
+    private static String request(String circuit, String url, String json, String visitor, String mask) throws IOException {
         long began = System.currentTimeMillis();
         String label = url.contains("/player") ? "visionos player" : "visionos visitor";
         try {
@@ -510,6 +526,7 @@ public final class Visionos {
                     c.setRequestProperty("X-YouTube-Client-Name", CLIENT_ID);
                     c.setRequestProperty("X-YouTube-Client-Version", CLIENT_VERSION);
                     if (visitor != null) c.setRequestProperty("X-Goog-Visitor-Id", visitor);
+                    if (mask != null) c.setRequestProperty("X-Goog-FieldMask", mask);
                     c.setDoOutput(true);
                     c.setFixedLengthStreamingMode(raw.length);
                     try (OutputStream out = c.getOutputStream()) {

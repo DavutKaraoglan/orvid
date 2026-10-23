@@ -29,6 +29,58 @@ public final class CircuitDataSource extends BaseDataSource {
     private static final java.util.concurrent.ExecutorService PARALLEL =
             java.util.concurrent.Executors.newCachedThreadPool();
 
+    private static final long AHEAD = 4L * 1024 * 1024;
+    private static final long PARKED_MS = 30000;
+    private static final int PARKED_MAX = 4;
+
+    private static final class Parked {
+        HttpURLConnection connection;
+        InputStream stream;
+        long next;
+        long serverEnd;
+        long total;
+        Map<String, List<String>> headers;
+        String effective;
+        long at;
+
+        void close() {
+            try {
+                stream.close();
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    private static final java.util.LinkedHashMap<String, Parked> PARKED = new java.util.LinkedHashMap<>();
+
+    private static Parked unpark(String url) {
+        synchronized (PARKED) {
+            return PARKED.remove(url);
+        }
+    }
+
+    private static void park(String url, Parked p) {
+        List<Parked> stale = new java.util.ArrayList<>();
+        synchronized (PARKED) {
+            Parked old = PARKED.put(url, p);
+            if (old != null) stale.add(old);
+            long now = System.currentTimeMillis();
+            for (java.util.Iterator<Parked> it = PARKED.values().iterator(); it.hasNext(); ) {
+                Parked q = it.next();
+                if (q != p && (now - q.at > PARKED_MS || PARKED.size() > PARKED_MAX)) {
+                    stale.add(q);
+                    it.remove();
+                }
+            }
+        }
+        for (Parked q : stale) q.close();
+    }
+
+    static boolean aheadHost(String url) {
+        String host = Uri.parse(url).getHost();
+        return host != null && host.endsWith(".googlevideo.com");
+    }
+
     static boolean parallelHost(String url) {
         String host = Uri.parse(url).getHost();
         if (host == null) return false;
@@ -130,6 +182,28 @@ public final class CircuitDataSource extends BaseDataSource {
             }
             return C.LENGTH_UNSET;
         }
+        Parked parked = unpark(dataSpec.uri.toString());
+        if (parked != null) {
+            if (parked.next == position && System.currentTimeMillis() - parked.at < PARKED_MS && (end < 0 || end <= parked.serverEnd)) {
+                connection = parked.connection;
+                stream = parked.stream;
+                chunkEnd = parked.serverEnd;
+                headers = parked.headers;
+                effective = parked.effective;
+                effectiveFor = dataSpec.uri;
+                if (parked.total > 0) knownTotal = parked.total;
+                opened = true;
+                transferStarted(dataSpec);
+                Diag.mark("media " + kind(dataSpec.uri.toString()) + " @" + position / 1024 + "KB from open stream");
+                if (dataSpec.length != C.LENGTH_UNSET) return dataSpec.length;
+                if (knownTotal > 0) {
+                    end = knownTotal;
+                    return knownTotal - position;
+                }
+                return C.LENGTH_UNSET;
+            }
+            parked.close();
+        }
         boolean parallel = dataSpec.position == 0 && dataSpec.length == C.LENGTH_UNSET
                 && parallelHost(dataSpec.uri.toString());
         chunkSize = parallel ? HEAD_PART : CHUNK;
@@ -203,6 +277,11 @@ public final class CircuitDataSource extends BaseDataSource {
         long last = end > 0 ? end - 1 : -1;
         long chunkLast = position + chunkSize - 1;
         if (last >= 0 && last < chunkLast) chunkLast = last;
+        if (end > 0 && end - position < AHEAD && aheadHost(spec.uri.toString())) {
+            chunkLast = position + AHEAD - 1;
+            if (knownTotal > 0) chunkLast = Math.min(chunkLast, knownTotal - 1);
+            chunkLast = Math.max(chunkLast, last);
+        }
         chunkEnd = chunkLast + 1;
         boolean reused = effective != null && effectiveFor == spec.uri;
         String url = reused ? effective : spec.uri.toString();
@@ -467,6 +546,7 @@ public final class CircuitDataSource extends BaseDataSource {
         }
         if (parts != null && position >= partsFrom) return readParts(buffer, offset, length);
         if (position >= chunkEnd || stream == null) connect();
+        if (end > 0) length = (int) Math.min(length, end - position);
         int n = stream.read(buffer, offset, length);
         if (n < 0) {
             if (chunkEnd != Long.MAX_VALUE && (end < 0 || position < end)) {
@@ -506,6 +586,21 @@ public final class CircuitDataSource extends BaseDataSource {
 
     @Override
     public void close() {
+        if (stream != null && spec != null && end > 0 && position == end && position < chunkEnd
+                && chunkEnd != Long.MAX_VALUE && aheadHost(spec.uri.toString())) {
+            Parked p = new Parked();
+            p.connection = connection;
+            p.stream = stream;
+            p.next = position;
+            p.serverEnd = chunkEnd;
+            p.total = knownTotal;
+            p.headers = headers;
+            p.effective = effective;
+            p.at = System.currentTimeMillis();
+            park(spec.uri.toString(), p);
+            stream = null;
+            connection = null;
+        }
         storeKept();
         kept = null;
         keptBase = null;

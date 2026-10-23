@@ -88,7 +88,7 @@ final class PlayerControls implements Player.Listener {
         x = Math.max(8, Math.min(parent.getWidth() - width - 8, x));
         preview.setTranslationX(x);
         int height = preview.getLayoutParams().height;
-        float above = seek.getTop() + seek.getPaddingTop() - height - Ui.dp(activity, 8);
+        float above = seek.getTop() + seek.getTranslationY() + seek.getPaddingTop() - height - Ui.dp(activity, 8);
         preview.setTranslationY(above - (parent.getHeight() - height - ((ViewGroup.MarginLayoutParams) preview.getLayoutParams()).bottomMargin));
         preview.setVisibility(View.VISIBLE);
         long bucket = ms / 1000;
@@ -501,6 +501,8 @@ final class PlayerControls implements Player.Listener {
         }
     }
 
+    private static final int LANDSCAPE_LIFT_DP = 16;
+
     private boolean isLandscape() {
         return activity.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
     }
@@ -510,7 +512,7 @@ final class PlayerControls implements Player.Listener {
         mini.setVisibility(landscape ? View.GONE : View.VISIBLE);
         int inset = landscape ? Math.round(12 * activity.getResources().getDisplayMetrics().density) : 0;
         seek.setPadding(inset, seek.getPaddingTop(), inset, seek.getPaddingBottom());
-        float drop = landscape ? 0 : (seek.getLayoutParams().height - mini.getLayoutParams().height) / 2f;
+        float drop = landscape ? -Ui.dp(activity, LANDSCAPE_LIFT_DP) : (seek.getLayoutParams().height - mini.getLayoutParams().height) / 2f;
         seek.setTranslationY(drop);
         ((View) time.getParent()).setTranslationY(drop);
         View row = (View) stageView.getParent();

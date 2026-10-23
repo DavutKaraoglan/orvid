@@ -1721,13 +1721,11 @@ public final class MainActivity extends Activity implements Tor.Listener {
 
     private android.view.ScaleGestureDetector pinch;
     private final Panic panic = new Panic();
-    private android.widget.ListPopupWindow suggestPopup;
     private int suggestVersion;
-    private boolean suppressSuggest;
 
     private void scheduleSuggest(String text) {
         final int version = ++suggestVersion;
-        if (suppressSuggest || text.length() < 2 || !field.hasFocus() || com.orvid.search.Source.adultUnlocked
+        if (text.length() < 2 || !field.hasFocus() || com.orvid.search.Source.adultUnlocked
                 || !com.orvid.ext.Registry.engineOn("youtube")) {
             suggestNext = null;
             dismissSuggest();
@@ -1762,7 +1760,6 @@ public final class MainActivity extends Activity implements Tor.Listener {
                     if (version == suggestVersion) {
                         lastSuggestions = got;
                         guessAhead(text, got);
-                        showSuggest(got);
                     } else {
                         List<String> ahead = new ArrayList<>();
                         for (String g : got) if (Query.fold(g).startsWith(Query.fold(now))) ahead.add(g);
@@ -1831,50 +1828,8 @@ public final class MainActivity extends Activity implements Tor.Listener {
         return g.page;
     }
 
-    private void showSuggest(List<String> items) {
-        if (items.isEmpty()) {
-            dismissSuggest();
-            return;
-        }
-        if (suggestPopup == null) {
-            suggestPopup = new android.widget.ListPopupWindow(this);
-            suggestPopup.setAnchorView(field);
-            suggestPopup.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(getColor(R.color.elevated)));
-            suggestPopup.setInputMethodMode(android.widget.PopupWindow.INPUT_METHOD_NEEDED);
-            suggestPopup.setModal(false);
-        }
-        suggestPopup.setAdapter(new android.widget.ArrayAdapter<String>(this, 0, items) {
-            @Override
-            public View getView(int position, View convert, android.view.ViewGroup parent) {
-                TextView t = convert instanceof TextView ? (TextView) convert : new TextView(MainActivity.this);
-                t.setText(getItem(position));
-                t.setTextColor(getColor(R.color.text_primary));
-                t.setTextSize(16);
-                int p = Ui.dp(MainActivity.this, 14);
-                t.setPadding(p, p, p, p);
-                t.setSingleLine(true);
-                t.setEllipsize(android.text.TextUtils.TruncateAt.END);
-                return t;
-            }
-        });
-        suggestPopup.setOnItemClickListener((parent, view, position, id) -> {
-            String pick = items.get(position);
-            dismissSuggest();
-            suppressSuggest = true;
-            field.setText(pick);
-            field.setSelection(pick.length());
-            suppressSuggest = false;
-            hideKeyboard();
-            runSearch(pick);
-        });
-        suggestPopup.setWidth(Math.max(field.getWidth(), Ui.dp(this, 240)));
-        if (!suggestPopup.isShowing()) suggestPopup.show();
-        else suggestPopup.show();
-    }
-
     private void dismissSuggest() {
         suggestVersion++;
-        if (suggestPopup != null && suggestPopup.isShowing()) suggestPopup.dismiss();
     }
 
     @Override

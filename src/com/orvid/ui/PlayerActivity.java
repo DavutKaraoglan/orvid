@@ -216,6 +216,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
         pageUrl = linkFrom(getIntent());
         resumeAt = Math.max(0, getIntent().getLongExtra(EXTRA_START_MS, 0));
         final boolean reuse = pageUrl != null && Session.has(pageUrl);
+        if (state != null && !reuse) resumeAt = Math.max(resumeAt, state.getLong(STATE_POSITION, 0));
         String thumb = reuse ? Session.thumb : getIntent().getStringExtra(EXTRA_THUMB);
         coverUrl = thumb;
         if (thumb != null) {
@@ -1063,6 +1064,15 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
     private int reextracts;
     private int reroutes;
     private long resumeAt;
+    private static final String STATE_POSITION = "position";
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        if (player != null && !player.isCurrentMediaItemLive() && player.getCurrentPosition() > 0) {
+            out.putLong(STATE_POSITION, player.getCurrentPosition());
+        }
+    }
 
     private static boolean rateLimited(PlaybackException error) {
         for (Throwable t = error; t != null; t = t.getCause()) {
