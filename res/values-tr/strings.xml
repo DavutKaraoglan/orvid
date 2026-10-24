@@ -55,6 +55,8 @@
     <string name="sort_longest">En uzun</string>
     <string name="sort_views">En çok izlenen</string>
     <string name="filter_sources">Kaynaklar</string>
+    <string name="filter_sources_search">Kaynak ara</string>
+    <string name="browse_none">Seçili kaynakların hiçbiri popüler videoları listeleyemiyor. Bir şey yazıp ara.</string>
     <string name="filter_type">Tür</string>
     <string name="type_videos">Videolar</string>
     <string name="type_shorts">Shorts</string>

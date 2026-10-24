@@ -290,6 +290,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
                 videoWidth = size.width;
                 videoHeight = size.height;
                 fitSurface();
+                if (coverSpriteTried && pendingSprite == null && !coverProbing) grabFrames();
             }
 
             @Override
@@ -308,6 +309,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
             public void onPlayerError(PlaybackException error) {
                 Diag.mark("player ERROR " + error.getErrorCodeName() + " "
                         + (error.getCause() == null ? "" : error.getCause().toString()));
+                if (playlistInFile(error)) return;
                 if (textOn() && textDrops < 2) {
                     textDrops++;
                     Diag.mark("subtitle failed, playing without it");
@@ -618,16 +620,16 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
 
     private static final int FRAME_COUNT = 8;
 
-    private com.orvid.play.Storyboard board;
+    private com.orvid.play.Frames board;
 
-    private void showFrames(com.orvid.play.Storyboard sb) {
+    private void showFrames(com.orvid.play.Frames sb) {
         board = sb;
         controls.setStoryboard(sb);
         LinearLayout row = header.findViewById(R.id.frames_row);
         row.removeAllViews();
         pendingFrames.clear();
         header.findViewById(R.id.frames).setVisibility(View.GONE);
-        if (sb == null) return;
+        if (!(sb instanceof com.orvid.play.Storyboard)) return;
         int w = Ui.dp(this, 128);
         int h = Math.round(w / sb.aspect());
         for (int i = 0; i < FRAME_COUNT; i++) {
@@ -925,7 +927,10 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
 
     private void openChannel() {
         if (!ChannelActivity.canOpen(channelUrl)) return;
-        ChannelActivity.open(this, channelUrl, ((TextView) header.findViewById(R.id.uploader)).getText().toString(), nextAvatarOrShown());
+        String name = ((TextView) header.findViewById(R.id.uploader)).getText().toString();
+        String avatar = nextAvatarOrShown();
+        minimize();
+        ChannelActivity.open(this, channelUrl, name, avatar);
     }
 
     private String nextAvatarOrShown() {
@@ -933,6 +938,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
         return a != null ? a : Session.avatar;
     }
     private boolean coverSpriteTried;
+    private boolean coverProbing;
 
     private void applySprite() {
         if (pendingSprite == null && !coverSpriteTried) {
@@ -943,24 +949,41 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
                 shots.referer = page.getScheme() + "://" + page.getHost() + "/";
             }
             if (shots != null) {
+                coverProbing = true;
                 final String c = circuit;
                 RELATED_POOL.execute(() -> {
                     int n = com.orvid.play.Storyboard.probeCount(shots, c);
                     Diag.mark("cover screens " + n);
-                    if (n >= 3) runOnUiThread(() -> {
+                    runOnUiThread(() -> {
                         if (isFinishing()) return;
-                        pendingSprite = shots.withCount(n);
+                        coverProbing = false;
+                        if (n >= 3) pendingSprite = shots.withCount(n);
                         applySprite();
                     });
                 });
             }
         }
+        if (pendingSprite == null) {
+            if (!coverProbing) grabFrames();
+            return;
+        }
         long duration = player.getDuration();
-        if (pendingSprite == null || duration <= 0 || duration == C.TIME_UNSET) return;
+        if (duration <= 0 || duration == C.TIME_UNSET) return;
         com.orvid.play.Storyboard sb = com.orvid.play.Storyboard.grid(pendingSprite, duration, circuit);
         pendingSprite = null;
         if (sb != null) showFrames(sb);
     }
+
+    private void grabFrames() {
+        if (board != null || directMedia == null || directMedia.dash) return;
+        long duration = player.getDuration();
+        VideoSize size = player.getVideoSize();
+        if (duration <= 0 || duration == C.TIME_UNSET || size.width == 0 || size.height == 0) return;
+        float aspect = size.width * size.pixelWidthHeightRatio / size.height;
+        Diag.mark("frame grab on " + (directMedia.hls ? "hls" : "file"));
+        showFrames(new com.orvid.play.FrameGrab(directMedia, circuit, duration, aspect));
+    }
+
     private static final long STALL_START_MS = 8000;
     private static final long STALL_PLAYING_MS = 10000;
     private static final long STALL_PROGRESS_MS = 3000;
@@ -1108,6 +1131,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
 
     private void loadRelated() {
         if (relatedRequested || isFinishing()) return;
+        if (((TextView) header.findViewById(R.id.name)).length() == 0) return;
         relatedRequested = true;
         if (videoId == null) {
             loadRelatedElsewhere();
@@ -1568,7 +1592,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
     private static final int STORAGE_REQUEST = 7;
 
     boolean downloadable() {
-        return ytVideo != null && !ytVideo.live && !downloads().isEmpty() || directMedia != null && !directMedia.hls;
+        return ytVideo != null && !ytVideo.live && !downloads().isEmpty() || directMedia != null && !directMedia.hls && !directMedia.dash;
     }
 
     List<Download> downloads() {
@@ -1600,7 +1624,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
             a.userAgent = Visionos.USER_AGENT;
             a.remux = true;
             out.add(new Download(getString(R.string.download_audio) + size(audio.contentLength, 0), a));
-        } else if (directMedia != null && !directMedia.hls) {
+        } else if (directMedia != null && !directMedia.hls && !directMedia.dash) {
             boolean webm = directMedia.url.contains(".webm");
             com.orvid.app.DownloadService.Request r = new com.orvid.app.DownloadService.Request(title,
                     base + (webm ? ".webm" : ".mp4"), webm ? "video/webm" : "video/mp4").add(directMedia.url, -1);
@@ -1669,15 +1693,67 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
         sources.clear();
         MediaItem item = MediaItem.fromUri(d.url);
         sources.add(d.hls ? new HlsMediaSource.Factory(data).createMediaSource(item)
+                : d.dash ? new DashMediaSource.Factory(data).createMediaSource(item)
                 : new ProgressiveMediaSource.Factory(data).createMediaSource(item));
         if (d.fallback != null) {
             MediaItem backup = MediaItem.fromUri(d.fallback);
             sources.add(d.fallbackHls ? new HlsMediaSource.Factory(data).createMediaSource(backup)
                     : new ProgressiveMediaSource.Factory(data).createMediaSource(backup));
         }
+        fileUrl = d.url;
         pendingSprite = d.sprite;
         if (pendingSprite != null && pendingSprite.referer == null) pendingSprite.referer = d.referer;
         startPlayback();
+    }
+
+    private String fileUrl;
+
+    List<com.orvid.play.Direct.Variant> fileQualities() {
+        return directMedia == null || directMedia.variants.size() < 2
+                ? java.util.Collections.<com.orvid.play.Direct.Variant>emptyList() : directMedia.variants;
+    }
+
+    String fileQuality() {
+        return fileUrl != null ? fileUrl : directMedia == null ? null : directMedia.url;
+    }
+
+    private boolean fileAsHlsTried;
+
+    private boolean playlistInFile(PlaybackException error) {
+        if (directMedia == null || fileAsHlsTried || sourceIndex >= sources.size()
+                || !(sources.get(sourceIndex) instanceof ProgressiveMediaSource)) return false;
+        boolean unknown = false;
+        for (Throwable t = error; t != null; t = t.getCause()) {
+            if (t instanceof androidx.media3.exoplayer.source.UnrecognizedInputFormatException) unknown = true;
+        }
+        if (!unknown) return false;
+        fileAsHlsTried = true;
+        String url = fileQuality();
+        Diag.mark("file is not a video, trying it as HLS");
+        CircuitDataSource.Factory data = new CircuitDataSource.Factory(circuit, Fetch.USER_AGENT, directMedia.referer)
+                .cookie(directMedia.cookie).timeout(slowSource ? SLOW_MEDIA_TIMEOUT_MS : 0);
+        MediaSource source = new HlsMediaSource.Factory(data).createMediaSource(MediaItem.fromUri(url));
+        sources.set(sourceIndex, source);
+        player.setMediaSource(source, Math.max(0, player.getCurrentPosition()));
+        player.prepare();
+        return true;
+    }
+
+    void pickFile(com.orvid.play.Direct.Variant v) {
+        if (directMedia == null || v.url.equals(fileUrl)) return;
+        Diag.mark("quality file " + v.height + "p");
+        fileUrl = v.url;
+        CircuitDataSource.Factory data = new CircuitDataSource.Factory(circuit, Fetch.USER_AGENT, directMedia.referer)
+                .cookie(directMedia.cookie).timeout(slowSource ? SLOW_MEDIA_TIMEOUT_MS : 0);
+        MediaItem item = MediaItem.fromUri(v.url);
+        MediaSource source = v.hls ? new HlsMediaSource.Factory(data).createMediaSource(item)
+                : new ProgressiveMediaSource.Factory(data).createMediaSource(item);
+        long at = Math.max(0, player.getCurrentPosition());
+        sources.clear();
+        sources.add(source);
+        sourceIndex = 0;
+        player.setMediaSource(source, at);
+        player.prepare();
     }
 
     private static final int PREPARED_WAIT_S = 8;
@@ -2178,7 +2254,7 @@ public final class PlayerActivity extends Activity implements com.orvid.app.Job.
     @Override
     protected void onStop() {
         super.onStop();
-        if (!isFinishing()) player.pause();
+        if (!isFinishing() && !minimizing) player.pause();
     }
 
     @Override

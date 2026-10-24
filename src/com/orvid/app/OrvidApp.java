@@ -41,6 +41,7 @@ public final class OrvidApp extends Application {
         prefs = getSharedPreferences("settings", MODE_PRIVATE);
         lock = new AppLock(prefs);
         registerActivityLifecycleCallbacks(lock);
+        registerActivityLifecycleCallbacks(new Background());
         NewPipe.init(Fetch.get());
         images = new Images(new File(getCacheDir(), "thumbs"));
         com.orvid.ext.Registry.reload(extRoot());
@@ -59,6 +60,42 @@ public final class OrvidApp extends Application {
         images.clearDisk();
         Visionos.addWarmer(com.orvid.vk.Vk::warm);
         applyTor(!prefs.getBoolean("tor_off", false));
+    }
+
+    private static final class Background implements ActivityLifecycleCallbacks {
+        private int started;
+
+        @Override
+        public void onActivityStarted(android.app.Activity activity) {
+            started++;
+        }
+
+        @Override
+        public void onActivityStopped(android.app.Activity activity) {
+            started--;
+            if (started > 0 || activity.isChangingConfigurations() || !com.orvid.play.Session.active()) return;
+            com.orvid.play.Session.player().pause();
+        }
+
+        @Override
+        public void onActivityCreated(android.app.Activity activity, android.os.Bundle state) {
+        }
+
+        @Override
+        public void onActivityResumed(android.app.Activity activity) {
+        }
+
+        @Override
+        public void onActivityPaused(android.app.Activity activity) {
+        }
+
+        @Override
+        public void onActivitySaveInstanceState(android.app.Activity activity, android.os.Bundle state) {
+        }
+
+        @Override
+        public void onActivityDestroyed(android.app.Activity activity) {
+        }
     }
 
     public static OrvidApp get() {

@@ -72,6 +72,12 @@ public final class ExtSource extends Source {
     }
 
     int minQuery;
+    boolean browse;
+
+    @Override
+    public boolean browses() {
+        return browse;
+    }
 
     @Override
     public boolean wanted(com.orvid.search.Filters f, com.orvid.search.Query q) {
@@ -154,6 +160,9 @@ public final class ExtSource extends Source {
                 throw new IOException(e);
             }
             Direct d = new Direct(m.title, "", m.mp4, m.mp4.contains(".m3u8"), m.referer);
+            if (m.qualities.size() > 1) {
+                for (java.util.Map.Entry<Integer, String> q : m.qualities.entrySet()) d.variant(q.getKey(), q.getValue());
+            }
             return won[0].equals(circuit) ? d : d.via(won[0]);
         }
         String[] won = new String[1];
@@ -171,10 +180,18 @@ public final class ExtSource extends Source {
         Direct d = new Direct(out.getString("title", ""), out.getString("author", ""), media,
                 out.getBoolean("hls", media.contains(".m3u8")), out.getString("referer", null));
         d.cookie = out.getString("cookie", null);
+        d.dash = !d.hls && out.getBoolean("dash", media.contains(".mpd"));
         JsonObject fb = out.getObject("fallback");
         if (fb != null && fb.getString("url", null) != null) {
             d.fallback = fb.getString("url");
             d.fallbackHls = fb.getBoolean("hls", d.fallback.contains(".m3u8"));
+        }
+        JsonArray qualities = out.getArray("qualities");
+        if (qualities != null && qualities.size() > 1) {
+            for (int i = 0; i < qualities.size(); i++) {
+                JsonObject q = qualities.getObject(i);
+                if (q != null) d.variant(q.getInt("height", 0), q.getString("url", null));
+            }
         }
         JsonObject sp = out.getObject("sprite");
         if (sp != null && sp.getString("url", null) != null) {

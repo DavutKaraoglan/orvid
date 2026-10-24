@@ -49,7 +49,7 @@ final class PlayerControls implements Player.Listener {
     private final TextView time;
     private final SeekBar seek;
     private final android.widget.ImageView preview;
-    private com.orvid.play.Storyboard storyboard;
+    private com.orvid.play.Frames storyboard;
     private long previewFor = -1;
     private float downX;
     private float downY;
@@ -57,7 +57,7 @@ final class PlayerControls implements Player.Listener {
     private long scrubFrom;
     private long scrubTarget;
 
-    void setStoryboard(com.orvid.play.Storyboard sb) {
+    void setStoryboard(com.orvid.play.Frames sb) {
         storyboard = sb;
         preview.setVisibility(View.GONE);
     }
@@ -641,7 +641,22 @@ final class PlayerControls implements Player.Listener {
         return true;
     }
 
+    private List<com.orvid.play.Direct.Variant> files() {
+        return activity instanceof PlayerActivity ? ((PlayerActivity) activity).fileQualities()
+                : Collections.<com.orvid.play.Direct.Variant>emptyList();
+    }
+
+    private com.orvid.play.Direct.Variant currentFile() {
+        String url = ((PlayerActivity) activity).fileQuality();
+        for (com.orvid.play.Direct.Variant v : files()) if (v.url.equals(url)) return v;
+        return null;
+    }
+
     private String qualityLabel() {
+        if (!files().isEmpty()) {
+            com.orvid.play.Direct.Variant v = currentFile();
+            return v == null ? activity.getString(R.string.quality_auto) : v.height + "p";
+        }
         Format now = player.getVideoFormat();
         String current = now == null || now.height <= 0 ? "" : shortSide(now) + "p";
         if (auto()) {
@@ -653,6 +668,18 @@ final class PlayerControls implements Player.Listener {
 
     private void showQuality() {
         Sheet sheet = new Sheet();
+        List<com.orvid.play.Direct.Variant> files = files();
+        if (!files.isEmpty()) {
+            com.orvid.play.Direct.Variant now = currentFile();
+            for (com.orvid.play.Direct.Variant v : files) {
+                sheet.choice(v.height + "p", v == now, () -> {
+                    ((PlayerActivity) activity).pickFile(v);
+                    sheet.dismiss();
+                });
+            }
+            sheet.show();
+            return;
+        }
         boolean auto = auto();
         Format now = player.getVideoFormat();
         sheet.choice(activity.getString(R.string.quality_auto), auto, () -> {

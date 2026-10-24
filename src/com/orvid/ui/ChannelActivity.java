@@ -57,6 +57,19 @@ public final class ChannelActivity extends Activity implements Job.Scoped {
     private Page next;
     private boolean loading;
     private String avatarUrl;
+    private MiniPlayer miniPlayer;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (miniPlayer != null) miniPlayer.attach();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (miniPlayer != null) miniPlayer.detach();
+    }
 
     public static boolean canOpen(String url) {
         if (url == null || url.isEmpty()) return false;
@@ -145,6 +158,9 @@ public final class ChannelActivity extends Activity implements Job.Scoped {
         body.addView(message, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
         root.addView(body, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+        View miniView = getLayoutInflater().inflate(R.layout.view_mini, root, false);
+        root.addView(miniView);
+        miniPlayer = new MiniPlayer(this, miniView);
         setContentView(root);
 
         name.setText(getIntent().getStringExtra(EXTRA_NAME));

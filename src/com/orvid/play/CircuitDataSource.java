@@ -565,7 +565,8 @@ public final class CircuitDataSource extends BaseDataSource {
 
     @Override
     public Uri getUri() {
-        return spec == null ? null : spec.uri;
+        if (spec == null) return null;
+        return effective != null && effectiveFor == spec.uri ? Uri.parse(effective) : spec.uri;
     }
 
     @Override

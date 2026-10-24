@@ -139,6 +139,7 @@ public final class Registry {
         String lang = d.getString("lang", null);
         if (lang != null) s.script(lang);
         s.minQuery = Math.max(0, Math.min(10, d.getInt("minQuery", 0)));
+        s.browse = d.getBoolean("browse", false);
         return s;
     }
 

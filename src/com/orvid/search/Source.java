@@ -67,6 +67,10 @@ public abstract class Source {
         return false;
     }
 
+    public boolean browses() {
+        return false;
+    }
+
     public boolean wanted(Filters f, Query q) {
         if (!q.siteIs(key, name) || f.type == Filters.TYPE_SHORTS) return false;
         if (adult && (f.hideAdult || !adultUnlocked)) return false;

@@ -3,10 +3,13 @@ package com.orvid.ui;
 import android.app.Activity;
 import android.app.Dialog;
 import android.graphics.drawable.ColorDrawable;
+import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Switch;
@@ -108,6 +111,20 @@ final class FilterSheet {
         row(activity, column, activity.getString(R.string.add_repo), R.drawable.ic_add, () -> RepoDialog.add(activity, reload));
 
         section(activity, column, R.string.filter_sources);
+        EditText sourceField = new EditText(activity);
+        sourceField.setHint(R.string.filter_sources_search);
+        sourceField.setSingleLine(true);
+        sourceField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        sourceField.setImeOptions(EditorInfo.IME_ACTION_DONE | EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);
+        sourceField.setBackgroundResource(R.drawable.bg_search);
+        sourceField.setTextColor(activity.getColor(R.color.text_primary));
+        sourceField.setHintTextColor(activity.getColor(R.color.text_secondary));
+        sourceField.setTextSize(15);
+        sourceField.setPadding(Ui.dp(activity, 16), 0, Ui.dp(activity, 16), 0);
+        LinearLayout.LayoutParams fieldLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(activity, 44));
+        fieldLp.bottomMargin = Ui.dp(activity, 6);
+        column.addView(sourceField, fieldLp);
+        int sourcesFrom = column.getChildCount();
         java.util.List<Switch> normalSwitches = new java.util.ArrayList<>();
         boolean everyOn = filters.youtube && filters.dailymotion && filters.vk;
         for (com.orvid.search.Source x : Sources.current()) if (!x.adult && !filters.on(x)) everyOn = false;
@@ -216,6 +233,25 @@ final class FilterSheet {
             }
         }
         for (Object[] c : core) ((Runnable) c[1]).run();
+        int sourcesTo = column.getChildCount();
+        sourceField.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence t, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence t, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable e) {
+                String q = e.toString().trim().toLowerCase(java.util.Locale.ROOT);
+                for (int i = sourcesFrom; i < sourcesTo; i++) {
+                    View v = column.getChildAt(i);
+                    v.setVisibility(q.isEmpty() || label(v).toLowerCase(java.util.Locale.ROOT).contains(q) ? View.VISIBLE : View.GONE);
+                }
+            }
+        });
 
 
         if (com.orvid.search.Source.adultUnlocked) {
@@ -272,8 +308,15 @@ final class FilterSheet {
             w.setGravity(Gravity.BOTTOM);
             w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             w.setWindowAnimations(android.R.style.Animation_InputMethod);
+            w.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN
+                    | android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         }
         dialog.show();
+    }
+
+    private static String label(View v) {
+        if (v instanceof LinearLayout && ((LinearLayout) v).getChildCount() > 0) v = ((LinearLayout) v).getChildAt(0);
+        return v instanceof TextView ? String.valueOf(((TextView) v).getText()) : "";
     }
 
     private interface IntPick {

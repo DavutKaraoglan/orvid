@@ -10,7 +10,7 @@ import com.orvid.net.Fetch;
 
 import java.util.concurrent.ExecutorService;
 
-public final class Storyboard {
+public final class Storyboard implements Frames {
 
     public interface Callback {
         void frame(Bitmap bitmap);

@@ -27,6 +27,7 @@ public final class HtmlTube {
         public String title = "";
         public String mp4;
         public String referer;
+        public final java.util.TreeMap<Integer, String> qualities = new java.util.TreeMap<>();
     }
 
     public final int serviceId;
@@ -170,13 +171,18 @@ public final class HtmlTube {
         Matcher pt = PAGE_TITLE.matcher(html);
         com.orvid.net.Trace.page("HTML " + html.length() / 1024 + " KB, " + (cards.length - 1) + " \u2192 " + p.items.size()
                 + (pt.find() ? ", \"" + Web.unescape(pt.group(1).trim()) + "\"" : ""));
-        String nextUrl = laterPage.replace("{q}", q).replace("{qp}", qPath).replace("{p}", Integer.toString(page + 1));
-        String nextPath = nextUrl.startsWith(site) ? nextUrl.substring(site.length()) : nextUrl;
-        if (!p.items.isEmpty() && (paged || html.contains(nextPath) || html.contains(nextUrl)
-                || html.contains(nextPath.replace("&", "&amp;")))) {
+        if (!p.items.isEmpty() && (paged || linksTo(html, q, qPath, page + 1)
+                || linksTo(html, q, query.trim(), page + 1)
+                || linksTo(html, q, query.trim().replace(" ", "%20"), page + 1))) {
             p.next = Integer.toString(page + 1);
         }
         return p;
+    }
+
+    private boolean linksTo(String html, String q, String qPath, int page) {
+        String nextUrl = laterPage.replace("{q}", q).replace("{qp}", qPath).replace("{p}", Integer.toString(page));
+        String nextPath = nextUrl.startsWith(site) ? nextUrl.substring(site.length()) : nextUrl;
+        return html.contains(nextPath) || html.contains(nextUrl) || html.contains(nextPath.replace("&", "&amp;"));
     }
 
     private String searchFallback;
@@ -258,6 +264,7 @@ public final class HtmlTube {
                 best = q;
                 m.mp4 = u;
             }
+            if (!m.qualities.containsKey(q)) m.qualities.put(q, u);
             if (q < lowestQ) {
                 lowestQ = q;
                 lowest = u;
@@ -284,6 +291,7 @@ public final class HtmlTube {
                 best = q;
                 m.mp4 = u;
             }
+            if (!m.qualities.containsKey(q)) m.qualities.put(q, u);
             if (q < lowestQ) {
                 lowestQ = q;
                 lowest = u;
@@ -298,6 +306,7 @@ public final class HtmlTube {
                 best = q;
                 m.mp4 = u;
             }
+            if (!m.qualities.containsKey(q)) m.qualities.put(q, u);
             if (q < lowestQ) {
                 lowestQ = q;
                 lowest = u;
@@ -305,7 +314,10 @@ public final class HtmlTube {
         }
         if (m.mp4 == null) m.mp4 = lowest;
         if (m.mp4 == null) throw new IOException("no stream");
-        if (followRedirect) m.mp4 = unwrap(circuit, m.mp4, m.referer);
+        if (followRedirect) {
+            m.mp4 = unwrap(circuit, m.mp4, m.referer);
+            m.qualities.clear();
+        }
         return m;
     }
 

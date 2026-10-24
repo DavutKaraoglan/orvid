@@ -87,6 +87,7 @@ public final class Warm {
             size = 0;
         }
         STARTED.clear();
+        LIGHT.clear();
     }
 
     private static final ExecutorService WATCH = Executors.newCachedThreadPool(r -> {
@@ -117,8 +118,11 @@ public final class Warm {
         String id = Visionos.videoId(pageUrl);
         Future<?> f;
         if (id != null) f = Visionos.prepare(id);
-        else if (Resolve.preparable(pageUrl)) f = Resolve.prepare(pageUrl);
-        else return;
+        else if (Resolve.preparable(pageUrl)) {
+            Future<Resolve.Stream> r = Resolve.prepare(pageUrl);
+            if (r != null) light(pageUrl, r);
+            f = r;
+        } else return;
         if (!com.orvid.app.DevInfo.on || f == null || com.orvid.app.DevInfo.warm(pageUrl) != null) return;
         com.orvid.app.DevInfo.warm(pageUrl, "link…");
         WATCH.execute(() -> {
@@ -128,6 +132,68 @@ public final class Warm {
             } catch (Exception e) {
                 if (!STARTED.contains(pageUrl)) com.orvid.app.DevInfo.warm(pageUrl, "link fail");
             }
+        });
+    }
+
+    private static final java.util.Set<String> LIGHT = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    private static void light(String pageUrl, Future<Resolve.Stream> f) {
+        if (!LIGHT.add(pageUrl)) return;
+        EXEC.execute(() -> {
+            try {
+                Resolve.Stream s = f.get(PREPARE_WAIT_S, TimeUnit.SECONDS);
+                if (s == null || s.direct == null || s.direct.url == null || STARTED.contains(pageUrl)) return;
+                Direct d = s.direct;
+                if (!d.hls) {
+                    touch(s.circuit, d.url, d.referer, d.cookie);
+                    return;
+                }
+                if (d.cookie != null) return;
+                String playlist = text(fetch(s.circuit, d.url, d.referer, PLAYLIST_MAX, true));
+                if (playlist.contains("#EXT-X-STREAM-INF")) {
+                    String media = variant(d.url, playlist);
+                    if (media != null) fetch(s.circuit, media, d.referer, PLAYLIST_MAX, true);
+                }
+            } catch (Exception e) {
+                LIGHT.remove(pageUrl);
+            }
+        });
+    }
+
+    private static void touch(String circuit, String url, String referer, String cookie) throws Exception {
+        Fetch.on(circuit, () -> {
+            String at = url;
+            for (int hop = 0; hop < 4; hop++) {
+                HttpURLConnection c = Fetch.open(at);
+                c.setInstanceFollowRedirects(false);
+                c.setConnectTimeout(15000);
+                c.setReadTimeout(20000);
+                c.setRequestProperty("User-Agent", Fetch.USER_AGENT);
+                c.setRequestProperty("Accept-Encoding", "identity");
+                c.setRequestProperty("Range", "bytes=0-0");
+                if (referer != null) {
+                    c.setRequestProperty("Referer", referer);
+                    c.setRequestProperty("Origin", referer.replaceAll("/$", ""));
+                }
+                if (cookie != null) c.setRequestProperty("Cookie", cookie);
+                int code = c.getResponseCode();
+                String to = c.getHeaderField("Location");
+                long length = c.getContentLengthLong();
+                if (code == 206 || length >= 0 && length <= 65536) {
+                    InputStream in = code < 400 ? c.getInputStream() : c.getErrorStream();
+                    if (in != null) {
+                        byte[] buf = new byte[4096];
+                        while (in.read(buf) > 0) {
+                        }
+                        in.close();
+                    }
+                } else {
+                    c.disconnect();
+                }
+                if (code < 300 || code >= 400 || to == null) return code;
+                at = java.net.URI.create(at).resolve(to.replace(" ", "%20")).toString().replaceFirst("^http://", "https://");
+            }
+            return 0;
         });
     }
 
@@ -154,7 +220,7 @@ public final class Warm {
             });
             return;
         }
-        Future<Resolve.Stream> f = Resolve.prepare(pageUrl);
+        Future<Resolve.Stream> f = Resolve.prepare(pageUrl, true);
         if (f == null) {
             com.orvid.app.DevInfo.warm(pageUrl, "not preparable");
             return;

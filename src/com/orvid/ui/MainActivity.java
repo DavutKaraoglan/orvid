@@ -113,6 +113,9 @@ public final class MainActivity extends Activity implements Tor.Listener {
         addRepo.setOnClickListener(v -> RepoDialog.add(this, this::repoChanged));
         correction = findViewById(R.id.correction);
         trace = findViewById(R.id.trace);
+        wait = findViewById(R.id.search_wait);
+        waitLogo = findViewById(R.id.search_wait_logo);
+        waitBar = findViewById(R.id.search_wait_bar);
         traceLine = findViewById(R.id.trace_line);
         traceCount = findViewById(R.id.trace_count);
         traceBar = findViewById(R.id.trace_bar);
@@ -138,7 +141,6 @@ public final class MainActivity extends Activity implements Tor.Listener {
                 startActivity(new Intent(this, WebPlayerActivity.class).putExtra(WebPlayerActivity.EXTRA_URL, item.getUrl()));
                 return;
             }
-            openingPlayer = true;
             PlayerActivity.clearBack();
             long at = adapter.previewPosition(item.getUrl());
             startActivity(new Intent(this, PlayerActivity.class)
@@ -183,6 +185,12 @@ public final class MainActivity extends Activity implements Tor.Listener {
             }
         };
         list.setAdapter(adapter);
+        adapter.registerDataSetObserver(new android.database.DataSetObserver() {
+            @Override
+            public void onChanged() {
+                if (adapter.getCount() > 0) stopWait();
+            }
+        });
         layoutButton = findViewById(R.id.btn_layout);
         layoutButton.setImageResource(R.drawable.ic_filter);
         layoutButton.setOnClickListener(v -> {
@@ -238,10 +246,8 @@ public final class MainActivity extends Activity implements Tor.Listener {
             }
             dismissSuggest();
             String q = field.getText().toString().trim();
-            if (!q.isEmpty()) {
-                hideKeyboard();
-                runSearch(q);
-            }
+            hideKeyboard();
+            runSearch(q);
         });
         field.addTextChangedListener(new android.text.TextWatcher() {
             @Override
@@ -275,135 +281,18 @@ public final class MainActivity extends Activity implements Tor.Listener {
             if (actionId != EditorInfo.IME_ACTION_SEARCH) return false;
             dismissSuggest();
             String q = field.getText().toString().trim();
-            if (!q.isEmpty()) {
-                hideKeyboard();
-                runSearch(q);
-            }
+            hideKeyboard();
+            runSearch(q);
             return true;
         });
 
         message.setText(R.string.tagline);
-        mini = findViewById(R.id.mini);
-        miniVideo = findViewById(R.id.mini_video);
-        miniPlay = findViewById(R.id.mini_play);
-        miniProgress = findViewById(R.id.mini_progress);
-        mini.setOnClickListener(v -> {
-            if (!com.orvid.play.Session.active()) return;
-            openingPlayer = true;
-            startActivity(new Intent(this, PlayerActivity.class)
-                    .putExtra(PlayerActivity.EXTRA_URL, com.orvid.play.Session.url()));
-            overridePendingTransition(0, 0);
-        });
-        miniPlay.setOnClickListener(v -> {
-            androidx.media3.exoplayer.ExoPlayer p = com.orvid.play.Session.player();
-            if (p == null) return;
-            if (p.isPlaying()) p.pause();
-            else p.play();
-        });
-        findViewById(R.id.mini_close).setOnClickListener(v -> {
-            detachMini();
-            com.orvid.play.Session.release();
-            mini.setVisibility(View.GONE);
-        });
+        miniPlayer = new MiniPlayer(this, findViewById(R.id.mini));
         CrashLog.showPending(this);
         showHome();
     }
 
-    private View mini;
-    private android.view.TextureView miniVideo;
-    private ImageButton miniPlay;
-    private android.widget.ProgressBar miniProgress;
-    private boolean openingPlayer;
-    private androidx.media3.common.Player attached;
-    private final androidx.media3.common.Player.Listener miniListener = new androidx.media3.common.Player.Listener() {
-        @Override
-        public void onIsPlayingChanged(boolean playing) {
-            miniPlay.setImageResource(playing ? R.drawable.ic_pause_white : R.drawable.ic_play_white);
-        }
-
-        @Override
-        public void onVideoSizeChanged(androidx.media3.common.VideoSize size) {
-            fitMini(size);
-        }
-
-        @Override
-        public void onRenderedFirstFrame() {
-            View cover = findViewById(R.id.mini_cover);
-            cover.removeCallbacks(showMiniCover);
-            cover.setVisibility(View.GONE);
-        }
-    };
-
-    private static final long MINI_COVER_DELAY_MS = 500;
-    private final Runnable showMiniCover = () -> findViewById(R.id.mini_cover).setVisibility(View.VISIBLE);
-
-    private void fitMini(androidx.media3.common.VideoSize size) {
-        View box = (View) miniVideo.getParent();
-        int w = box.getLayoutParams().width;
-        int h = box.getLayoutParams().height;
-        android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(w, h, android.view.Gravity.CENTER);
-        if (size.width > 0 && size.height > 0) {
-            float ratio = size.width * size.pixelWidthHeightRatio / size.height;
-            if (ratio > (float) w / h) lp.height = Math.round(w / ratio);
-            else lp.width = Math.round(h * ratio);
-        }
-        miniVideo.setLayoutParams(lp);
-    }
-
-    private void freshMiniSurface() {
-        android.view.ViewGroup box = (android.view.ViewGroup) miniVideo.getParent();
-        int index = box.indexOfChild(miniVideo);
-        box.removeView(miniVideo);
-        miniVideo = new android.view.TextureView(this);
-        miniVideo.setId(R.id.mini_video);
-        box.addView(miniVideo, index);
-    }
-
-    private void attachMini() {
-        androidx.media3.exoplayer.ExoPlayer p = com.orvid.play.Session.player();
-        if (p == null) {
-            mini.setVisibility(View.GONE);
-            return;
-        }
-        mini.setVisibility(View.VISIBLE);
-        ((TextView) findViewById(R.id.mini_title)).setText(com.orvid.play.Session.title);
-        ((TextView) findViewById(R.id.mini_author)).setText(com.orvid.play.Session.author);
-        freshMiniSurface();
-        fitMini(p.getVideoSize());
-        android.widget.ImageView cover = findViewById(R.id.mini_cover);
-        cover.setVisibility(View.GONE);
-        cover.removeCallbacks(showMiniCover);
-        cover.postDelayed(showMiniCover, MINI_COVER_DELAY_MS);
-        int coverWidth = cover.getLayoutParams().width > 0 ? cover.getLayoutParams().width : Ui.dp(this, 150);
-        OrvidApp.get().images().load(cover, com.orvid.play.Session.thumb, coverWidth, com.orvid.play.Session.url());
-        p.setVideoTextureView(miniVideo);
-        p.addListener(miniListener);
-        attached = p;
-        miniListener.onIsPlayingChanged(p.isPlaying());
-        int tint = Ui.accent(Ui.iconForUrl(this, com.orvid.play.Session.url()));
-        miniProgress.setProgressTintList(android.content.res.ColorStateList.valueOf(tint != 0 ? tint : getColor(R.color.text_primary)));
-        miniProgress.removeCallbacks(miniTick);
-        miniTick.run();
-    }
-
-    private static final long MINI_TICK_MS = 500;
-    private final Runnable miniTick = new Runnable() {
-        @Override
-        public void run() {
-            if (attached == null) return;
-            long duration = attached.getDuration();
-            miniProgress.setProgress(duration > 0 ? (int) (attached.getCurrentPosition() * 1000 / duration) : 0);
-            miniProgress.postDelayed(this, MINI_TICK_MS);
-        }
-    };
-
-    private void detachMini() {
-        miniProgress.removeCallbacks(miniTick);
-        if (attached == null) return;
-        attached.clearVideoTextureView(miniVideo);
-        attached.removeListener(miniListener);
-        attached = null;
-    }
+    private MiniPlayer miniPlayer;
 
     private int logoTaps;
     private long logoTapAt;
@@ -464,6 +353,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
 
     private void showEmpty() {
         message.setText(R.string.nothing_here);
+        stopWait();
         message.setVisibility(View.VISIBLE);
         addRepo.setVisibility(View.VISIBLE);
     }
@@ -480,7 +370,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
     @Override
     protected void onPause() {
         super.onPause();
-        detachMini();
+        miniPlayer.detach();
         adapter.releasePreview();
     }
 
@@ -489,8 +379,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
         super.onResume();
         list.removeCallbacks(devRefresh);
         if (com.orvid.app.DevInfo.on) list.postDelayed(devRefresh, DEV_REFRESH_MS);
-        openingPlayer = false;
-        attachMini();
+        miniPlayer.attach();
     }
 
     @Override
@@ -505,9 +394,6 @@ public final class MainActivity extends Activity implements Tor.Listener {
     @Override
     protected void onStop() {
         super.onStop();
-        if (!openingPlayer && com.orvid.play.Session.active() && !isChangingConfigurations()) {
-            com.orvid.play.Session.player().pause();
-        }
         Tor.get().removeListener(this);
     }
 
@@ -606,7 +492,6 @@ public final class MainActivity extends Activity implements Tor.Listener {
         String link = com.orvid.play.Generic.linkIn(input);
         if (link != null) {
             dismissSuggest();
-            openingPlayer = true;
             startActivity(new Intent(this, PlayerActivity.class).putExtra(PlayerActivity.EXTRA_URL, link));
             return;
         }
@@ -626,7 +511,6 @@ public final class MainActivity extends Activity implements Tor.Listener {
         message.setVisibility(View.GONE);
         addRepo.setVisibility(View.GONE);
         correction.setVisibility(View.GONE);
-        adapter.setSkeleton(8);
         continuation = null;
         circuit = null;
         dmMore = false;
@@ -676,6 +560,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
         devSources.clear();
         searchStarted = android.os.SystemClock.uptimeMillis();
         traceReset();
+        startWait();
         findViewById(R.id.dev_status).setVisibility(View.GONE);
         pendingSources = 0;
 
@@ -691,7 +576,8 @@ public final class MainActivity extends Activity implements Tor.Listener {
 
         final java.util.concurrent.Future<Hedge.Result<Search.Page>> guessed = takeGuess(q, f);
         youtubePending = false;
-        if (q.siteIs("youtube", "YouTube") && f.youtube && com.orvid.ext.Registry.engineOn("youtube")) {
+        final boolean blank = input.trim().isEmpty();
+        if (!blank && q.siteIs("youtube", "YouTube") && f.youtube && com.orvid.ext.Registry.engineOn("youtube")) {
             youtubePending = true;
             pendingSources++;
             jobs.add(queued(0, 0, 0, () -> {
@@ -725,7 +611,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
                 }
             }));
         }
-        if (q.siteIs("dailymotion", "Dailymotion") && f.dailymotion && com.orvid.ext.Registry.engineOn("dailymotion")) {
+        if (!blank && q.siteIs("dailymotion", "Dailymotion") && f.dailymotion && com.orvid.ext.Registry.engineOn("dailymotion")) {
             pendingSources++;
             jobs.add(queued(1, 1, 0, () -> {
                 try {
@@ -741,7 +627,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
                 }
             }));
         }
-        if (q.siteIs("vk", "VK") && f.vk && f.type != Filters.TYPE_SHORTS && com.orvid.ext.Registry.engineOn("vk")) {
+        if (!blank && q.siteIs("vk", "VK") && f.vk && f.type != Filters.TYPE_SHORTS && com.orvid.ext.Registry.engineOn("vk")) {
             pendingSources++;
             jobs.add(queued(2, Query.CYRILLIC.equals(q.script()) ? 2 : 4, -0.8, () -> {
                 try {
@@ -763,7 +649,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
         for (int i = 0; i < extras.size(); i++) {
             final Source src = extras.get(i);
             final int slot = i;
-            if (!src.wanted(f, q) || healthSkip(generation, CORE + slot)) continue;
+            if (blank && !src.browses() || !src.wanted(f, q) || healthSkip(generation, CORE + slot)) continue;
             pendingSources++;
             Queued job = queued(CORE + slot, src.priority(q) + healthPenalty(src), -src.weight, () -> runExtra(generation, f, src, slot, null));
             if (!Fetch.torMode() || waveCount[src.adult ? 1 : 0]++ < FIRST_WAVE) jobs.add(job);
@@ -771,7 +657,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
         }
         if (pendingSources == 0) {
             adapter.set(Collections.<StreamInfoItem>emptyList());
-            showMessage(getString(R.string.no_results));
+            showMessage(getString(blank ? R.string.browse_none : R.string.no_results));
         }
         startedSources = pendingSources;
         java.util.Collections.sort(jobs);
@@ -1104,6 +990,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
         traceFinishedAt = traceDone >= traceTotal ? android.os.SystemClock.uptimeMillis() : 0;
         traceState[source] = state;
         traceLast = source;
+        updateWait();
         renderTrace();
     }
 
@@ -1150,6 +1037,44 @@ public final class MainActivity extends Activity implements Tor.Listener {
     }
 
     private static final long TRACE_LINGER_MS = 4000;
+
+    private static final long WAIT_DELAY_MS = 400;
+    private View wait;
+    private android.widget.ImageView waitLogo;
+    private android.widget.ProgressBar waitBar;
+    private boolean waiting;
+    private final Runnable waitShow = () -> {
+        if (!waiting || adapter.getCount() > 0) return;
+        wait.setVisibility(View.VISIBLE);
+        updateWait();
+    };
+
+    private void startWait() {
+        waiting = true;
+        wait.removeCallbacks(waitShow);
+        wait.setVisibility(View.GONE);
+        waitBar.setProgress(0);
+        if (!fromMemory) wait.postDelayed(waitShow, WAIT_DELAY_MS);
+    }
+
+    private void stopWait() {
+        waiting = false;
+        wait.removeCallbacks(waitShow);
+        wait.setVisibility(View.GONE);
+    }
+
+    private void updateWait() {
+        if (!waiting || wait.getVisibility() != View.VISIBLE) return;
+        int p = traceTotal == 0 ? 30 : Math.max(40, 1000 * traceDone / traceTotal);
+        waitBar.setProgress(p, true);
+        android.graphics.drawable.Drawable icon = null;
+        if (traceLast == 0) icon = getDrawable(R.drawable.ic_src_youtube);
+        else if (traceLast == 1) icon = getDrawable(R.drawable.ic_src_dailymotion);
+        else if (traceLast == 2) icon = getDrawable(R.drawable.ic_src_vk);
+        else if (traceLast >= CORE && traceLast - CORE < extras.size()) icon = Ui.sourceIcon(this, extras.get(traceLast - CORE));
+        waitLogo.setImageDrawable(icon);
+        waitLogo.setVisibility(icon != null ? View.VISIBLE : View.INVISIBLE);
+    }
 
     private void prewarmSources() {
         Query blank = Query.parse("");
@@ -1682,6 +1607,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
 
     private void showMessage(String text) {
         message.setText(text);
+        stopWait();
         message.setVisibility(View.VISIBLE);
         addRepo.setVisibility(View.GONE);
     }
@@ -1851,7 +1777,7 @@ public final class MainActivity extends Activity implements Tor.Listener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        detachMini();
+        miniPlayer.detach();
         if (isFinishing()) com.orvid.play.Session.release();
     }
 }

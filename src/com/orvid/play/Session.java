@@ -23,7 +23,7 @@ public final class Session {
     public static String relatedToken;
     public static com.orvid.yt.Visionos.Video video;
     public static Direct direct;
-    public static Storyboard storyboard;
+    public static Frames storyboard;
     public static int sourceIndex;
     public static final List<androidx.media3.exoplayer.source.MediaSource> sources = new ArrayList<>();
     public static final List<StreamInfoItem> related = new ArrayList<>();

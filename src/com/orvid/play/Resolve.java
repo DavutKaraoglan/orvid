@@ -46,18 +46,26 @@ public final class Resolve {
     private static final java.util.concurrent.ExecutorService PREPARE = java.util.concurrent.Executors.newFixedThreadPool(2);
 
     public static boolean preparable(String url) {
+        return preparable(url, false);
+    }
+
+    static boolean preparable(String url, boolean focused) {
         if (url == null) return false;
         com.orvid.ext.ExtSource ext = com.orvid.ext.Registry.forUrl(url);
-        if (ext != null) return !ext.webPlayback && !ext.hedged();
+        if (ext != null) return !ext.webPlayback && (focused || !ext.hedged());
         if (com.orvid.dm.Dailymotion.videoId(url) != null || com.orvid.vk.Vk.videoId(url) != null) return true;
         return com.orvid.tw.Twitch.vodId(url) != null || com.orvid.tw.Twitch.clipSlug(url) != null
                 || com.orvid.pt.PeerTube.handles(url) || com.orvid.ia.Archive.itemId(url) != null
                 || com.orvid.more.Sites.forUrl(url) != null;
     }
 
-    @SuppressWarnings("unchecked")
     public static java.util.concurrent.Future<Stream> prepare(String url) {
-        if (!preparable(url)) return null;
+        return prepare(url, false);
+    }
+
+    @SuppressWarnings("unchecked")
+    static java.util.concurrent.Future<Stream> prepare(String url, boolean focused) {
+        if (!preparable(url, focused)) return null;
         synchronized (PREPARED) {
             Object[] known = PREPARED.get(url);
             if (known != null && System.currentTimeMillis() - (long) known[1] < PREPARED_TTL_MS) {
